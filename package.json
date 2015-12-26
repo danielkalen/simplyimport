@@ -1,0 +1,40 @@
+{
+  "name": "simplyimport",
+  "version": "1.0.5",
+  "description": "SASS/PHP-like imports with an @import directive",
+  "keywords": [
+    "import",
+    "importer",
+    "jsimport",
+    "jsimporter",
+    "require",
+    "browserify",
+    "include",
+    "amd",
+    "coffee-import"
+  ],
+  "main": "simplyimport.js",
+  "bin": {
+    "simplyimport": "./simplyimport.js"
+  },
+  "author": "danielkalen",
+  "license": "MIT",
+  "scripts": {
+    "watch": "nodemon -e coffee -w ./src -x 'npm run coffee'",
+    "coffee": "coffee -o ./ -c src/simplyimport.coffee && chmod +x simplyimport.js",
+    "test": "npm run test:standard && npm run test:coffee && npm run test:both && npm run test:uglify",
+    "test:standard": "node test/standard/_test.js",
+    "test:coffee": "node test/coffeescript/_test.js",
+    "test:both": "node test/both/_test.js",
+    "test:uglify": "node test/uglify/_test.js"
+  },
+  "dependencies": {
+    "object-extend": "^0.5.0",
+    "uglify-js": "^2.6.1",
+    "yargs": "^3.29.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.10.0",
+    "nodemon": "^1.8.1"
+  }
+}
