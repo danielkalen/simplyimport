@@ -1,13 +1,58 @@
 #!/usr/bin/env node
 applyIncludesPolyfill()
-args = require('yargs').argv
+options =
+	'i':
+		alias: 'input'
+		demand: true
+		describe: 'Path of the file to compile. Can be relative or absolute.'
+		type: 'string'
+
+	'o':
+		alias: 'output'
+		describe: 'Path to write the compiled file to. Can be a file, or directory. If omitted the compiled result will be written to stdout.'
+		type: 'string'
+
+	's':
+		alias: 'stdout'
+		describe: 'Output the compiled result to stdout. (Occurs by default if no output argument supplied.)'
+		type: 'boolean'
+
+	'u':
+		alias: 'uglify'
+		describe: 'Uglify/minify the compiled file.'
+		default: false
+		type: 'boolean'
+
+	'n':
+		alias: 'notrecursive'
+		describe: 'Don\'t attend/follow @import directives inside imported files.'
+		default: false
+		type: 'boolean'
+
+	'p':
+		alias: 'preserve'
+		describe: '@import directives that have unmatched conditions should be kept in the file.'
+		default: false
+		type: 'boolean'
+
+	'c':
+		alias: 'conditions'
+		describe: 'Specify the conditions that @import directives with conditions should match against. Syntax: -c condA condB condC...'
+		type: 'array'
+
 fs = require('fs')
 path = require('path')
 uglify = require('uglify-js')
 extend = require('object-extend')
+yargs = require('yargs')
+		.usage("Usage: simplyimport -i <input> -o <output> -[u|s|n|p|c] \nDirective syntax: // @import {<conditions, separated by commas>} <filepath>")
+		.options(options)
+		.help('h')
+		.alias('h', 'help')
+args = yargs.argv
 
 extRegEx = /.+\.(js|coffee)$/i
-importRegEx = /(?:\/\/|\#)\s*?@import\s+(.+)/ig
+importRegEx = /(\s*)?(?:\/\/|\#)\s*?@import\s*(?:\{(.+)\})?\s*(.+)/ig
 importHistory = []
 
 input = args.i || args.input || args._[0]
@@ -15,20 +60,13 @@ output = args.o || args.output || args._[1]
 help = args.h || args.help
 shouldUglify = args.u || args.uglify
 shouldStdout = args.s || args.stdout
+shouldPreserve = args.p || args.preserve
 notRecursive = args.n || args.notrecursive
+conditionsPassed = args.c || args.conditions || []
 outputIsFile = extRegEx.test(output)
 
 if help
-	process.stdout.write("
-	Usage: simplyimport -i <input> -o <output> -[u|s|n]\n
-	\n
-    -i, --input   <path>        Path of the file to compile. Can be relative or absolute.\n
-    -o, --output  <path>        Path to write the compiled file to. Can be a file, or directory. If omitted the compiled result will be written to stdout.\n
-    -s, --stdout                Output the compiled result to stdout. (Occurs by default if no output argument supplied.)\n
-    -u, --uglify                Uglify/minify the compiled file.\n
-    -n, --notrecursive          Don't attend/follow @import directives inside imported files.\n
-    -h, --help                  Print usage info.\n
-	")
+	process.stdout.write(yargs.help());
 	process.exit(0)
 
 
@@ -39,6 +77,8 @@ startReplacement = (input, output, passedOptions)->
 		uglify: false
 		recursive: true
 		stdout: false
+		preserve: false
+		conditions: []
 	options = extend(defaultOptions, passedOptions)
 	
 	if !output? and !options.stdout then inputIsFromModule = true
@@ -72,33 +112,49 @@ startReplacement = (input, output, passedOptions)->
 
 
 applyReplace = (input, dirContext, isCoffeeFile)->
-	return output = input.replace importRegEx, (match, filePath)->
+	return output = input.replace importRegEx, (match, spacing, conditions, filePath)->
 		filePath = filePath.replace(/['"]/g, '') # Remove quotes form pathname
 		resolvedPath = path.normalize(dirContext+'/'+filePath)
 		childIsCoffeeFile = resolvedPath.match(extRegEx)? and resolvedPath.match(extRegEx)[1].toLowerCase() is 'coffee'
 		importedFileContent = getFileContents(resolvedPath, isCoffeeFile)
 		importedHasImports = importRegEx.test(importedFileContent)
 		replacedContent = match
-
-		if !importedFileContent then return match # Exits early and returns the original match if file doesn't exist.
-
-
-		if !importHistory.includes(resolvedPath)
-			importHistory.push(resolvedPath)
+		matchedConditions = true
+		
+		if conditions
+			conditions = conditions.split(/,\s?/)
 			
-			if importedHasImports
-				childDirContext = getNormalizedDirname(resolvedPath)
-				replacedContent = applyReplace(importedFileContent, childDirContext, childIsCoffeeFile)
-			else
-				replacedContent = importedFileContent
+			for condition in conditions
+				if !conditionsPassed.includes(condition) then matchedConditions = false
 
-		if isCoffeeFile and !childIsCoffeeFile
-			return '`'+replacedContent+'`' # Wraps standard javascript code so coffee script could be properly compiled.
-		else if !isCoffeeFile and childIsCoffeeFile
-			throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)')
-			process.exit(1)
-		else
-			return replacedContent
+
+
+		if matchedConditions
+			if !importedFileContent then return match # Exits early and returns the original match if file doesn't exist.
+			if !importHistory.includes(resolvedPath)
+				importHistory.push(resolvedPath)
+
+				if importedHasImports
+					childDirContext = getNormalizedDirname(resolvedPath)
+					replacedContent = applyReplace(importedFileContent, childDirContext, childIsCoffeeFile)
+				else
+					replacedContent = importedFileContent
+
+			if spacing 
+				if spacing isnt '\n'
+					# spacing = spacing.slice(1) if spacing.slice(0,1) is '\n'
+					spacing = spacing.replace /^\n*/, ''
+					replacedContent = replacedContent.split('\n').map((line)-> return spacing+line).join('\n')
+				replacedContent = '\n'+replacedContent
+
+			if isCoffeeFile and !childIsCoffeeFile
+				return replacedContent.replace /^(\s*)((?:.|\n)+)/, (entire, spacing='', content)-> return spacing+'`'+content+'`' # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+			else if !isCoffeeFile and childIsCoffeeFile
+				throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)')
+				process.exit(1)
+			else return replacedContent
+		else 
+			if shouldPreserve then replacedContent else ''
 
 
 getFileContents = (inputPath, isCoffeeFile, inputIsFromModule)->
@@ -110,8 +166,7 @@ getFileContents = (inputPath, isCoffeeFile, inputIsFromModule)->
 		inputPath = inputPath+extension if !inputPathHasExt
 		if checkIfInputExists(inputPath)
 			return fs.readFileSync(inputPath).toString()
-		else
-			return false
+		else return false
 
 
 getNormalizedDirname = (inputPath)-> 
@@ -142,7 +197,7 @@ else if !outputIsFile
 	
 # ==== Init Replacement Call =================================================================================
 if input?
-	startReplacement(input, output, {inputType:'path', uglify:shouldUglify, shouldStdout:shouldStdout, recursive: !notRecursive, outputIsFile:outputIsFile})
+	startReplacement(input, output, {inputType:'path', recursive:!notRecursive, outputIsFile:outputIsFile, uglify:shouldUglify, shouldStdout:shouldStdout, conditions:conditionsPassed, preserve:shouldPreserve})
 
 else # Indicates the input is from a stream
 	input = ''
@@ -150,7 +205,7 @@ else # Indicates the input is from a stream
 		input += data.toString()
 
 	process.stdin.on 'end', ()->
-		startReplacement(input, output, {inputType:'stream', uglify:shouldUglify, shouldStdout:shouldStdout, recursive: !notRecursive})
+		startReplacement(input, output, {inputType:'stream', recursive:!notRecursive, uglify:shouldUglify, shouldStdout:shouldStdout, onditions:conditionsPassed, preserve:shouldPreserve})
 # ========================================================================== #
 
 
