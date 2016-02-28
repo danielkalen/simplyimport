@@ -12,6 +12,12 @@ With SimplyImport you can:
 * and much more...
 
 
+Installation:
+------
+```bash
+npm install simplyimport
+```
+
 Usage:
 ------
 **Directive Syntax**

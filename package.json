@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "1.0.10",
+  "version": "1.2.2",
   "description": "SASS/PHP-like imports with an @import directive supporting conditional imports",
   "keywords": [
     "import",
@@ -15,7 +15,7 @@
   ],
   "main": "simplyimport.js",
   "bin": {
-    "simplyimport": "./simplyimport.js"
+    "simplyimport": "./bin/simplyimport"
   },
   "author": "danielkalen",
   "repository": {
@@ -25,9 +25,11 @@
   "license": "MIT",
   "scripts": {
     "watch": "nodemon -e coffee -w ./src -x 'npm run compile'",
-    "compile": "coffee -o ./ -c src/simplyimport.coffee && npm run prependbin && npm run makeexec && copytopublic",
-    "prependbin": "echo '#!/usr/bin/env node' | cat - simplyimport.js > tmp.js && mv tmp.js simplyimport.js",
-    "makeexec": "chmod +x simplyimport.js",
+    "compile": "npm run compile:js && npm run compile:bin",
+    "compile:js": "coffee -o ./ -c src/simplyimport.coffee",
+    "compile:bin": "coffee -o ./bin -c src/bin.coffee && npm run prependbin && npm run makeexec",
+    "prependbin": "echo '#!/usr/bin/env node' | cat - bin/bin.js > bin/simplyimport && rm -rf bin/bin.js",
+    "makeexec": "chmod +x bin/simplyimport",
     "copytopublic": "cp -r ./ ../../sandbox-public/simplyimport",
     "test": "npm run test:standard && npm run test:coffee && npm run test:coffee-tab && npm run test:both && npm run test:conditions && npm run test:conditions-preserve && npm run test:uglify",
     "test:standard": "node test/standard/_test.js",

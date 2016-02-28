@@ -1,0 +1,1342 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"cond",
+				"conditions"
+			],
+			[
+				"condi",
+				"conditionsPassed"
+			],
+			[
+				"defa",
+				"defaultValue"
+			],
+			[
+				"valueI",
+				"valueIndex"
+			],
+			[
+				"new",
+				"newField"
+			],
+			[
+				"con",
+				"conditions"
+			],
+			[
+				"grou",
+				"$groupIndex〔variable〕"
+			],
+			[
+				"forceR",
+				"forcePattern"
+			],
+			[
+				"bo",
+				"booleanToString"
+			],
+			[
+				"def",
+				"defaultValue"
+			],
+			[
+				"has",
+				"has_fields"
+			],
+			[
+				"min",
+				"minimum"
+			],
+			[
+				"max",
+				"maximum"
+			],
+			[
+				"var",
+				"variation"
+			],
+			[
+				"vari",
+				"variation"
+			],
+			[
+				"data",
+				"dataToSubmit"
+			],
+			[
+				"succes",
+				"successfuly"
+			],
+			[
+				"side",
+				"sidebarItem"
+			],
+			[
+				"succ",
+				"successfuly"
+			],
+			[
+				"remove",
+				"removeEmptyFileFields"
+			],
+			[
+				"remo",
+				"remove"
+			],
+			[
+				"Side",
+				"SidebarItem"
+			],
+			[
+				"Sid",
+				"SidebarItem"
+			],
+			[
+				"sidebar",
+				"sidebarItem"
+			],
+			[
+				"slug",
+				"slugTransform"
+			],
+			[
+				"inex",
+				"indexOfItem"
+			],
+			[
+				"inde",
+				"indexOfItem"
+			],
+			[
+				"curr",
+				"current_variation"
+			],
+			[
+				"page",
+				"page_data"
+			],
+			[
+				"rep",
+				"repeaterInstance"
+			],
+			[
+				"repa",
+				"repeaterItem"
+			],
+			[
+				"block",
+				"blockValues"
+			],
+			[
+				"dyn",
+				"dynamicBlock"
+			],
+			[
+				"sel",
+				"selectedBlock"
+			],
+			[
+				"dyna",
+				"dynamicValues"
+			],
+			[
+				"manage",
+				"manage-content-list-item"
+			],
+			[
+				"fu",
+				"function"
+			],
+			[
+				"sele",
+				"selectedBlock"
+			],
+			[
+				"dynam",
+				"dynamic_block"
+			],
+			[
+				"fieldSc",
+				"fieldSchemasCOPY〔variable〕"
+			],
+			[
+				"replace",
+				"replaceTemplateField〔function〕"
+			],
+			[
+				"dynamic",
+				"dynamicBlockMarkup"
+			],
+			[
+				"mobi",
+				"mobileNavOverlay"
+			],
+			[
+				"mobileNav",
+				"mobileNavOverlay"
+			],
+			[
+				"ov",
+				"ovx	overflow-x"
+			],
+			[
+				"faq_ca",
+				"faq_categories"
+			],
+			[
+				"include",
+				"includeFaqs"
+			],
+			[
+				"taka",
+				"takanaClient"
+			],
+			[
+				"body",
+				"bodyClass"
+			],
+			[
+				"val",
+				"valueType〔variable〕"
+			],
+			[
+				"obj",
+				"objToReturn〔variable〕"
+			],
+			[
+				"return",
+				"returnObj〔variable〕"
+			],
+			[
+				"disa",
+				"disabledClass〔variable〕"
+			],
+			[
+				"button",
+				"button_text"
+			],
+			[
+				"set",
+				"setTimeout	setTimeout"
+			],
+			[
+				"cur",
+				"current〔variable〕"
+			],
+			[
+				"divider",
+				"divider-dark"
+			],
+			[
+				"error",
+				"error-color"
+			],
+			[
+				"reso",
+				"response"
+			],
+			[
+				"stat",
+				"$statusField〔variable〕"
+			],
+			[
+				"hero_",
+				"hero_title"
+			],
+			[
+				"auth",
+				"authenticated〔variable〕"
+			],
+			[
+				"cat",
+				"categories"
+			],
+			[
+				"faq",
+				"faqcategories"
+			],
+			[
+				"sideB",
+				"sidebarItems"
+			],
+			[
+				"act",
+				"$activeStep〔variable〕"
+			],
+			[
+				"atta",
+				"attachments〔argument〕"
+			],
+			[
+				"bugclen",
+				"bugcleaners"
+			],
+			[
+				"res",
+				"response"
+			],
+			[
+				"requ",
+				"request"
+			],
+			[
+				"Faq",
+				"FaqCategories〔variable〕"
+			],
+			[
+				"proble",
+				"problem_description"
+			],
+			[
+				"home",
+				"home_or_business"
+			],
+			[
+				"mess",
+				"messageToSubmit"
+			],
+			[
+				"pos",
+				"position"
+			],
+			[
+				"isM",
+				"isMobile〔variable〕"
+			],
+			[
+				"matc",
+				"matchedID"
+			],
+			[
+				"sect",
+				"sectionIDs〔variable〕"
+			],
+			[
+				"sec",
+				"sectionOffsets〔variable〕"
+			],
+			[
+				"section",
+				"sectionIDs"
+			],
+			[
+				"list",
+				"listOffset"
+			],
+			[
+				"isMobi",
+				"isMobileWidth〔variable〕"
+			],
+			[
+				"fun",
+				"function〔keyword〕"
+			],
+			[
+				"pass",
+				"passedMax〔variable〕"
+			],
+			[
+				"sideb",
+				"sidebar"
+			],
+			[
+				"sid",
+				"sidebar"
+			],
+			[
+				"update",
+				"updateSectionOffsets"
+			],
+			[
+				"tempL",
+				"tempList"
+			],
+			[
+				"tempLis",
+				"tempListHold"
+			],
+			[
+				"index",
+				"indexInDesired"
+			],
+			[
+				"faqLi",
+				"faqList"
+			],
+			[
+				"re",
+				"resources-faqs-list-title"
+			],
+			[
+				"faqL",
+				"faqList"
+			],
+			[
+				"faqlis",
+				"faqList"
+			],
+			[
+				"cate",
+				"category"
+			],
+			[
+				"for",
+				"forEach	forEach"
+			],
+			[
+				"hea",
+				"header	Tag"
+			],
+			[
+				"isA",
+				"isArrow〔variable〕"
+			],
+			[
+				"isNu",
+				"isNumberAlt〔variable〕"
+			],
+			[
+				"isArr",
+				"isArrowDown〔variable〕"
+			],
+			[
+				"ret",
+				"returnKeyType〔argument〕"
+			],
+			[
+				"retu",
+				"returnKeyType"
+			],
+			[
+				"func",
+				"funciton"
+			],
+			[
+				"exp",
+				"explicitKey〔variable〕"
+			],
+			[
+				"isS",
+				"isSpaceKey"
+			],
+			[
+				"op",
+				"options"
+			],
+			[
+				"valida",
+				"validateOnTyping"
+			],
+			[
+				"ac",
+				"activeStep"
+			],
+			[
+				"phon",
+				"phone_support-options-item"
+			],
+			[
+				"this",
+				"thisForm"
+			],
+			[
+				"random",
+				"randomKey〔variable〕"
+			],
+			[
+				"de",
+				"decimals"
+			],
+			[
+				"email_support-",
+				"email_support-options-item"
+			],
+			[
+				"em",
+				"email_support"
+			],
+			[
+				"inn",
+				"innerWidth〔variable〕"
+			],
+			[
+				"anim",
+				"animatedDimensions"
+			],
+			[
+				"expan",
+				"expandedWidth"
+			],
+			[
+				"expa",
+				"expandedWidth"
+			],
+			[
+				"inited",
+				"initedAsMobile〔variable〕"
+			],
+			[
+				"ini",
+				"initedAsMobile"
+			],
+			[
+				"curren",
+				"currentMin〔variable〕"
+			],
+			[
+				"curre",
+				"currentMin〔variable〕"
+			],
+			[
+				"parse",
+				"parseInt〔function〕"
+			],
+			[
+				"content",
+				"contentHeight"
+			],
+			[
+				"conten",
+				"contentHeight"
+			],
+			[
+				"offset",
+				"offsetHeight"
+			],
+			[
+				"scroll",
+				"scrollDownIfNeeded"
+			],
+			[
+				"windo",
+				"window"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "src/simplyimport.coffee",
+			"settings":
+			{
+				"buffer_size": 4862,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/bin.coffee",
+			"settings":
+			{
+				"buffer_size": 3318,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 400.0,
+		"last_filter": "java",
+		"selected_items":
+		[
+			[
+				"java",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"json",
+				"Set Syntax: JSON"
+			],
+			[
+				"coffeesc",
+				"Set Syntax: CoffeeScript"
+			],
+			[
+				"coff",
+				"Coffee: Fast Compile"
+			],
+			[
+				"jav",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"ini",
+				"Set Syntax: INI"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"html",
+				"Set Syntax: HTML"
+			],
+			[
+				"javascript",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"mark",
+				"Set Syntax: Markdown"
+			],
+			[
+				"js",
+				"Set Syntax: JavaScript Next"
+			],
+			[
+				"make",
+				"Set Syntax: Makefile"
+			],
+			[
+				"ma",
+				"Set Syntax: Makefile"
+			],
+			[
+				"php",
+				"Set Syntax: PHP"
+			],
+			[
+				"javasc",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"makefi",
+				"Set Syntax: Makefile"
+			],
+			[
+				"PHP",
+				"Set Syntax: PHP"
+			],
+			[
+				"xml",
+				"Set Syntax: XML"
+			],
+			[
+				"sass",
+				"Set Syntax: Sass"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"scss",
+				"Set Syntax: SCSS"
+			],
+			[
+				"css",
+				"Set Syntax: CSS"
+			],
+			[
+				"set syntax html",
+				"Set Syntax: HTML"
+			],
+			[
+				"ex",
+				"ExpandRegion"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			]
+		],
+		"width": 601.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/danielkalen/sandbox/simplyimport",
+		"/Users/danielkalen/sandbox/simplyimport/bin",
+		"/Users/danielkalen/sandbox/simplyimport/src",
+		"/Users/danielkalen/sandbox/simplyimport/test",
+		"/Users/danielkalen/sandbox/simplyimport/test/standard"
+	],
+	"file_history":
+	[
+		"/Users/danielkalen/sandbox/simplyimport/package.json",
+		"/Users/danielkalen/sandbox/simplyimport/test/standard/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/both/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript-tabbed/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions-preserve/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/uglify/_test.js",
+		"/Users/danielkalen/sandbox-public/takana/package.json",
+		"/Users/danielkalen/Desktop/_views/_parts-contact/contact_options.jade",
+		"/Users/danielkalen/Desktop/_views/_parts-contact/contact_content.jade",
+		"/Users/danielkalen/Desktop/_views/contact.jade",
+		"/Users/danielkalen/sandbox/utils/_helpers.js",
+		"/Users/danielkalen/Desktop/bugcleaners-pests",
+		"/Users/danielkalen/Desktop/bugcleaners-faqs",
+		"/var/folders/9r/d8hggdgd7xn8h_rkbhsrb8zc0000gn/T/rsub-o1funp/manage-leads.jade",
+		"/Users/danielkalen/Projects/bugcleaners/app.router-api.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-sidebar.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-min_height.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-posts.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-page_actions.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/manage.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-db_queries.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-page-add.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_views/manage.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-page_data.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-init_forms.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-manage/manage-sidebar.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-page_rotation.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-variation_actions.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/app.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/app.router.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-variation_opening.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/manage-content-variation.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-block_appension.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-global/field-generator.jade",
+		"/Users/danielkalen/Projects/bugcleaners/package.json",
+		"/Users/danielkalen/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-global/_elements.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-manage/manage-fieldtemplates.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-global/_polyfills.js",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-manage/mixins.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-sections/faqs.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-sections/contact_options.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/global.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-leads.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/404.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_plugins/sortable.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-global/init_forms.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-sortable.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-logout.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-enable_rotation.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-login_submit.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/_parts-leads/leads-notes.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/_parts-leads/leads-ip_details.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/_parts-leads/leads-filters.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/_parts-leads/leads-edit_data.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/_parts-leads/leads-bulk_actions.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/_parts-leads/leads-actions.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/manage-fetch_data.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage/field-templates.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-manage/manage-pages.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-global/animate-tap.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-manage/manage-fetch_data.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/global.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-global/analytics.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-global/animate-tap.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-global/fonts_dynamic_loading.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-global/header.coffee",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-global/init_forms.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-manage/manage-init_forms.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/faqs.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/resources.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-global/header.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/faqs_small.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/home.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/contact.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/contact_options.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/reviews.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/services.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/pest-single.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/pests.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/pests_small.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/pests.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/cta_divider.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/benefit_points.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-sections/cta_form.js",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/manage.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/manage-sidebar.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/manage-content-mixins.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/manage-content.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/page.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/pest-single.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/js/manage.js",
+		"/Users/danielkalen/Projects/bugcleaners/_views/pest-single.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/reviews.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-page/page-reviews.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-global/header.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/global.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_views/services-single.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/pests-single.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/reviews.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/page.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/landing.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/pests.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/services.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-global/sections.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/_parts-faqs/faqs-content.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/_parts-faqs/faqs-sidebar.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-pests/single.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/_parts-leads/manage-leads-chart.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/manage-leads.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-global/takana.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_fonts/woff.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_fonts/eot.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_fonts/ttf.sass",
+		"/Users/danielkalen/Projects/bugcleaners/sass-fns.js",
+		"/Users/danielkalen/Projects/bugcleaners/public/css/global.css",
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-manage/manage-posts.jade",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-global/_vars.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/_parts-contact_options/contact_content-phone_support.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/_parts-contact_options/contact_content-email.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/contact_options.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/cta_form.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-landing/landing-cta-form.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/_parts-contact_options/contact_content-livechat.sass",
+		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/home.sass",
+		"/Users/danielkalen/Projects/getvoip/gv_main/wp-content/themes/getvoip/package.json"
+	],
+	"find":
+	{
+		"height": 38.0
+	},
+	"find_in_files":
+	{
+		"height": 100.0,
+		"where_history":
+		[
+			"/Users/danielkalen/sandbox/simplyimport/test",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/coffee",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_views",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/coffee/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_assets",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_views",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_assets/js/_parts-manage",
+			"/Users/danielkalen/Projects/bugcleaners/_views",
+			"/Applications/MAMP/bugcleaners/_views/",
+			"/Applications/MAMP/bugcleaners/public/sass",
+			"/Applications/MAMP/bugcleaners/public/js",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-content/plugins/wpai-acf-add-on",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-content/plugins/wp-all-import-pro",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-content/plugins/wpai-acf-add-on",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-content/plugins/custom-post-type-ui",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-admin",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-includes",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-content/plugins/wp-all-import-pro",
+			"/Applications/MAMP/getvoip/gv_main_wp/wp-content/themes/getvoip",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce/cart",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce/templates",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce/includes",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce/templates",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/themes/bwd_theme",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce/includes",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce/assets/js",
+			"/Applications/MAMP/bwd/wp-content/plugins/woocommerce/assets/js/frontend",
+			"/Applications/MAMP/getvoip/gv_main/sites/all/themes/gv_sky/",
+			"/Applications/MAMP/getvoip/gv_main/sites/all/themes/gv_sky/css/sass",
+			"<open folders>",
+			"/Applications/MAMP/shopperbarn/wp-content/plugins/woocommerce",
+			"<open folders>",
+			"/Applications/MAMP/snapmagnet/wp-content/plugins/gravityforms",
+			"/Applications/MAMP/snapmagnet/wp-content/plugins/gravityforms/js"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+			"console.log",
+			"dirContext",
+			"console.log('\\x1b[32m",
+			"'); passedTests = false",
+			"Failed to import",
+			"Passed All Tests",
+			"process.cwd()",
+			"preserve",
+			"should",
+			"conditions",
+			"conditionsPa",
+			"shouldPreserve",
+			"shouldPreserv",
+			"shouldPreserve",
+			"applyReplace",
+			"isCoffeeFile",
+			"applyReplace",
+			"conditionsPassed",
+			"uglify",
+			"shouldUglify",
+			"extReg",
+			"importRegEx",
+			"extRegEx",
+			"outputIsFile",
+			"uglify",
+			"path",
+			"fs",
+			"path",
+			"/../../simplyimport.js",
+			"includes",
+			"uglify",
+			"input",
+			"startReplacement",
+			"width",
+			"rows",
+			", values:[{'child-text': '', 'child-select':''}]",
+			" values:[{'child-text': '', 'child-select':''}]",
+			"]",
+			"{type:'text', name:'child-text', label:'childLabel'}",
+			"{'child-text': '', 'child-select':''}",
+			"values:['",
+			"values:[",
+			"label:'childLabel'}, {type:'select', name:'child', label:'childLabel', ",
+			"{type:'text', name:'child', label:'childLabel'}",
+			"undefined",
+			"undef",
+			"select-array",
+			"minimum_regular",
+			"'a'",
+			"a''",
+			"name",
+			"width",
+			"name",
+			"icon",
+			"@fieldsRequired",
+			"@fieldsRequired.push(newField)",
+			"@fieldsRequired",
+			"makeNotR",
+			"fieldsRequired",
+			"Validate",
+			"prepareCondit",
+			"fetchValues",
+			"@disabled",
+			"@condition",
+			"showErrorsAsPassed",
+			"logBadFields",
+			"showErrors",
+			"showErrorsAsPassed",
+			"Class",
+			"disable",
+			"value!=",
+			"id!=",
+			"for!=",
+			"setValue:",
+			"@default",
+			"fullname",
+			"$options['fieldType'] = 'text';",
+			"fullname",
+			"full_name",
+			"scrollTo",
+			"name",
+			"desc",
+			"name",
+			"comments",
+			"siblingDependent",
+			"forcePattern",
+			"dependant_fieldset",
+			"children",
+			"cloned",
+			"util.",
+			"funciton",
+			"cloneNode",
+			"forceLive",
+			"forceSpecial",
+			"forceKeystrokes",
+			"es =",
+			"forcePattern",
+			"regEx",
+			"regEx.f",
+			"regEx",
+			"fieldName",
+			"fieldNameNoBrackets",
+			"slug",
+			"pattern",
+			"forcePattern",
+			"depends_on",
+			"@attachState()",
+			"width",
+			".clone",
+			"slideUp",
+			".clone",
+			"field",
+			"$section",
+			"revealSection",
+			"setCurrentStepTo",
+			"the",
+			"'",
+			"\"",
+			"collapsed",
+			"keypress.focused_atleast_once",
+			"vent.which",
+			"focused_atleast_once",
+			"submitOnEnter",
+			"addField",
+			"removeChildField",
+			"'collapsed'",
+			"input",
+			"'radio"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"console.log('\\x1b[31m",
+			"\\x1b[0m'); passedTests = false",
+			"\\x1b[32mFailed To Import",
+			"\\x1b[32mPassed All Tests\\x1b[0m",
+			"/../../bin/simplyimport",
+			"currentVariation",
+			"import",
+			"=bodyClass",
+			"currentPageSlug",
+			"currentVariation",
+			"currentPage",
+			"form",
+			".form",
+			"global.css",
+			"",
+			"\\1\\u\\2",
+			"&quot;",
+			"\"",
+			"&gt;",
+			"&lt;",
+			"<",
+			"\"",
+			"\\'",
+			"\"",
+			">",
+			"<",
+			">",
+			"<",
+			"GetVoIP",
+			"getvoip",
+			"$primary-color"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "src/simplyimport.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4862,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								715,
+								721
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_double_quote_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_tag_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content"
+							],
+							"expand_region_settings": "{\"stack\": [{\"start\": 715, \"end\": 721}], \"hash\": \"484fe387223af16b0590f8d50d4fba4b\"}",
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/bin.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3318,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								812,
+								822
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_double_quote_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_tag_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content"
+							],
+							"open_with_edit": true,
+							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 29.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 98.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.sftp":
+	{
+		"height": 0.0
+	},
+	"output.xdebug":
+	{
+		"height": 98.0
+	},
+	"pinned_build_system": "",
+	"project": "simplyimport.sublime-project",
+	"replace":
+	{
+		"height": 42.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"~/sandbox/form-engine/form-engine.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 213.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
