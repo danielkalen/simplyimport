@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "1.2.2",
+  "version": "1.2.5",
   "description": "SASS/PHP-like imports with an @import directive supporting conditional imports",
   "keywords": [
     "import",

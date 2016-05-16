@@ -109,10 +109,14 @@
         }
         if (isCoffeeFile && !childIsCoffeeFile) {
           return replacedContent.replace(/^(\s*)((?:.|\n)+)/, function(entire, spacing, content) {
+            var escapedContent;
             if (spacing == null) {
               spacing = '';
             }
-            return spacing + '`' + content + '`';
+            escapedContent = content.replace(/`/g, function() {
+              return '\\`';
+            });
+            return spacing + '`' + escapedContent + '`';
           });
         } else if (!isCoffeeFile && childIsCoffeeFile) {
           throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)');

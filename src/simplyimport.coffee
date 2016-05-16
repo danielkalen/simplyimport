@@ -85,15 +85,24 @@ applyReplace = (input, dirContext, isCoffeeFile, options)->
 			if spacing 
 				if spacing isnt '\n'
 					spacing = spacing.replace /^\n*/, ''
-					replacedContent = replacedContent.split('\n').map((line)-> return spacing+line).join('\n')
+					replacedContent = replacedContent.split('\n').map((line)-> spacing+line).join('\n')
 				replacedContent = '\n'+replacedContent
 
+
+			# ==== Returning =================================================================================
 			if isCoffeeFile and !childIsCoffeeFile
-				return replacedContent.replace /^(\s*)((?:.|\n)+)/, (entire, spacing='', content)-> return spacing+'`'+content+'`' # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+				return replacedContent.replace /^(\s*)((?:.|\n)+)/, # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+					(entire, spacing='', content)->
+						escapedContent = content.replace /`/g, ()-> '\\`'
+						return spacing+'`'+escapedContent+'`'
+			
 			else if !isCoffeeFile and childIsCoffeeFile
 				throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)')
 				process.exit(1)
+			
 			else return replacedContent
+		
+
 		else 
 			if options.preserve then replacedContent else ''
 
