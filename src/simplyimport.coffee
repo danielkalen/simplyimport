@@ -1,43 +1,53 @@
-applyIncludesPolyfill()
+if not Array::includes then Array::includes = (subject)-> @indexOf(subject) isnt -1
+
 fs = require('fs')
 path = require('path')
 uglify = require('uglify-js')
 extend = require('object-extend')
-extRegEx = /.+\.(js|coffee)$/i
-importRegEx = /(\s*)?(?:\/\/|\#)\s*?@import\s*(?:\{(.+)\})?\s*(.+)/ig
 importHistory = []
+extRegEx = /.+\.(js|coffee)$/i
+importRegEx = ///
+	(\s*)? # prior whitespace
+	(?:\/|\#) # comment declaration
+	\s* # whitespace between the comment and the import declaration
+	@import # import declaration
+	\s* # whitespace after import declaration
+	(?:\{(.+)\})? # conditionals
+	\s* # whitespace after conditional
+	(.+) # filepath
+///ig
+defaultOptions = 
+	inputType: 'stream'
+	outputIsFile: false
+	uglify: false
+	recursive: true
+	stdout: false
+	preserve: false
+	conditions: []
+	cwd: process.cwd()
+	coffee: false
 
-startReplacement = (input, output, passedOptions)->
-	defaultOptions = 
-		inputType: 'stream'
-		outputIsFile: false
-		uglify: false
-		recursive: true
-		stdout: false
-		preserve: false
-		conditions: []
-		cwd: process.cwd(),
-		coffee: false
+
+simplyImport = (input, output, passedOptions)->
 	options = extend(defaultOptions, passedOptions)
-
 	importHistory = [] # Fresh Start
-	
-	if !output? and !options.stdout then inputIsFromModule = true
-	
+	inputIsFromModule = true if !output? and !options.stdout
 
-	if options.inputType is 'stream'
-		inputContent = input
-		dirContext = options.cwd
-		isCoffeeFile = options.coffee
+	
+	switch options.inputType
+		when 'stream'
+			inputContent = input
+			dirContext = options.cwd
+			isCoffeeFile = options.coffee
 
-	else if options.inputType is 'path'
-		input = path.normalize(input)
-		output = path.normalize(output)
-		fileExt = input.match(extRegEx)[1]
-		isCoffeeFile = fileExt.toLowerCase() is 'coffee'
-		inputContent = getFileContents(input, isCoffeeFile, inputIsFromModule)
-		dirContext = getNormalizedDirname(input)
-		# fileName = path.basename(input, '.'+fileExt)
+		when 'path'
+			input = path.normalize(input)
+			output = path.normalize(output)
+			fileExt = input.match(extRegEx)[1]
+			isCoffeeFile = fileExt.toLowerCase() is 'coffee'
+			inputContent = getFileContents(input, isCoffeeFile)
+			dirContext = getNormalizedDirname(input)
+			# fileName = path.basename(input, '.'+fileExt)
 
 	replacedContent = applyReplace(inputContent, dirContext, isCoffeeFile, options)
 	if options.uglify then replacedContent = uglify.minify(replacedContent, {fromString: true}).code
@@ -152,39 +162,11 @@ checkIfInputExists = (inputPath)->
 
 
 
-# ==== Array.includes polyfill =================================================================================
-`function applyIncludesPolyfill(){
-	if (!Array.prototype.includes) {
-		Array.prototype.includes = function(searchElement /*, fromIndex*/ ) {
-			'use strict';
-			var O = Object(this),
-				len = parseInt(O.length) || 0;
-			if (len === 0) return false;
-			
-			var n = parseInt(arguments[1]) || 0,
-				k;
-			if (n >= 0) {
-			  k = n;
-			} else {
-			  k = len + n;
-			  if (k < 0) {k = 0;}
-			}
-			var currentElement;
-			while (k < len) {
-			  currentElement = O[k];
-			  if (searchElement === currentElement ||
-			     (searchElement !== searchElement && currentElement !== currentElement)) {
-			    return true;
-			  }
-			  k++;
-			}
-			return false;
-		};
-	}
-}`
 
 
 
 
 
-module.exports = startReplacement
+
+
+module.exports = simplyImport

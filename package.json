@@ -24,23 +24,18 @@
   },
   "license": "MIT",
   "scripts": {
+    "test": "mocha --ui tdd --compilers coffee:coffee-script/register",
     "watch": "nodemon -e coffee -w ./src -x 'npm run compile'",
     "compile": "npm run compile:js && npm run compile:bin",
     "compile:js": "coffee -o ./ -c src/simplyimport.coffee",
     "compile:bin": "coffee -o ./bin -c src/bin.coffee && npm run prependbin && npm run makeexec",
     "prependbin": "echo '#!/usr/bin/env node' | cat - bin/bin.js > bin/simplyimport && rm -rf bin/bin.js",
     "makeexec": "chmod +x bin/simplyimport",
-    "copytopublic": "cp -r ./ ../../sandbox-public/simplyimport",
-    "test": "npm run test:standard && npm run test:coffee && npm run test:coffee-tab && npm run test:both && npm run test:conditions && npm run test:conditions-preserve && npm run test:uglify",
-    "test:standard": "node test/standard/_test.js",
-    "test:coffee": "node test/coffeescript/_test.js",
-    "test:coffee-tab": "node test/coffeescript-tabbed/_test.js",
-    "test:both": "node test/both/_test.js",
-    "test:conditions": "node test/conditions/_test.js",
-    "test:conditions-preserve": "node test/conditions-preserve/_test.js",
-    "test:uglify": "node test/uglify/_test.js"
+    "copytopublic": "cp -r ./ ../../sandbox-public/simplyimport"
   },
   "dependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
     "object-extend": "^0.5.0",
     "uglify-js": "^2.6.1",
     "yargs": "^3.29.0"
