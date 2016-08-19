@@ -4,6 +4,34 @@
 		"selected_items":
 		[
 			[
+				"origin",
+				"originalContent"
+			],
+			[
+				"input",
+				"inputContent"
+			],
+			[
+				"orig",
+				"originalContent"
+			],
+			[
+				"importe",
+				"importedAsModule"
+			],
+			[
+				"replace",
+				"replacedContent"
+			],
+			[
+				"out",
+				"outputType"
+			],
+			[
+				"ou",
+				"outputIsFile"
+			],
+			[
 				"cond",
 				"conditions"
 			],
@@ -162,10 +190,6 @@
 			[
 				"fieldSc",
 				"fieldSchemasCOPY〔variable〕"
-			],
-			[
-				"replace",
-				"replaceTemplateField〔function〕"
 			],
 			[
 				"dynamic",
@@ -490,30 +514,6 @@
 			[
 				"curre",
 				"currentMin〔variable〕"
-			],
-			[
-				"parse",
-				"parseInt〔function〕"
-			],
-			[
-				"content",
-				"contentHeight"
-			],
-			[
-				"conten",
-				"contentHeight"
-			],
-			[
-				"offset",
-				"offsetHeight"
-			],
-			[
-				"scroll",
-				"scrollDownIfNeeded"
-			],
-			[
-				"windo",
-				"window"
 			]
 		]
 	},
@@ -523,23 +523,39 @@
 			"file": "src/simplyimport.coffee",
 			"settings":
 			{
-				"buffer_size": 5079,
+				"buffer_size": 4477,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "test/conditions/_test.js",
+			"file": "src/regex.coffee",
 			"settings":
 			{
-				"buffer_size": 1471,
+				"buffer_size": 388,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "src/bin.coffee",
+			"file": "test/test.coffee",
 			"settings":
 			{
-				"buffer_size": 3318,
+				"buffer_size": 5090,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "test/coffeescript-tabbed/_importer.coffee",
+			"settings":
+			{
+				"buffer_size": 192,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "test/conditions/_importer.js",
+			"settings":
+			{
+				"buffer_size": 199,
 				"line_ending": "Unix"
 			}
 		}
@@ -552,9 +568,13 @@
 	"command_palette":
 	{
 		"height": 400.0,
-		"last_filter": "java",
+		"last_filter": "coffe",
 		"selected_items":
 		[
+			[
+				"coffe",
+				"Set Syntax: CoffeeScript Custom"
+			],
 			[
 				"java",
 				"Set Syntax: JavaScript"
@@ -682,19 +702,40 @@
 	[
 		"/Users/danielkalen/sandbox/simplyimport",
 		"/Users/danielkalen/sandbox/simplyimport/bin",
-		"/Users/danielkalen/sandbox/simplyimport/src",
 		"/Users/danielkalen/sandbox/simplyimport/test",
-		"/Users/danielkalen/sandbox/simplyimport/test/conditions"
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions",
+		"/Users/danielkalen/sandbox/simplyimport/test/standard/nested"
 	],
 	"file_history":
 	[
-		"/Users/danielkalen/sandbox/simplyimport/package.json",
+		"/Users/danielkalen/sandbox/simplyimport/src/bin.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript-tabbed/_importer.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/uglify/nested/nested1.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/standard/nested/nested1.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/mixed/nested/nested1.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/mixed/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions/nested/nested1.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript/nested/nested1.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript-tabbed/nested/nested1.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/uglify/_importer.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/standard/_importer.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/mixed/_importer.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions/_importer.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript/_importer.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/standard/variable.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript-tabbed/variable.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript/variable.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/test/coffescript/variable.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions/variable.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/mixed/variable.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions-preserve/_importer.js",
 		"/Users/danielkalen/sandbox/simplyimport/test/conditions-preserve/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/test/conditions/_test.js",
 		"/Users/danielkalen/sandbox/simplyimport/test/standard/_test.js",
-		"/Users/danielkalen/sandbox/simplyimport/test/both/_test.js",
 		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript-tabbed/_test.js",
 		"/Users/danielkalen/sandbox/simplyimport/test/coffeescript/_test.js",
-		"/Users/danielkalen/sandbox/simplyimport/test/conditions/_test.js",
+		"/Users/danielkalen/sandbox/simplyimport/package.json",
+		"/Users/danielkalen/sandbox/simplyimport/test/both/_test.js",
 		"/Users/danielkalen/sandbox/simplyimport/test/uglify/_test.js",
 		"/Users/danielkalen/sandbox-public/takana/package.json",
 		"/Users/danielkalen/Desktop/_views/_parts-contact/contact_options.jade",
@@ -794,28 +835,7 @@
 		"/Users/danielkalen/Projects/bugcleaners/_views/landing.jade",
 		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/pests.jade",
 		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/services.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-global/sections.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/_parts-faqs/faqs-content.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-sections/_parts-faqs/faqs-sidebar.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-pests/single.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/_parts-leads/manage-leads-chart.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-manage/manage-leads.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-global/takana.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_fonts/woff.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_fonts/eot.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_fonts/ttf.sass",
-		"/Users/danielkalen/Projects/bugcleaners/sass-fns.js",
-		"/Users/danielkalen/Projects/bugcleaners/public/css/global.css",
-		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-manage/manage-posts.jade",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-global/_vars.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/_parts-contact_options/contact_content-phone_support.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/_parts-contact_options/contact_content-email.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/contact_options.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/cta_form.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-landing/landing-cta-form.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/_parts-sections/_parts-contact_options/contact_content-livechat.sass",
-		"/Users/danielkalen/Projects/bugcleaners/_assets/sass/home.sass",
-		"/Users/danielkalen/Projects/getvoip/gv_main/wp-content/themes/getvoip/package.json"
+		"/Users/danielkalen/Projects/bugcleaners/_views/_parts-global/sections.jade"
 	],
 	"find":
 	{
@@ -889,6 +909,87 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"priorContent",
+			"spacing",
+			"@import",
+			"\\i",
+			"@",
+			"@import",
+			"// @",
+			"# @",
+			"// @",
+			"# @",
+			"imported.should.equal importedAsModule",
+			"match",
+			"importedAsModule",
+			"importedAsMoudle",
+			"done()",
+			"isCoffeeFile",
+			"childDirContext",
+			"applyReplace",
+			"dirContext",
+			"getNormalizedDirname",
+			"replacedContent",
+			"uglify",
+			"output",
+			"coffee",
+			"regEx",
+			"outputIsFile",
+			"fileName",
+			"beginImport",
+			"options",
+			"applyReplace",
+			"options",
+			"inputIsFromModule",
+			"stdout",
+			"outputIsFile",
+			"inputIsFromModule",
+			"stdout",
+			"inputIsFromModule",
+			":",
+			"'",
+			", ",
+			":",
+			"outputIsFile",
+			"stream",
+			"conditionsPassed",
+			"conditions",
+			":",
+			", ",
+			"||",
+			"outputIsFile",
+			"(",
+			"extRegEx",
+			"SimplyImport",
+			"startReplacement",
+			"#",
+			"# ",
+			"#",
+			"passedOptions",
+			"simplyImport",
+			"\\",
+			"/",
+			"test ",
+			"suite",
+			"SimplyImport",
+			"should",
+			"standard",
+			"\\(",
+			"Imported file with extension",
+			"coffeescript",
+			"\\",
+			"coffeescript",
+			"istent\\",
+			"\\@",
+			"standard",
+			"extRegEx",
+			":",
+			"importHistory",
+			"importRegEx",
+			"require",
+			"uglify",
+			"-> return",
+			"`",
 			"startReplacement",
 			"importHistory",
 			"console.log",
@@ -935,88 +1036,7 @@
 			"values:[",
 			"label:'childLabel'}, {type:'select', name:'child', label:'childLabel', ",
 			"{type:'text', name:'child', label:'childLabel'}",
-			"undefined",
-			"undef",
-			"select-array",
-			"minimum_regular",
-			"'a'",
-			"a''",
-			"name",
-			"width",
-			"name",
-			"icon",
-			"@fieldsRequired",
-			"@fieldsRequired.push(newField)",
-			"@fieldsRequired",
-			"makeNotR",
-			"fieldsRequired",
-			"Validate",
-			"prepareCondit",
-			"fetchValues",
-			"@disabled",
-			"@condition",
-			"showErrorsAsPassed",
-			"logBadFields",
-			"showErrors",
-			"showErrorsAsPassed",
-			"Class",
-			"disable",
-			"value!=",
-			"id!=",
-			"for!=",
-			"setValue:",
-			"@default",
-			"fullname",
-			"$options['fieldType'] = 'text';",
-			"fullname",
-			"full_name",
-			"scrollTo",
-			"name",
-			"desc",
-			"name",
-			"comments",
-			"siblingDependent",
-			"forcePattern",
-			"dependant_fieldset",
-			"children",
-			"cloned",
-			"util.",
-			"funciton",
-			"cloneNode",
-			"forceLive",
-			"forceSpecial",
-			"forceKeystrokes",
-			"es =",
-			"forcePattern",
-			"regEx",
-			"regEx.f",
-			"regEx",
-			"fieldName",
-			"fieldNameNoBrackets",
-			"slug",
-			"pattern",
-			"forcePattern",
-			"depends_on",
-			"@attachState()",
-			"width",
-			".clone",
-			"slideUp",
-			".clone",
-			"field",
-			"$section",
-			"revealSection",
-			"setCurrentStepTo",
-			"the",
-			"'",
-			"\"",
-			"collapsed",
-			"keypress.focused_atleast_once",
-			"vent.which",
-			"focused_atleast_once",
-			"submitOnEnter",
-			"addField",
-			"removeChildField",
-			"'collapsed'"
+			"undefined"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1065,7 +1085,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 4,
 			"sheets":
 			[
 				{
@@ -1074,15 +1094,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 5079,
+						"buffer_size": 4477,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								574,
-								574
+								1302,
+								1302
 							]
 						],
 						"settings":
@@ -1090,6 +1110,26 @@
 							"BracketHighlighterBusy": false,
 							"bh_regions":
 							[
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content",
 								"bh_tag",
 								"bh_tag_center",
 								"bh_tag_open",
@@ -1100,51 +1140,31 @@
 								"bh_double_quote_open",
 								"bh_double_quote_close",
 								"bh_double_quote_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content",
 								"bh_square",
 								"bh_square_center",
 								"bh_square_open",
 								"bh_square_close",
 								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content"
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content"
 							],
 							"bracket_highlighter.busy": false,
 							"bracket_highlighter.locations":
@@ -1164,26 +1184,6 @@
 							},
 							"bracket_highlighter.regions":
 							[
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
 								"bh_tag",
 								"bh_tag_center",
 								"bh_tag_open",
@@ -1194,6 +1194,41 @@
 								"bh_double_quote_open",
 								"bh_double_quote_close",
 								"bh_double_quote_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
 								"bh_angle",
 								"bh_angle_center",
 								"bh_angle_open",
@@ -1203,56 +1238,55 @@
 								"bh_round_center",
 								"bh_round_open",
 								"bh_round_close",
-								"bh_round_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content"
+								"bh_round_content"
 							],
-							"expand_region_settings": "{\"stack\": [{\"start\": 715, \"end\": 721}], \"hash\": \"484fe387223af16b0590f8d50d4fba4b\"}",
-							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
+							"expand_region_settings": "{\"stack\": [{\"start\": 2714, \"end\": 2717}], \"hash\": \"7333aa02c3a606e8c5810ca5847a2863\"}",
+							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 1494.0,
+						"translation.y": 603.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "test/conditions/_test.js",
+					"file": "src/regex.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1471,
+						"buffer_size": 388,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								799,
-								799
+								116,
+								114
 							]
 						],
 						"settings":
 						{
-							"BracketHighlighterBusy": false,
-							"auto_complete": false,
-							"bh_regions":
+							"bracket_highlighter.busy": false,
+							"bracket_highlighter.locations":
+							{
+								"close":
+								{
+								},
+								"icon":
+								{
+								},
+								"open":
+								{
+								},
+								"unmatched":
+								{
+								}
+							},
+							"bracket_highlighter.regions":
 							[
 								"bh_tag",
 								"bh_tag_center",
@@ -1264,16 +1298,31 @@
 								"bh_double_quote_open",
 								"bh_double_quote_close",
 								"bh_double_quote_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
 								"bh_curly",
 								"bh_curly_center",
 								"bh_curly_open",
 								"bh_curly_close",
 								"bh_curly_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
 								"bh_c_define",
 								"bh_c_define_center",
 								"bh_c_define_open",
@@ -1284,34 +1333,20 @@
 								"bh_regex_open",
 								"bh_regex_close",
 								"bh_regex_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
 								"bh_angle",
 								"bh_angle_center",
 								"bh_angle_open",
 								"bh_angle_close",
-								"bh_angle_content"
+								"bh_angle_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content"
 							],
-							"syntax": "Packages/JavaScript Ultimate/JavaScript.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"expand_region_settings": "{\"stack\": [{\"start\": 131, \"end\": 134}], \"hash\": \"7e0e2850b97954eafbd59d0bba47f186\"}",
+							"open_with_edit": true,
+							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -1322,56 +1357,71 @@
 				},
 				{
 					"buffer": 2,
-					"file": "src/bin.coffee",
+					"file": "test/test.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3318,
+						"buffer_size": 5090,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								812,
-								822
+								0,
+								5090
 							]
 						],
 						"settings":
 						{
-							"BracketHighlighterBusy": false,
-							"bh_regions":
+							"bracket_highlighter.busy": false,
+							"bracket_highlighter.locations":
+							{
+								"close":
+								{
+								},
+								"icon":
+								{
+								},
+								"open":
+								{
+								},
+								"unmatched":
+								{
+								}
+							},
+							"bracket_highlighter.regions":
 							[
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
 								"bh_tag",
 								"bh_tag_center",
 								"bh_tag_open",
 								"bh_tag_close",
 								"bh_tag_content",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_double_quote_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
 								"bh_unmatched",
 								"bh_unmatched_center",
 								"bh_unmatched_open",
@@ -1387,26 +1437,230 @@
 								"bh_regex_open",
 								"bh_regex_close",
 								"bh_regex_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content"
+							],
+							"expand_region_settings": "{\"stack\": [{\"start\": 2487, \"end\": 2493}, {\"start\": 2477, \"end\": 2493}], \"hash\": \"b5ba311fe86cf51fc2b66162f5694819\"}",
+							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1103.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "test/coffeescript-tabbed/_importer.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 192,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"bracket_highlighter.busy": false,
+							"bracket_highlighter.locations":
+							{
+								"close":
+								{
+								},
+								"icon":
+								{
+								},
+								"open":
+								{
+								},
+								"unmatched":
+								{
+								}
+							},
+							"bracket_highlighter.regions":
+							[
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_tag_content",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_double_quote_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content",
 								"bh_single_quote",
 								"bh_single_quote_center",
 								"bh_single_quote_open",
 								"bh_single_quote_close",
 								"bh_single_quote_content",
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content"
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content"
 							],
-							"open_with_edit": true,
-							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "test/conditions/_importer.js",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 199,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								167,
+								167
+							]
+						],
+						"settings":
+						{
+							"bracket_highlighter.busy": false,
+							"bracket_highlighter.locations":
+							{
+								"close":
+								{
+								},
+								"icon":
+								{
+								},
+								"open":
+								{
+								},
+								"unmatched":
+								{
+								}
+							},
+							"bracket_highlighter.regions":
+							[
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_tag_content",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_double_quote_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content"
+							],
+							"syntax": "Packages/JavaScript Ultimate/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
 					"type": "text"
 				}
 			]
@@ -1472,22 +1726,30 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"_importer",
+				"test/uglify/_importer.js"
+			],
+			[
+				"_imporet",
+				"test/coffeescript-tabbed/_importer.coffee"
+			]
 		],
 		"width": 0.0
 	},
 	"select_project":
 	{
 		"height": 500.0,
-		"last_filter": "sess",
+		"last_filter": "simb",
 		"selected_items":
 		[
 			[
-				"sess",
-				"~/sandbox/session-recorder/session-recorder.sublime-project"
+				"simb",
+				"~/sandbox/simplybind/simplybind.sublime-project"
 			],
 			[
 				"",
-				"~/sandbox/form-engine/form-engine.sublime-project"
+				"~/sandbox/mixinconvert/mixinconvert.sublime-project"
 			]
 		],
 		"width": 380.0

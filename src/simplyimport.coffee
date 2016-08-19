@@ -1,145 +1,153 @@
 if not Array::includes then Array::includes = (subject)-> @indexOf(subject) isnt -1
 
-fs = require('fs')
-path = require('path')
-uglify = require('uglify-js')
-extend = require('object-extend')
+fs = require 'fs-extra'
+path = require 'path'
+isValidPath = require 'is-valid-path'
+uglify = require 'uglify-js'
+extend = require 'object-extend'
+regEx = require './regex'
+
 importHistory = []
-extRegEx = /.+\.(js|coffee)$/i
-importRegEx = ///
-	(\s*)? # prior whitespace
-	(?:\/|\#) # comment declaration
-	\s* # whitespace between the comment and the import declaration
-	@import # import declaration
-	\s* # whitespace after import declaration
-	(?:\{(.+)\})? # conditionals
-	\s* # whitespace after conditional
-	(.+) # filepath
-///ig
+
 defaultOptions = 
-	inputType: 'stream'
-	outputIsFile: false
-	uglify: false
-	recursive: true
-	stdout: false
-	preserve: false
-	conditions: []
-	cwd: process.cwd()
-	coffee: false
+	'inputType': 'stream'
+	'outputType': 'stream'
+	'uglify': false
+	'recursive': true
+	'preserve': false
+	'conditions': []
+	'cwd': process.cwd()
+	'coffee': false
 
 
-simplyImport = (input, output, passedOptions)->
-	options = extend(defaultOptions, passedOptions)
-	importHistory = [] # Fresh Start
-	inputIsFromModule = true if !output? and !options.stdout
 
-	
-	switch options.inputType
+
+
+
+
+beginImport = (input, output, options)->
+	@options = extend(defaultOptions, options)
+	importHistory.length = 0 # Fresh Start
+
+	if @options.inputType is 'stream' and isValidPath(input)
+		@options.inputType = 'path'
+
+	switch @options.inputType
 		when 'stream'
 			inputContent = input
-			dirContext = options.cwd
-			isCoffeeFile = options.coffee
+			dirContext = @options.cwd
+			isCoffeeFile = @options.coffee
 
 		when 'path'
 			input = path.normalize(input)
-			output = path.normalize(output)
-			fileExt = input.match(extRegEx)[1]
+			fileExt = input.match(regEx.fileExt)[1]
 			isCoffeeFile = fileExt.toLowerCase() is 'coffee'
 			inputContent = getFileContents(input, isCoffeeFile)
 			dirContext = getNormalizedDirname(input)
-			# fileName = path.basename(input, '.'+fileExt)
 
-	replacedContent = applyReplace(inputContent, dirContext, isCoffeeFile, options)
-	if options.uglify then replacedContent = uglify.minify(replacedContent, {fromString: true}).code
+	if not inputContent
+		console.error 'Import process failed - invalid input'
+		return process.exit(1);
 	
+	replacedContent = applyReplace(inputContent, dirContext, isCoffeeFile)	
 	
-	if inputIsFromModule
-		return replacedContent
-	else
-		if options.outputIsFile
+	return switch @options.outputType
+		when 'stream'
+			replacedContent
+		
+		when 'path'
+			output = path.normalize(output)
 			fs.writeFileSync(output, replacedContent)
-		else
-			process.stdout.write(replacedContent)
 
 
 
-applyReplace = (input, dirContext, isCoffeeFile, options)->
-	return output = input.replace importRegEx, (match, spacing, conditions, filePath)->
+
+applyReplace = (input, dirContext, isCoffeeFile)->
+	input.replace regEx.import, (originalContent, priorContent, spacing, conditions, filePath)->
 		filePath = filePath.replace(/['"]/g, '') # Remove quotes form pathname
 		resolvedPath = path.normalize(dirContext+'/'+filePath)
-		childIsCoffeeFile = resolvedPath.match(extRegEx)? and resolvedPath.match(extRegEx)[1].toLowerCase() is 'coffee'
+		childIsCoffeeFile = resolvedPath.match(regEx.fileExt)?[1].toLowerCase() is 'coffee'
 		importedFileContent = getFileContents(resolvedPath, isCoffeeFile)
-		importedHasImports = importRegEx.test(importedFileContent)
-		replacedContent = match
+		importedHasImports = regEx.import.test(importedFileContent)
 		matchedConditions = true
 		
 		if conditions
 			conditions = conditions.split(/,\s?/)
 			
 			for condition in conditions
-				if !options.conditions.includes(condition) then matchedConditions = false
+				if !@options.conditions.includes(condition) then matchedConditions = false
 
 
 
-		if matchedConditions
-			if !importedFileContent then return match # Exits early and returns the original match if file doesn't exist.
-			if !importHistory.includes(resolvedPath)
-				importHistory.push(resolvedPath)
+		if not matchedConditions
+			replacedContent = if @options.preserve then originalContent else ''
+		
+		else
+			if !importedFileContent
+				replacedContent = originalContent # Exits early and returns the original match if file doesn't exist.
 
-				if importedHasImports
-					childDirContext = getNormalizedDirname(resolvedPath)
-					replacedContent = applyReplace(importedFileContent, childDirContext, childIsCoffeeFile, options)
+			else
+				if importHistory.includes(resolvedPath)
+					replacedContent = originalContent
+
 				else
-					replacedContent = importedFileContent
+					importHistory.push(resolvedPath)
 
-			if spacing 
-				if spacing isnt '\n'
-					spacing = spacing.replace /^\n*/, ''
-					replacedContent = replacedContent.split('\n').map((line)-> spacing+line).join('\n')
-				replacedContent = '\n'+replacedContent
+					if importedHasImports
+						childDirContext = getNormalizedDirname(resolvedPath)
+						replacedContent = applyReplace(importedFileContent, childDirContext, childIsCoffeeFile)
+					else
+						replacedContent = importedFileContent
+
+				if spacing and not priorContent
+					if spacing isnt '\n'
+						spacing = spacing.replace /^\n*/, ''
+						replacedContent = replacedContent.split('\n').map((line)-> spacing+line).join('\n')
+					replacedContent = '\n'+replacedContent
 
 
 			# ==== Returning =================================================================================
-			if isCoffeeFile and !childIsCoffeeFile
-				return replacedContent.replace /^(\s*)((?:.|\n)+)/, # Wraps standard javascript code with backtics so coffee script could be properly compiled.
-					(entire, spacing='', content)->
-						escapedContent = content.replace /`/g, ()-> '\\`'
-						return spacing+'`'+escapedContent+'`'
-			
-			else if !isCoffeeFile and childIsCoffeeFile
-				throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)')
-				process.exit(1)
-			
-			else return replacedContent
+				if isCoffeeFile and !childIsCoffeeFile
+					replacedContent = replacedContent.replace /^(\s*)((?:.|\n)+)/, # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+						(entire, spacing='', content)->
+							escapedContent = content.replace /`/g, ()-> '\\`'
+							return spacing+'`'+escapedContent+'`'
+				
+				else if !isCoffeeFile and childIsCoffeeFile
+					throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)')
+					process.exit(1)
+						
+
+			if @options.uglify
+				replacedContent = uglify.minify(replacedContent, {'fromString':true}).code
+
+
+		if priorContent and replacedContent and replacedContent isnt originalContent
+			priorContent += spacing if spacing
+			replacedContent = priorContent+replacedContent
 		
-
-		else 
-			if options.preserve then replacedContent else ''
+		return replacedContent
 
 
 
 
-getFileContents = (inputPath, isCoffeeFile, inputIsFromModule)->
-	if inputIsFromModule
-		return inputIsFromModule
-	else
-		extension = if isCoffeeFile then '.coffee' else '.js'
-		inputPathHasExt = extRegEx.test(inputPath)
-		inputPath = inputPath+extension if !inputPathHasExt
-		if checkIfInputExists(inputPath)
-			return fs.readFileSync(inputPath).toString()
-		else return false
+getFileContents = (inputPath, isCoffeeFile)->
+	extension = if isCoffeeFile then '.coffee' else '.js'
+	inputPathHasExt = regEx.fileExt.test(inputPath)
+	inputPath = inputPath+extension if !inputPathHasExt
+	if checkIfInputExists(inputPath)
+		return fs.readFileSync(inputPath).toString()
+	else return false
 
 
 
-getNormalizedDirname = (inputPath)-> 
-	return path.normalize( path.dirname( path.resolve(inputPath) ) )
+getNormalizedDirname = (inputPath)-> path.normalize( path.dirname( path.resolve(inputPath) ) )
 
 
 
 checkIfInputExists = (inputPath)->
 	try
-		if fs.statSync(inputPath).isFile() then return true else return false
+		return fs.statSync(inputPath).isFile()
 	catch error
 		return false
 
@@ -169,4 +177,4 @@ checkIfInputExists = (inputPath)->
 
 
 
-module.exports = simplyImport
+module.exports = beginImport

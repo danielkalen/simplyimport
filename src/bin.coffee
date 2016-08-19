@@ -40,25 +40,25 @@ options =
 		type: 'array'
 
 
-startReplacement = require('../simplyimport.js')
-yargs = require('yargs')
-		.usage("Usage: simplyimport -i <input> -o <output> -[u|s|n|p|c] \nDirective syntax: // @import {<conditions, separated by commas>} <filepath>")
-		.options(options)
-		.help('h')
-		.alias('h', 'help')
+yargs = require 'yargs'
+		.usage "Usage: simplyimport -i <input> -o <output> -[u|s|n|p|c] \nDirective syntax: // @import {<conditions, separated by commas>} <filepath>"
+		.options options
+		.help 'h'
+		.alias 'h', 'help'
 args = yargs.argv
-extRegEx = /.+\.(js|coffee)$/i
+SimplyImport = require './simplyimport'
+regEx = require './regex'
 
 
-input = args.i || args.input || args._[0]
-output = args.o || args.output || args._[1]
-help = args.h || args.help
-shouldUglify = args.u || args.uglify
-shouldStdout = args.s || args.stdout
-shouldPreserve = args.p || args.preserve
-notRecursive = args.n || args.notrecursive
-conditionsPassed = args.c || args.conditions || []
-outputIsFile = extRegEx.test(output)
+input = args.i or args.input or args._[0]
+output = args.o or args.output or args._[1]
+help = args.h or args.help
+shouldUglify = args.u or args.uglify
+shouldStdout = args.s or args.stdout
+shouldPreserve = args.p or args.preserve
+notRecursive = args.n or args.notrecursive
+conditions = args.c or args.conditions or []
+outputIsFile = regEx.fileExt.test(output)
 
 if help
 	process.stdout.write(yargs.help());
@@ -69,30 +69,48 @@ if help
 
 
 
-
-###==========================================================================
-   Calling and Initing the script
-   ==========================================================================###
+## ==========================================================================
+## Logic invocation
+## ========================================================================== 
 
 # ==== Output Path/Dir Optimization =================================================================================
-if !output and input? # Indicates output should be a file and not to stdout
-	output = input.replace extRegEx, (entire, endOfPath)-> return '.compiled.'+endOfPath
-else if !outputIsFile
-	output = output+'/' if output.charAt( output.length-1 ) isnt '/'
-	output = output + input.replace extRegEx, (entire, endOfPath)-> return '.compiled.'+endOfPath # Since output is a dir, for the filename we use the input path's filename with an added suffix.
+if output and input and not outputIsFile
+	output += '/' if output.slice(-1)[0] isnt '/'
+	output += input.replace regEx.fileExt, (entire, endOfPath)-> return '.compiled.'+endOfPath # Since output is a dir, for the filename we use the input path's filename with an added suffix.
 	
-# ==== Init Replacement Call =================================================================================
-if input?
-	startReplacement(input, output, {inputType:'path', recursive:!notRecursive, outputIsFile:outputIsFile, uglify:shouldUglify, shouldStdout:shouldStdout, conditions:conditionsPassed, preserve:shouldPreserve})
 
-else # Indicates the input is from a stream
+
+performImport = (input, output, inputType)->
+	SimplyImport input, output, 
+		'inputType': inputType
+		'outputType': if output then 'file' else 'stream'
+		'recursive': not notRecursive
+		'uglify': shouldUglify
+		'shouldStdout': shouldStdout
+		'conditions': conditions
+		'preserve': shouldPreserve
+
+
+# ==== File i/o =================================================================================
+if input?
+	processed = performImport(input, output, 'path')
+
+	if not output
+		process.stdout.write(processed)
+
+
+# ==== Stream i/o =================================================================================
+else
 	input = ''
 	process.stdin.on 'data', (data)->
 		input += data.toString()
 
 	process.stdin.on 'end', ()->
-		startReplacement(input, output, {inputType:'stream', recursive:!notRecursive, uglify:shouldUglify, shouldStdout:shouldStdout, onditions:conditionsPassed, preserve:shouldPreserve})
-# ========================================================================== #
+		processed = performImport(input, output, 'stream')
+		
+		if not output
+			process.stdout.write(processed)
+
 
 
 

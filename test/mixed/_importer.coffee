@@ -1,8 +1,8 @@
 import 'withquotes.coffee'
 import noquotes.coffee
-import 'withext.coffee'
+import 'withext.js'
 import 'noext'
-import 'nested/nested1.coffee'
+import 'nested/nested1.js'
 import 'nonexistent.coffee'
 
-variable = import 'variable.coffee'
+variable = import 'variable.js'
