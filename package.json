@@ -24,14 +24,13 @@
   },
   "license": "MIT",
   "scripts": {
-    "test": "mocha --ui tdd --compilers coffee:coffee-script/register",
     "watch": "nodemon -e coffee -w ./src -x 'npm run compile'",
     "compile": "npm run compile:js && npm run compile:bin",
     "compile:js": "coffee -o ./ -c src/simplyimport.coffee",
     "compile:bin": "coffee -o ./bin -c src/bin.coffee && npm run prependbin && npm run makeexec",
     "prependbin": "echo '#!/usr/bin/env node' | cat - bin/bin.js > bin/simplyimport && rm -rf bin/bin.js",
     "makeexec": "chmod +x bin/simplyimport",
-    "copytopublic": "cp -r ./ ../../sandbox-public/simplyimport"
+    "test": "mocha --ui tdd --compilers coffee:coffee-script/register --slow 500"
   },
   "dependencies": {
     "chai": "^3.5.0",

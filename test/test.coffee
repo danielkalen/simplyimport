@@ -128,7 +128,7 @@ suite "SimplyImport", ()->
 		exec "src/bin.coffee -i test/conditions/_importer.js -c yes yes1 -s", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
-			console.log imported
+
 			imported.should.include  "Imported file with quotes"
 			imported.should.include  "Imported file without quotes"
 			imported.should.include  "Imported file with extension"

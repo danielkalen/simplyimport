@@ -13,7 +13,16 @@ regEx =
 		(?:\{(.+)\})?			# conditionals
 		\s*						# whitespace after conditional
 		(.+)					# filepath
-	///g
+	///
+	# import: ///
+	# 	(\S*)					# prior content
+	# 	(\s*)					# prior whitespace
+	# 	import					# import declaration
+	# 	\s*						# whitespace after import declaration
+	# 	(?:\{(.+)\})?			# conditionals
+	# 	\s*						# whitespace after conditional
+	# 	(.+)					# filepath
+	# ///g
 
 
 
