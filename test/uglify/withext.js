@@ -1,1 +1,0 @@
-c=('Imported file with extension.');

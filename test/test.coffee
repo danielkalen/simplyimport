@@ -10,8 +10,8 @@ SimplyImport = require '../src/simplyimport.coffee'
 suite "SimplyImport", ()->
 	
 	test "Standard Import", (done)->
-		importedAsModule = SimplyImport('test/standard/_importer.js')
-		exec "src/bin.coffee -i test/standard/_importer.js -s", (err, stdout, stderr)->
+		importedAsModule = SimplyImport('test/samples/standard/_importer.js')
+		exec "src/bin.coffee -i test/samples/standard/_importer.js -s", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
 			
@@ -36,8 +36,8 @@ suite "SimplyImport", ()->
 
 
 	test "Coffeescript Import", (done)->
-		importedAsModule = SimplyImport('test/coffeescript/_importer.coffee')
-		exec "src/bin.coffee -i test/coffeescript/_importer.coffee -s", (err, stdout, stderr)->
+		importedAsModule = SimplyImport('test/samples/coffeescript/_importer.coffee')
+		exec "src/bin.coffee -i test/samples/coffeescript/_importer.coffee -s", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
 			
@@ -64,8 +64,8 @@ suite "SimplyImport", ()->
 
 
 	test "Coffeescript (tabbed) Import", (done)->
-		importedAsModule = SimplyImport('test/coffeescript-tabbed/_importer.coffee')
-		exec "src/bin.coffee -i test/coffeescript-tabbed/_importer.coffee -s", (err, stdout, stderr)->
+		importedAsModule = SimplyImport('test/samples/coffeescript-tabbed/_importer.coffee')
+		exec "src/bin.coffee -i test/samples/coffeescript-tabbed/_importer.coffee -s", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
 			
@@ -92,8 +92,8 @@ suite "SimplyImport", ()->
 
 
 	test "Mixed (coffee+js) Import", (done)->
-		importedAsModule = SimplyImport('test/mixed/_importer.coffee')
-		exec "src/bin.coffee -i test/mixed/_importer.coffee -s", (err, stdout, stderr)->
+		importedAsModule = SimplyImport('test/samples/mixed/_importer.coffee')
+		exec "src/bin.coffee -i test/samples/mixed/_importer.coffee -s", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
 			
@@ -124,8 +124,8 @@ suite "SimplyImport", ()->
 
 	
 	test "Conditions Import", (done)->
-		importedAsModule = SimplyImport('test/conditions/_importer.js', null, {'conditions':['yes', 'yes1']})
-		exec "src/bin.coffee -i test/conditions/_importer.js -c yes yes1 -s", (err, stdout, stderr)->
+		importedAsModule = SimplyImport('test/samples/conditions/_importer.js', null, {'conditions':['yes', 'yes1']})
+		exec "src/bin.coffee -i test/samples/conditions/_importer.js -c yes yes1 -s", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
 
@@ -155,8 +155,8 @@ suite "SimplyImport", ()->
 
 	
 	test "Conditions Import (preserve declarations)", (done)->
-		importedAsModule = SimplyImport('test/conditions/_importer.js', null, {'conditions':['yes', 'yes1'], 'preserve':true})
-		exec "src/bin.coffee -i test/conditions/_importer.js -c yes yes1 -s -p", (err, stdout, stderr)->
+		importedAsModule = SimplyImport('test/samples/conditions/_importer.js', null, {'conditions':['yes', 'yes1'], 'preserve':true})
+		exec "src/bin.coffee -i test/samples/conditions/_importer.js -c yes yes1 -s -p", (err, stdout, stderr)->
 			throw err if err
 			imported = stdout.toString()
 			
