@@ -27,22 +27,23 @@
     "watch": "nodemon -e coffee -w ./src -x 'npm run compile'",
     "compile": "npm run compile:js && npm run compile:bin",
     "compile:js": "coffee -o ./ -c src/simplyimport.coffee",
-    "compile:bin": "coffee -o ./bin -c src/bin.coffee && npm run prependbin && npm run makeexec",
-    "prependbin": "echo '#!/usr/bin/env node' | cat - bin/bin.js > bin/simplyimport && rm -rf bin/bin.js",
+    "compile:bin": "coffee -o ./bin -c src/cli.coffee && npm run prependbin && npm run makeexec",
+    "prependbin": "echo '#!/usr/bin/env node' | cat - bin/cli.js > bin/simplyimport && rm -rf bin/cli.js",
     "makeexec": "chmod +x bin/simplyimport",
     "test": "mocha --ui tdd --compilers coffee:coffee-script/register --slow 500"
   },
   "dependencies": {
     "chai": "^3.5.0",
+    "extend": "^3.0.0",
     "fs-extra": "^0.30.0",
     "is-valid-path": "^0.1.1",
     "mocha": "^2.5.3",
-    "object-extend": "^0.5.0",
     "uglify-js": "^2.6.1",
     "yargs": "^3.29.0"
   },
   "devDependencies": {
     "coffee-script": "^1.10.0",
+    "fs-extra": "^0.30.0",
     "nodemon": "^1.8.1"
   }
 }

@@ -1,9 +1,7 @@
 module.exports = 
-	'inputType': 'stream'
-	'outputType': 'stream'
 	'uglify': false
 	'recursive': true
 	'preserve': false
+	'silent': false
+	'compileCoffeeChildren': true
 	'conditions': []
-	'cwd': process.cwd()
-	'coffee': false

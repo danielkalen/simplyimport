@@ -1,123 +1,86 @@
 if not Array::includes then Array::includes = (subject)-> @indexOf(subject) isnt -1
-fs = require 'fs-extra'
 path = require 'path'
-isValidPath = require 'is-valid-path'
-uglify = require 'uglify-js'
-extend = require 'object-extend'
-regEx = require './regex'
+CoffeeCompiler = require 'coffee-script'
+Uglifier = require 'uglify-js'
 helpers = require './helpers'
-defaultOptions = require './defaultOptions'
-importHistory = []
+regEx = require './regex'
+File = require './FileConstructor'
 
 
 
 
 
-beginImport = (input, output, options)->
-	@options = extend(defaultOptions, options)
-	importHistory.length = 0 # Fresh Start
 
-	@options.inputType = 'path' if @options.inputType is 'stream' and isValidPath(input)
+processMainFile = (input, passedOptions, passedState)->
+	subjectFile = new File(input, passedOptions, passedState)
 
-	switch @options.inputType
-		when 'stream'
-			inputContent = input
-			dirContext = @options.cwd
-			isCoffeeFile = @options.coffee
-
-		when 'path'
-			input = path.normalize(input)
-			isCoffeeFile = input.match(regEx.fileExt)?[1]?.toLowerCase() is 'coffee'
-			inputContent = helpers.getFileContents(input, isCoffeeFile)
-			dirContext = helpers.getNormalizedDirname(input)
-
-
-	if not inputContent
-		console.error 'Import process failed - invalid input'
+	if not subjectFile.content
+		console.error "Import process failed - invalid input #{subjectFile.filePath}"
 		return process.exit(1);
+	else
+		return replaceImports(subjectFile) or subjectFile.content
 	
-	replacedContent = applyReplace(inputContent, dirContext, isCoffeeFile)	
-	
-	return switch @options.outputType
-		when 'stream'
-			replacedContent
-		
-		when 'path'
-			output = path.normalize(output)
-			fs.writeFileSync(output, replacedContent)
 
 
 
 
-
-
-applyReplace = (input, dirContext, isCoffeeFile)->
-	input
+replaceImports = (subjectFile)->
+	subjectFile.content
 		.split '\n'
-		.map((inputLine)-> inputLine.replace regEx.import, (o, priorContent, spacing, conditions, filePath)->
-			filePath = filePath.replace(/['"]/g, '') # Remove quotes form pathname
-			resolvedPath = path.normalize dirContext+'/'+filePath
-			childIsCoffee = helpers.checkIfIsCoffee(resolvedPath)
-			importedFileContent = helpers.getFileContents(resolvedPath, isCoffeeFile)
-			importedHasImports = regEx.import.test(importedFileContent)
-			matchedConditions = true
+		.map((originalLine)-> originalLine.replace regEx.import, (originalLine, priorContent, spacing='', conditions='', childPath)->
+			return originalLine if helpers.testForComments(originalLine, subjectFile)
+			failedReplacement = if subjectFile.options.preserve then helpers.commentOut(originalLine, subjectFile) else ''
 			
-			if conditions
-				conditions = conditions.split(/,\s?/)
+			if helpers.testConditions(subjectFile.options.conditions, conditions)
+				childPath = helpers.normalizeFilePath(childPath, subjectFile.context)
 				
-				for condition in conditions
-					if !@options.conditions.includes(condition) then matchedConditions = false
+				unless subjectFile.importHistory[childPath]
+					subjectFile.importHistory[childPath] = true
+					childFile = new File childPath, subjectFile.options, {'isCoffee':subjectFile.isCoffee}, subjectFile.importHistory
+					childContent = childFile.content or ''
+
+					if childContent
+						# ==== Child Imports =================================================================================
+						if subjectFile.options.recursive
+							childContent = replaceImports(childFile)
 
 
-
-			if not matchedConditions
-				replacedContent = if @options.preserve then inputLine else ''
-			
-			else
-				if !importedFileContent
-					replacedContent = inputLine # Exits early and returns the original match if file doesn't exist.
-
-				else
-					if importHistory.includes(resolvedPath)
-						replacedContent = inputLine
-
-					else
-						importHistory.push(resolvedPath)
-
-						if importedHasImports
-							childDirContext = helpers.getNormalizedDirname(resolvedPath)
-							replacedContent = applyReplace(importedFileContent, childDirContext, childIsCoffee)
-						else
-							replacedContent = importedFileContent
-
-					if spacing and not priorContent
-						if spacing isnt '\n'
-							spacing = spacing.replace /^\n*/, ''
-							replacedContent = replacedContent.split('\n').map((line)-> spacing+line).join('\n')
-						replacedContent = '\n'+replacedContent
+						# ==== Spacing =================================================================================
+						if spacing and spacing isnt '\n' and not priorContent
+							spacing = spacing.replace /^\n*/, '' # Strip initial new lines
+							spacedContent = childContent
+								.split '\n'
+								.map (line)-> spacing+line
+								.join '\n'
+							
+							childContent = '\n'+spacedContent
 
 
-				# ==== Returning =================================================================================
-					if isCoffeeFile and !childIsCoffee
-						replacedContent = replacedContent.replace /^(\s*)((?:.|\n)+)/, # Wraps standard javascript code with backtics so coffee script could be properly compiled.
-							(entire, spacing='', content)->
-								escapedContent = content.replace /`/g, ()-> '\\`'
-								return spacing+'`'+escapedContent+'`'
-					
-					else if !isCoffeeFile and childIsCoffee
-						throw new Error('You\'re trying to import a coffeescript file into a JS file, I don\'t think that\'ll work out well :)')
-						process.exit(1)
+						# ==== JS vs. Coffeescript conflicts =================================================================================
+						switch
+							when subjectFile.isCoffee and not childFile.isCoffee
+								childContent = childContent.replace /^(\s*)((?:.|\n)+)/, (entire, spacing='', content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+									escapedContent = content.replace /`/g, ()-> '\\`'
+									"#{spacing}`#{escapedContent}`"
 							
 
-				if @options.uglify
-					replacedContent = uglify.minify(replacedContent, {'fromString':true}).code
+							when childFile.isCoffee and not subjectFile.isCoffee
+								if subjectFile.options.compileCoffeeChildren
+									CoffeeCompiler.compile childFile.content, 'bare':true
+								else
+									throw new Error("You're attempting to import a Coffee file into a JS file (which will provide a broken file), rerun this import with --compile-coffee-children")
+									process.exit(1)
+
+						
+						# ==== Minificaiton =================================================================================								
+						if subjectFile.options.uglify
+							childContent = Uglifier.minify(childContent, {'fromString':true}).code
 
 
-			if priorContent and replacedContent and replacedContent isnt inputLine
-				priorContent += spacing if spacing
-				replacedContent = priorContent+replacedContent
-			
-			return replacedContent
+			if priorContent and childContent
+				childContent = priorContent + spacing + childContent
+
+			return childContent or failedReplacement
 		
 		).join '\n'
 
@@ -148,4 +111,4 @@ applyReplace = (input, dirContext, isCoffeeFile)->
 
 
 
-module.exports = beginImport
+module.exports = processMainFile

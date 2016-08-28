@@ -3,31 +3,27 @@ path = require 'path'
 regEx = require './regex'
 
 helpers = 
-	getFileContents: (inputPath, isCoffeeFile)->
-		extension = if isCoffeeFile then '.coffee' else '.js'
-		inputPathHasExt = regEx.fileExt.test(inputPath)
-		inputPath = inputPath+extension if !inputPathHasExt
-		
-		if @checkIfInputExists(inputPath)
-			return fs.readFileSync(inputPath).toString()
-		else return false
+	getNormalizedDirname: (inputPath)-> path.normalize( path.dirname( path.resolve(inputPath) ) )
+
+	commentOut: (line, file)-> if file.isCoffee then "\# #{line}" else "// #{line}"
+
+	testForComments: (line, file)-> if file.isCoffee then line.includes('#') else line.includes('//')
+
+	normalizeFilePath: (inputPath, context)->
+		pathWithoutQuotes = inputPath.replace /['"]/g, '' # Remove quotes form pathname
+		pathWithContext = path.normalize context+'/'+pathWithoutQuotes
+
+		return pathWithContext
 
 
 
-	getNormalizedDirname: (inputPath)->
-		path.normalize( path.dirname( path.resolve(inputPath) ) )
+	testConditions: (allowedConditions, conditionsString)->
+		conditions = conditionsString.split(/,\s?/).filter (nonEmpty)-> nonEmpty
 
+		for condition in conditions
+			return false if not allowedConditions.includes(condition)
 
-
-	checkIfInputExists: (inputPath)->
-		try
-			return fs.statSync(inputPath).isFile()
-		catch error
-			return false
-
-
-	checkIfIsCoffee: (inputPath)->
-		inputPath.match(regEx.fileExt)?[1].toLowerCase() is 'coffee'
+		return true
 
 
 

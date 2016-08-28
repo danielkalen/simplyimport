@@ -2,7 +2,7 @@ regEx =
 	fileExt: ///
 		.+ 						# File name
 		\. 						# Period separator
-		(js|coffee)$
+		(js|coffee)$			# Extension
 	///i
 
 	import: ///
@@ -13,16 +13,7 @@ regEx =
 		(?:\{(.+)\})?			# conditionals
 		\s*						# whitespace after conditional
 		(.+)					# filepath
-	///
-	# import: ///
-	# 	(\S*)					# prior content
-	# 	(\s*)					# prior whitespace
-	# 	import					# import declaration
-	# 	\s*						# whitespace after import declaration
-	# 	(?:\{(.+)\})?			# conditionals
-	# 	\s*						# whitespace after conditional
-	# 	(.+)					# filepath
-	# ///g
+	///g
 
 
 
