@@ -1,7 +1,7 @@
 {
   "name": "simplyimport",
   "version": "2.0.0",
-  "description": "SASS/PHP-like imports with an @import directive supporting conditional imports",
+  "description": "Export-less imports for JS/Coffee files featuring conditional, inline, & minified imports",
   "keywords": [
     "import",
     "importer",

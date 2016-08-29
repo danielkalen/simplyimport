@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/danielkalen/simplyimport.svg?branch=master)](https://travis-ci.org/danielkalen/simplyimport)
 [![Coverage](.config/badges/coverage-node.png?raw=true)](https://github.com/danielkalen/simplyimport)
 [![Code Climate](https://codeclimate.com/repos/57c332508cc944028900237a/badges/6b3dda1443fd085a1d3c/gpa.svg)](https://codeclimate.com/repos/57c332508cc944028900237a/feed)
+
 The `require` module system is great and all, but sometimes all we want to do is just import a separate file as is like it was written inside the importing file without the hassle of writing those annoying `module.exports` and `require` declarations.
 
 After using SASS's @import and PHP's include/require, I realized the importance of modularity and keeping code files small for the sake of usability, readability, and our sanity. Browserify, AMD, CommonJS, etc. are all great solutions for javascript modularity but sometimes they are just way too complicated and require way too much work than it should in order to implement simple modularity.
