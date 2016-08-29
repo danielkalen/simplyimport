@@ -1,10 +1,10 @@
 #!/usr/bin/env coffee
 yargs = require 'yargs'
-		.usage "Usage: simplyimport -i <input> -o <output> -[u|s|n|p|c] \nDirective syntax: // @import {<conditions, separated by commas>} <filepath>"
-		.options(require './cliOptions')
-		.help('h')
-		.wrap(null)
-		.version()
+	.usage(require './cliUsage')
+	.options(require './cliOptions')
+	.help('h')
+	.wrap(require('yargs').terminalWidth())
+	.version()
 args = yargs.argv
 SimplyImport = require './simplyimport'
 regEx = require './regex'
@@ -20,12 +20,15 @@ passedOptions =
 	'uglify': args.u or args.uglify
 	'preserve': args.p or args.preserve
 	'silent': args.s or args.silent
+	'track': args.t or args.track
 	'recursive': args.r or args.recursive
 	'conditions': args.c or args.conditions or []
 
-if help
+exitWithHelpMessage = ()->
 	process.stdout.write(yargs.help());
 	process.exit(0)
+
+exitWithHelpMessage() if help
 
 
 
@@ -65,6 +68,11 @@ else # Stream i/o
 	input = ''
 	process.stdin.on 'data', (data)-> input += data.toString()
 	process.stdin.on 'end', ()-> writeResult SimplyImport(input, passedOptions, isStream:true)
+
+	setTimeout ()->
+		exitWithHelpMessage() if not input
+	, 250
+	
 		
 
 

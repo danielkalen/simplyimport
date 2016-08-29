@@ -1,22 +1,21 @@
 fs = require 'fs'
+md5 = require 'md5'
 path = require 'path'
-extend = require 'extend'
+chalk = require 'chalk'
 regEx = require './regex'
 helpers = require './helpers'
-defaultOptions = require './defaultOptions'
-
+consoleLabels = require './consoleLabels'
 
 ###*
  * The object created for each file path the program needs to open/import/read.
  * @param {String} input               	File's path or file's contents
- * @param {Object} passedOptions       	(optional) Custom options map
  * @param {Object} state	          	(optional) initial state map to indicate if 'isStream', 'isCoffee', and 'context'
  * @param {Object} importHistory	 	(optional) the import history collected so far since the main faile import
 ###
-File = (input, passedOptions, state={}, @importHistory={})->
-	@[key] = value for own key,value of state
-	@options = extend({}, defaultOptions, passedOptions)
-	@context ?= process.cwd()
+File = (input, state={}, @importHistory={})->
+	@[key] = value for key,value of state
+	@trackedImportHistory = {}
+	@context = process.cwd()
 	@isCoffee ?= false
 	@isStream ?= false
 
@@ -24,14 +23,16 @@ File = (input, passedOptions, state={}, @importHistory={})->
 		@content = input
 	else
 		@filePath = path.normalize(input)
-		@fileExt = @filePath.match(regEx.fileExt)?[1]?.toLowerCase()
+		@fileExt = @filePath.match(regEx.fileExt)?[1].toLowerCase()
 		@context = helpers.getNormalizedDirname(@filePath)
 		@isCoffee = @checkIfIsCoffee()
 		@content = @getContents()
 
-		if not @content and not @options.silent
-			console.warn("Failed to import nonexistent file: #{@filePath}")
+		if not @content and not options.silent
+			console.warn "#{consoleLabels.warn} Failed to import nonexistent file: #{chalk.dim(helpers.simplifyPath @filePath)}"
 
+	@collectTrackedImports()
+	@hash = md5(@content)
 	return @
 
 
@@ -62,6 +63,13 @@ File::getContents = ()->
 
 	return content
 
+
+
+
+
+File::collectTrackedImports = ()-> if @content
+	@content.replace regEx.trackedImport, (entire, hash)=>
+		@importHistory[hash] = @trackedImportHistory[hash] = @filePath or 'stdin'
 
 
 

@@ -5,9 +5,24 @@ regEx = require './regex'
 helpers = 
 	getNormalizedDirname: (inputPath)-> path.normalize( path.dirname( path.resolve(inputPath) ) )
 
-	commentOut: (line, file)-> if file.isCoffee then "\# #{line}" else "// #{line}"
+	simplifyPath: (inputPath)-> inputPath.replace process.cwd()+'/', ''
 
 	testForComments: (line, file)-> if file.isCoffee then line.includes('#') else line.includes('//')
+
+	commentOut: (line, file, isImportLine)->
+		comment = if file.isCoffee then '#' else '//'
+		if isImportLine
+			@commentBadImportLine(line, comment)
+		else
+			"#{comment} #{line}"
+
+	commentBadImportLine: (importLine, comment)->
+		prevContent = ''
+		importLine.replace regEx.import, (importLine, priorContent, spacing)->
+			prevContent = priorContent+spacing
+		
+		return importLine.replace prevContent, "#{prevContent}#{comment} "
+
 
 	normalizeFilePath: (inputPath, context)->
 		pathWithoutQuotes = inputPath.replace /['"]/g, '' # Remove quotes form pathname

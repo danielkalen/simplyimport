@@ -3,5 +3,6 @@ module.exports =
 	'recursive': true
 	'preserve': false
 	'silent': false
-	'compileCoffeeChildren': true
+	'track': false
+	'compileCoffeeChildren': false
 	'conditions': []

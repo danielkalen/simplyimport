@@ -1,5 +1,10 @@
 # SimplyImport
-The `require` module system is great and all, but sometimes all we want to do is just import a separate file as is like it was written inside the importing file without the hassle of writing annoying `module.exports` and `require` declarations. After using SASS's @import and PHP's include/require, I realized the importance of modularity and keeping code files small for the sake of usability, readability, and our sanity. Browserify, AMD, CommonJS, etc. are all great solutions for javascript modularity but sometimes they are just way too complicated and require way too much work than it should in order to implement simple modularity.
+[![Build Status](https://travis-ci.org/danielkalen/simplyimport.svg?branch=master)](https://travis-ci.org/danielkalen/simplyimport)
+[![Coverage](.config/badges/coverage-node.png?raw=true)](https://github.com/danielkalen/simplyimport)
+[![Code Climate](https://codeclimate.com/repos/57c332508cc944028900237a/badges/6b3dda1443fd085a1d3c/gpa.svg)](https://codeclimate.com/repos/57c332508cc944028900237a/feed)
+The `require` module system is great and all, but sometimes all we want to do is just import a separate file as is like it was written inside the importing file without the hassle of writing those annoying `module.exports` and `require` declarations.
+
+After using SASS's @import and PHP's include/require, I realized the importance of modularity and keeping code files small for the sake of usability, readability, and our sanity. Browserify, AMD, CommonJS, etc. are all great solutions for javascript modularity but sometimes they are just way too complicated and require way too much work than it should in order to implement simple modularity.
 
 Keep in mind that the aformentioned module systems **are probably more semantic** and would probably be considered more profesisonal, but this import concept takes a more simplictic approach that is easier and faster to implement and is just offered as an **addition** to your current module workflow, not necessarily a replacement.
 
@@ -22,48 +27,63 @@ Usage:
 ------
 **Directive Syntax**
 ```
-// @import {<conditions separated by commas>} <filepath (quotes/ext optional)>
+import [<conditions>] <filepath>
+
+examples:
+    import 'parts/someFile.js'
+    import 'parts/someFile.coffee'
+    import parts/someFile
+    import ../../parts/someFile
+    import [conditionA, conditionB] parts/someFile.js
+    var foo = import parts/someLibrary.js
 ```
 
-**Command Line**
+**Command Line API**
 ```
-simplyimport -i <input> -o [<output>|<outputdir>] -[u|s|n]
-```
-
-**Node Module**
-```javascript
-var SimplyImport = require('simplyimport');
-
-// Compile by filename (writes compiled file to the second argument)
-SimplyImport('src/foo.js', 'dist/foo.compiled.js', {shouldUglify: true});
-
-// Compile by string (returns compiled string)
-fs.readFile('foo/bar.js', function(err, data){
-  var compiled = SimplyImport(data);
-  console.log(compiled) // Logs out the compiled data with all its @import directives attended.
-});
+simplyimport -i <input> -o <output> -[c|u|r|p|s|C]
 ```
 
 **Command Line Options:**
 
 ```bash
--i, --input         Path of the file to compile. Can be relative or absolute.
-                                                           [string] [required]
--o, --output        Path to write the compiled file to. Can be a file, or
-                    directory. If omitted the compiled result will be written
-                    to stdout.                                        [string]
--s, --stdout        Output the compiled result to stdout. (Occurs by default
-                    if no output argument supplied.)                 [boolean]
--u, --uglify        Uglify/minify the compiled file.[boolean] [default: false]
--n, --notrecursive  Do not attend/follow @import directives inside imported
-                    files.                          [boolean] [default: false]
--p, --preserve      @import directives that have unmatched conditions should
-                    be kept in the file.            [boolean] [default: false]
--c, --conditions    Specify the conditions that @import directives with
-                    conditions should match against. Syntax: -c condA condB
-                    condC...                                           [array]
--h, --help          Show help                                        [boolean]
+-i, --input                    Path of the file to compile (relative or absolute)
+-o, --output                   Path of file/dir to write the compiled file to (stdout will be used if omitted)
+-c, --conditions               Conditions list that import directives which have conditions should match against. Syntax: -c condA [condB...]
+-u, --uglify                   Uglify/minify the compiled file (default:false)
+-r, --recursive                Follow/attend import directives inside imported files, (--no-r to disable) (default:true)
+-p, --preserve                 Invalid import directives should be kept in the file in a comment format (default:false)
+-s, --silent                   Suppress warnings (default:false)
+-t, --track                    Prepend [commented] tracking info in the output file so that future files importing this one will know which files are already imported (default:false)
+-C, --compile-coffee-children  If a JS file is importing coffeescript files, the imported files will be compiled to JS first (default:false)
+-h, --help                     Show help
+--version                      Show version number
 ```
+
+**Module API**
+```javascript
+var SimplyImport = require('simplyimport');
+
+// Option A: Pass the path of the file
+var compiled = SimplyImport('src/foo.js', options); // Optional options object
+
+// Option A: Pass the contents of the file
+fs.readFile('src/foo.js', function(err, fileContents){
+  var compiled = SimplyImport(fileContents, options, {isStream: true});
+});
+```
+**Module Options**
+```javascript
+defaultOptions = {
+  'uglify': false,
+  'recursive': true,
+  'preserve': false,
+  'silent': false,
+  'track': false,
+  'conditions': [],
+  'compileCoffeeChildren': false
+}
+```
+
 
 
 
@@ -72,59 +92,49 @@ fs.readFile('foo/bar.js', function(err, data){
 
 Example:
 ------
-#### Command Line:
-```
-simplyimport -i src/main.js -o dist/main.js -c browserVersionOnly simpleVersion
-
-simplyimport -i src/main.coffee -o dist/main.coffee -u // Supports Coffeescript
-```
-
-#### Node module:
-*nesteddir/variable1.js*
-```javascript
-var variable1 = 'foo';
-```
-
-*nesteddir2/variable2.js*
-```javascript
-var variable2 = 'bar'; // will not import because of the unmatched conditions
-```
-
-*nesteddir3/variable3.js*
-```javascript
-var variable3 = 'baz';
-```
-
-*nesteddir4/variable4.js*
-```javascript
-var variable4 = 'qux';
-```
-
 *main.js*
 ```javascript
-var concatStrings = function(arg1, arg2){return arg1+' '+arg2};
+import 'someDir/variable1.js'
+import [conditionA] someDir/variable2.js
+import [conditionB] ../../someDir/variable3.js
+import [conditionB, conditionC] someDir/variable4
 
-// @import 'nesteddir/variable1.js'
-// @import {nodeVersionOnly} nesteddir2/variable2.js
-// @import {browserVersionOnly} ../../nesteddir3/variable3.js
-
-concatStrings(variable1, variable3);
-
-// @import {browserVersionOnly, simpleVersion} nesteddir4/variable4
-
-concatStrings(variable1, variable4);
+console.log(variable1+' '+variable2);
+console.log(variable1+' '+variable4);
 ```
 
-**Compiled** *main.js*
+*someDir/variable1.js*
 ```javascript
-var concatStrings = function(arg1, arg2){return arg1+' '+arg2};
+var variable1 = 'A';
+```
 
-var variable1 = 'foo';
-var variable3 = 'baz';
+*someDir/variable2.js*
+```javascript
+var variable2 = 'B'; // will not import because of the unmatched conditions
+```
 
-concatStrings(variable1, variable3); // outputs "foo baz"
+*someDir/variable3.js*
+```javascript
+var variable3 = 'C';
+```
 
-var variable4 = 'qux';
+*someDir/variable4.js*
+```javascript
+var variable4 = 'D';
+```
 
-concatStrings(variable1, variable4); // outputs "foo qux"
+**Process via SimplyImport**
+```bash
+simplyimport -i main.js -o main.compiled.js -c 'conditionB' 'conditionC'
+```
+
+*main.**compiled**.js*
+```javascript
+var variable1 = 'A';
+var variable2 = 'B';
+
+var variable4 = 'D';
+
+console.log(variable1+' '+variable2); // logs "A B"
+console.log(variable1+' '+variable4); // logs "A D"
 ```
