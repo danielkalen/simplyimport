@@ -5,9 +5,22 @@ regEx =
 		(js|coffee)$			# Extension
 	///i
 
-	import: ///
-		(\S*)					# prior content
-		(\s*)					# prior whitespace
+	import: ///^
+		# ((?!import\s)?.*)		# prior content
+		(?:
+			(.*)				# prior content
+			(\s+)				# prior space
+				|				# or if above aren't present
+			\W?					# no letters
+		)
+		import					# import declaration
+		\s+						# whitespace after import declaration
+		(?:\[(.+)\])?			# conditionals
+		\s*						# whitespace after conditional
+		(.+)					# filepath
+	///g
+
+	importOnly: /// # Without prior content
 		import					# import declaration
 		\s*						# whitespace after import declaration
 		(?:\[(.+)\])?			# conditionals

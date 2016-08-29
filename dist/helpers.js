@@ -31,12 +31,9 @@ helpers = {
     }
   },
   commentBadImportLine: function(importLine, comment) {
-    var prevContent;
-    prevContent = '';
-    importLine.replace(regEx["import"], function(importLine, priorContent, spacing) {
-      return prevContent = priorContent + spacing;
+    return importLine.replace(regEx.importOnly, function(importDec) {
+      return comment + " " + importDec;
     });
-    return importLine.replace(prevContent, "" + prevContent + comment + " ");
   },
   normalizeFilePath: function(inputPath, context) {
     var pathWithContext, pathWithoutQuotes;

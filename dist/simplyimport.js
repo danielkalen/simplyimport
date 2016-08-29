@@ -54,7 +54,7 @@ processMainFile = function(input, passedOptions, passedState) {
 
 replaceImports = function(subjectFile) {
   return subjectFile.content.split('\n').map(function(originalLine) {
-    return originalLine.replace(regEx["import"], function(originalLine, priorContent, spacing, conditions, childPath) {
+    return originalLine.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions, childPath) {
       var childContent, childFile, failedReplacement, importerPath, spacedContent;
       if (conditions == null) {
         conditions = '';

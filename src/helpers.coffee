@@ -17,11 +17,7 @@ helpers =
 			"#{comment} #{line}"
 
 	commentBadImportLine: (importLine, comment)->
-		prevContent = ''
-		importLine.replace regEx.import, (importLine, priorContent, spacing)->
-			prevContent = priorContent+spacing
-		
-		return importLine.replace prevContent, "#{prevContent}#{comment} "
+		importLine.replace regEx.importOnly, (importDec)-> "#{comment} #{importDec}"
 
 
 	normalizeFilePath: (inputPath, context)->

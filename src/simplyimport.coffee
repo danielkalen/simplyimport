@@ -42,7 +42,7 @@ processMainFile = (input, passedOptions, passedState)->
 replaceImports = (subjectFile)->
 	subjectFile.content
 		.split '\n'
-		.map((originalLine)-> originalLine.replace regEx.import, (originalLine, priorContent, spacing, conditions='', childPath)->
+		.map((originalLine)-> originalLine.replace regEx.import, (entireLine, priorContent, spacing, conditions='', childPath)->
 			return originalLine if helpers.testForComments(originalLine, subjectFile)
 			failedReplacement = if @options.preserve then helpers.commentOut(originalLine, subjectFile, true) else ''
 			
