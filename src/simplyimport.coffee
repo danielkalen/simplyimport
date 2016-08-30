@@ -38,11 +38,15 @@ SimplyImport = (input, passedOptions, passedState)->
 
 
 
-SimplyImport.scanImports = (filePath, pathOnly)->
+SimplyImport.scanImports = (filePath, pathOnly, pathIsContent)->
 	dicoveredImports = []
-	subjectFile = new File(filePath)
+	if pathIsContent
+		fileContent = filePath
+	else
+		subjectFile = new File(filePath)
+		fileContent = subjectFile.content
 	
-	subjectFile.content
+	fileContent
 		.split '\n'
 		.forEach (line)->
 			line.replace regEx.import, (entireLine, priorContent, spacing, conditions='', childPath)->

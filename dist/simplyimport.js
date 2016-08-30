@@ -52,11 +52,16 @@ SimplyImport = function(input, passedOptions, passedState) {
   }
 };
 
-SimplyImport.scanImports = function(filePath, pathOnly) {
-  var dicoveredImports, subjectFile;
+SimplyImport.scanImports = function(filePath, pathOnly, pathIsContent) {
+  var dicoveredImports, fileContent, subjectFile;
   dicoveredImports = [];
-  subjectFile = new File(filePath);
-  subjectFile.content.split('\n').forEach(function(line) {
+  if (pathIsContent) {
+    fileContent = filePath;
+  } else {
+    subjectFile = new File(filePath);
+    fileContent = subjectFile.content;
+  }
+  fileContent.split('\n').forEach(function(line) {
     return line.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions, childPath) {
       if (conditions == null) {
         conditions = '';
