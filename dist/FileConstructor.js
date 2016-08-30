@@ -60,16 +60,18 @@ File = function(input, state, importHistory) {
 
 File.prototype.getContents = function() {
   var content, error, error1, pathsToTry, succeededPath;
-  if (this.fileExt) {
-    try {
-      return fs.readFileSync(this.filePath).toString();
-    } catch (error) {
-      return '';
-    }
-  } else if (this.isCoffee) {
-    pathsToTry = [this.filePath + ".coffee", this.filePath + ".js"];
-  } else {
-    pathsToTry = [this.filePath + ".js", this.filePath + ".coffee"];
+  switch (false) {
+    case !this.fileExt:
+      try {
+        return fs.readFileSync(this.filePath).toString();
+      } catch (error) {
+        return '';
+      }
+    case !this.isCoffee:
+      pathsToTry = [this.filePath + ".coffee", this.filePath + ".js"];
+      break;
+    default:
+      pathsToTry = [this.filePath + ".js", this.filePath + ".coffee"];
   }
   content = '';
   try {

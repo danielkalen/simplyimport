@@ -16,7 +16,7 @@ EMPTYHASH = "d41d8cd98f00b204e9800998ecf8427e"
 
 
 
-processMainFile = (input, passedOptions, passedState)->
+SimplyImport = (input, passedOptions, passedState)->
 	@options = extend({}, defaultOptions, passedOptions)
 	subjectFile = new File(input, passedState)
 
@@ -35,6 +35,25 @@ processMainFile = (input, passedOptions, passedState)->
 
 		return processedContent
 	
+
+
+
+SimplyImport.scanImports = (filePath, pathOnly)->
+	dicoveredImports = []
+	subjectFile = new File(filePath)
+	
+	subjectFile.content
+		.split '\n'
+		.forEach (line)->
+			line.replace regEx.import, (entireLine, priorContent, spacing, conditions='', childPath)->
+				childPath = childPath.replace /['"]/g, ''
+				if pathOnly
+					dicoveredImports.push childPath
+				else
+					dicoveredImports.push {entireLine, priorContent, spacing, conditions, childPath}
+
+	return dicoveredImports
+
 
 
 
@@ -132,4 +151,4 @@ replaceImports = (subjectFile)->
 
 
 
-module.exports = processMainFile
+module.exports = SimplyImport
