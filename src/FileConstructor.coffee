@@ -39,13 +39,13 @@ File = (input, state={}, @importHistory={})->
 
 
 File::getContents = ()->
-	if @fileExt
-		return try fs.readFileSync(@filePath).toString() catch then ''
-
-	else if @isCoffee
-		pathsToTry = ["#{@filePath}.coffee", "#{@filePath}.js"]
-	else
-		pathsToTry = ["#{@filePath}.js", "#{@filePath}.coffee"]
+	switch
+		when @fileExt
+			return try fs.readFileSync(@filePath).toString() catch then ''
+		when @isCoffee
+			pathsToTry = ["#{@filePath}.coffee", "#{@filePath}.js"]
+		else
+			pathsToTry = ["#{@filePath}.js", "#{@filePath}.coffee"]
 
 
 	content = ''

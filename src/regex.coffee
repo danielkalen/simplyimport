@@ -6,7 +6,6 @@ regEx =
 	///i
 
 	import: ///^
-		# ((?!import\s)?.*)		# prior content
 		(?:
 			(.*)				# prior content
 			(\s+)				# prior space
