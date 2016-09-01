@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"path",
+				"pathIsContent"
+			],
+			[
 				"consol",
 				"consoleLabels"
 			],
@@ -510,10 +514,6 @@
 			[
 				"hea",
 				"header	Tag"
-			],
-			[
-				"isA",
-				"isArrow〔variable〕"
 			]
 		]
 	},
@@ -523,39 +523,7 @@
 			"file": "src/simplyimport.coffee",
 			"settings":
 			{
-				"buffer_size": 4162,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/FileConstructor.coffee",
-			"settings":
-			{
-				"buffer_size": 2056,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/regex.coffee",
-			"settings":
-			{
-				"buffer_size": 938,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/cliUsage.coffee",
-			"settings":
-			{
-				"buffer_size": 847,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "src/cli.coffee",
-			"settings":
-			{
-				"buffer_size": 1975,
+				"buffer_size": 4731,
 				"line_ending": "Unix"
 			}
 		},
@@ -564,6 +532,22 @@
 			"settings":
 			{
 				"buffer_size": 1137,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/FileConstructor.coffee",
+			"settings":
+			{
+				"buffer_size": 2068,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/regex.coffee",
+			"settings":
+			{
+				"buffer_size": 899,
 				"line_ending": "Unix"
 			}
 		},
@@ -579,7 +563,7 @@
 			"file": "package.json",
 			"settings":
 			{
-				"buffer_size": 2027,
+				"buffer_size": 1954,
 				"line_ending": "Unix"
 			}
 		}
@@ -738,10 +722,12 @@
 	],
 	"file_history":
 	[
+		"/Users/danielkalen/sandbox/simplyimport/.gitignore",
+		"/Users/danielkalen/sandbox/simplyimport/src/helpers.coffee",
+		"/Users/danielkalen/sandbox/simplyimport/src/cli.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/README.md",
 		"/Users/danielkalen/sandbox/simplywatch/.git/config",
 		"/Users/danielkalen/sandbox/simplywatch/.git/description",
-		"/Users/danielkalen/sandbox/simplyimport/src/cli.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/src/cliUsage.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/src/defaultOptions.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/src/consoleLabels.coffee",
@@ -750,7 +736,6 @@
 		"/Users/danielkalen/.bashrc",
 		"/Users/danielkalen/Projects/getvoip/gv_main/wp-content/themes/getvoip/temp-importer.coffee",
 		"/Users/danielkalen/Projects/getvoip/gv_main/wp-content/themes/getvoip/temp.coffee",
-		"/Users/danielkalen/sandbox/simplyimport/.gitignore",
 		"/Users/danielkalen/Library/Application Support/Sublime Text 3/Packages/User/Monokai (danielkalen) (SL).tmTheme",
 		"/Users/danielkalen/sandbox/simplyimport/.codeclimate.yml",
 		"/Users/danielkalen/sandbox/simplyimport/.config/coffeelint.json",
@@ -761,7 +746,6 @@
 		"/Users/danielkalen/Dropbox/Apps/Sublime/User/CoffeeScript Custom.tmLanguage",
 		"/Users/danielkalen/sandbox/simplyimport/.travis.yml",
 		"/Users/danielkalen/sandbox/simplyimport/src/cliOptions.coffee",
-		"/Users/danielkalen/sandbox/simplyimport/src/helpers.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/src/regex.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/test/samples/coffeescript-tabbed/_importer.coffee",
 		"/Users/danielkalen/sandbox/simplyimport/test/samples/conditions/nested/nested1.js",
@@ -941,6 +925,18 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"replaceImports",
+			"originalLine",
+			"'\n",
+			"entire",
+			"originalLine",
+			"processMainFile",
+			"isCoffee",
+			"fileExt",
+			"context",
+			"regEx",
+			"md5",
+			"exec",
 			"exitWithHelpMessage",
 			"originalLine",
 			"entire",
@@ -1056,19 +1052,7 @@
 			"uglify",
 			"output",
 			"coffee",
-			"regEx",
-			"outputIsFile",
-			"fileName",
-			"beginImport",
-			"options",
-			"applyReplace",
-			"options",
-			"inputIsFromModule",
-			"stdout",
-			"outputIsFile",
-			"inputIsFromModule",
-			"stdout",
-			"inputIsFromModule"
+			"regEx"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1117,7 +1101,7 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 0,
 			"sheets":
 			[
 				{
@@ -1126,15 +1110,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 4162,
+						"buffer_size": 4731,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1745,
-								1745
+								353,
+								353
 							]
 						],
 						"settings":
@@ -1205,15 +1189,15 @@
 								{
 									"1":
 									[
-										4090,
-										4091
+										352,
+										353
 									]
 								},
 								"icon":
 								{
 									"1":
 									[
-										"Packages/BracketHighlighter/icons/round_bracket.png",
+										"Packages/BracketHighlighter/icons/single_quote.png",
 										"brackethighlighter.default"
 									]
 								},
@@ -1221,8 +1205,8 @@
 								{
 									"1":
 									[
-										1187,
-										1188
+										334,
+										335
 									]
 								},
 								"unmatched":
@@ -1287,32 +1271,32 @@
 								"bh_unmatched_close",
 								"bh_unmatched_content"
 							],
-							"expand_region_settings": "{\"hash\": \"5ca240a1733c01d94cfbdf143f2e13d3\", \"stack\": [{\"end\": 1247, \"start\": 1241}]}",
+							"expand_region_settings": "{\"hash\": \"2360b9c3bfc85049d4684605bceedf03\", \"stack\": [{\"end\": 1253, \"start\": 1246}]}",
 							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 532.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 6,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "src/FileConstructor.coffee",
+					"file": "src/helpers.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2056,
+						"buffer_size": 1137,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								709,
-								709
+								746,
+								726
 							]
 						],
 						"settings":
@@ -1322,27 +1306,115 @@
 							{
 								"close":
 								{
-									"1":
-									[
-										708,
-										709
-									]
 								},
 								"icon":
 								{
-									"1":
-									[
-										"Packages/BracketHighlighter/icons/round_bracket.png",
-										"brackethighlighter.default"
-									]
 								},
 								"open":
 								{
-									"1":
-									[
-										707,
-										708
-									]
+								},
+								"unmatched":
+								{
+								}
+							},
+							"bracket_highlighter.regions":
+							[
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_curly_content",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close",
+								"bh_single_quote_content",
+								"bh_c_define",
+								"bh_c_define_center",
+								"bh_c_define_open",
+								"bh_c_define_close",
+								"bh_c_define_content",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_tag_content",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_double_quote_content",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_round_content",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_default_content",
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_regex_content",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_square_content",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_angle_content",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_unmatched_content"
+							],
+							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/FileConstructor.coffee",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2068,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								793,
+								801
+							]
+						],
+						"settings":
+						{
+							"bracket_highlighter.busy": false,
+							"bracket_highlighter.locations":
+							{
+								"close":
+								{
+								},
+								"icon":
+								{
+								},
+								"open":
+								{
 								},
 								"unmatched":
 								{
@@ -1411,27 +1483,27 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 157.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
+					"buffer": 3,
 					"file": "src/regex.coffee",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 938,
+						"buffer_size": 899,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								111,
-								111
+								8,
+								8
 							]
 						],
 						"settings":
@@ -1516,317 +1588,7 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 8.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "src/cliUsage.coffee",
-					"semi_transient": true,
-					"settings":
-					{
-						"buffer_size": 847,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								182,
-								182
-							]
-						],
-						"settings":
-						{
-							"bracket_highlighter.busy": false,
-							"bracket_highlighter.locations":
-							{
-								"close":
-								{
-								},
-								"icon":
-								{
-								},
-								"open":
-								{
-								},
-								"unmatched":
-								{
-								}
-							},
-							"bracket_highlighter.regions":
-							[
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_tag_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content"
-							],
-							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
 						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "src/cli.coffee",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1975,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								300,
-								300
-							]
-						],
-						"settings":
-						{
-							"bracket_highlighter.busy": false,
-							"bracket_highlighter.locations":
-							{
-								"close":
-								{
-								},
-								"icon":
-								{
-								},
-								"open":
-								{
-								},
-								"unmatched":
-								{
-								}
-							},
-							"bracket_highlighter.regions":
-							[
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_tag_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content"
-							],
-							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "src/helpers.coffee",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1137,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								650,
-								650
-							]
-						],
-						"settings":
-						{
-							"bracket_highlighter.busy": false,
-							"bracket_highlighter.locations":
-							{
-								"close":
-								{
-								},
-								"icon":
-								{
-								},
-								"open":
-								{
-								},
-								"unmatched":
-								{
-								}
-							},
-							"bracket_highlighter.regions":
-							[
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_tag_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content"
-							],
-							"expand_region_settings": "{\"hash\": \"cb4327e861ddaa168773c8d422356add\", \"stack\": [{\"end\": 625, \"start\": 619}]}",
-							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 90.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 5,
@@ -1835,11 +1597,11 @@
 			]
 		},
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
-					"buffer": 6,
+					"buffer": 4,
 					"file": "test/test.coffee",
 					"semi_transient": false,
 					"settings":
@@ -1851,8 +1613,8 @@
 						"selection":
 						[
 							[
-								2603,
-								2603
+								341,
+								211
 							]
 						],
 						"settings":
@@ -1862,12 +1624,27 @@
 							{
 								"close":
 								{
+									"1":
+									[
+										340,
+										341
+									]
 								},
 								"icon":
 								{
+									"1":
+									[
+										"Packages/BracketHighlighter/icons/single_quote.png",
+										"brackethighlighter.default"
+									]
 								},
 								"open":
 								{
+									"1":
+									[
+										316,
+										317
+									]
 								},
 								"unmatched":
 								{
@@ -1931,7 +1708,7 @@
 								"bh_unmatched_close",
 								"bh_unmatched_content"
 							],
-							"expand_region_settings": "{\"hash\": \"1a0abda5219cd4ca9688e6d5ae45f0f4\", \"stack\": [{\"end\": 2880, \"start\": 2874}]}",
+							"expand_region_settings": "{\"hash\": \"933f52a821db252e051886ee7ac1bd8f\", \"stack\": [{\"end\": 1780, \"start\": 1776}]}",
 							"history_list_is_closing": true,
 							"syntax": "Packages/User/CoffeeScript Custom.tmLanguage",
 							"translate_tabs_to_spaces": false
@@ -1944,20 +1721,20 @@
 					"type": "text"
 				},
 				{
-					"buffer": 7,
+					"buffer": 5,
 					"file": "package.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2027,
+						"buffer_size": 1954,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1054,
-								1054
+								1374,
+								1416
 							]
 						],
 						"settings":
@@ -1970,8 +1747,8 @@
 								{
 									"1":
 									[
-										1053,
-										1054
+										1416,
+										1417
 									]
 								},
 								"icon":
@@ -1986,8 +1763,8 @@
 								{
 									"1":
 									[
-										1041,
-										1042
+										1373,
+										1374
 									]
 								},
 								"unmatched":
@@ -2052,16 +1829,16 @@
 								"bh_unmatched_close",
 								"bh_unmatched_content"
 							],
-							"expand_region_settings": "{\"hash\": \"eef88d4a844c92800a468ec4c87e55cc\", \"stack\": [{\"end\": 996, \"start\": 961}, {\"end\": 1034, \"start\": 961}]}",
+							"expand_region_settings": "{\"hash\": \"c933625a39c492146ea6b527384bdfad\", \"stack\": [{\"end\": 1392, \"start\": 1387}, {\"end\": 1416, \"start\": 1374}]}",
 							"syntax": "Packages/JavaScript Ultimate/JSON.tmLanguage",
 							"tab_size": 2,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 164.0,
+						"translation.y": 317.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 0,
 					"type": "text"
 				}
 			]
@@ -2100,7 +1877,7 @@
 		"rows":
 		[
 			0.0,
-			0.952107279693,
+			0.36581213896,
 			1.0
 		]
 	},
@@ -2135,6 +1912,14 @@
 		"selected_items":
 		[
 			[
+				"help",
+				"src/helpers.coffee"
+			],
+			[
+				".gi",
+				".gitignore"
+			],
+			[
 				"cli",
 				"src/cli.coffee"
 			],
@@ -2145,10 +1930,6 @@
 			[
 				"lab",
 				"src/consoleLabels.coffee"
-			],
-			[
-				".gi",
-				".gitignore"
 			],
 			[
 				"pa",
@@ -2189,10 +1970,6 @@
 			[
 				"reg",
 				"src/regex.coffee"
-			],
-			[
-				"help",
-				"src/helpers.coffee"
 			],
 			[
 				"op",
@@ -2240,15 +2017,23 @@
 	"select_project":
 	{
 		"height": 500.0,
-		"last_filter": "forea",
+		"last_filter": "simwa",
 		"selected_items":
 		[
 			[
-				"forea",
-				"~/sandbox/foreach-cli/foreach-cli.sublime-project"
+				"simwa",
+				"~/sandbox/simplywatch/simplywatch.sublime-project"
 			],
 			[
 				"fore",
+				"~/sandbox/foreach-cli/foreach-cli.sublime-project"
+			],
+			[
+				"get",
+				"~/Projects/getvoip/gv_main/wp-content/themes/getvoip/getvoip.sublime-project"
+			],
+			[
+				"forea",
 				"~/sandbox/foreach-cli/foreach-cli.sublime-project"
 			],
 			[
@@ -2295,14 +2080,14 @@
 		],
 		"width": 0.0
 	},
-	"selected_group": 0,
+	"selected_group": 1,
 	"settings":
 	{
 	},
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
+	"side_bar_visible": false,
 	"side_bar_width": 213.0,
 	"status_bar_visible": true,
 	"template_settings":

@@ -9,6 +9,7 @@ regEx =
 		(?:
 			(.*)				# prior content
 			(\s+)				# prior space
+			\W?					# no letters
 				|				# or if above aren't present
 			\W?					# no letters
 		)

@@ -3,7 +3,7 @@ var regEx;
 
 regEx = {
   fileExt: /.+\.(js|coffee)$/i,
-  "import": /^(?:(.*)(\s+)|\W?)import\s+(?:\[(.+)\])?\s*(.+)/g,
+  "import": /^(?:(.*)(\s+)\W?|\W?)import\s+(?:\[(.+)\])?\s*(.+)/g,
   importOnly: /import\s*(?:\[(.+)\])?\s*(.+)/g,
   trackedImport: /(?:\/\/|\#)\sSimplyImported\s\-(.{32})\-/g
 };
