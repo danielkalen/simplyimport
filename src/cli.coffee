@@ -4,7 +4,7 @@ yargs = require 'yargs'
 	.options(require './cliOptions')
 	.help('h')
 	.wrap(require('yargs').terminalWidth())
-	.version()
+	.version(()-> require('../package.json').version)
 args = yargs.argv
 SimplyImport = require './simplyimport'
 regEx = require './regex'
