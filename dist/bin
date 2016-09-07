@@ -30,7 +30,8 @@ passedOptions = {
   'silent': args.s || args.silent,
   'track': args.t || args.track,
   'recursive': args.r || args.recursive,
-  'conditions': args.c || args.conditions || []
+  'conditions': args.c || args.conditions || [],
+  'compileCoffeeChildren': args.C || args['compile-coffee-children']
 };
 
 exitWithHelpMessage = function() {

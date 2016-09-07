@@ -23,6 +23,7 @@ passedOptions =
 	'track': args.t or args.track
 	'recursive': args.r or args.recursive
 	'conditions': args.c or args.conditions or []
+	'compileCoffeeChildren': args.C or args['compile-coffee-children']
 
 exitWithHelpMessage = ()->
 	process.stdout.write(yargs.help());
