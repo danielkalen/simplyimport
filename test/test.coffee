@@ -151,6 +151,60 @@ suite "SimplyImport", ()->
 
 
 
+		test "If spacing exists before the import statement, that whitespace will be appended to each line of the imported file", ()->
+			result = SimplyImport "\t\timport 'test/samples/coffeescript/tabbed.coffee'", {silent:true}, {isStream:true, isCoffee:true}
+			resultLines = result.split '\n'
+			expect(resultLines[0]).to.equal '\t\tif true'
+			expect(resultLines[1]).to.equal '\t\t\ta = 1'
+			expect(resultLines[2]).to.equal '\t\t\tb = 2'
+
+
+
+
+
+
+
+
+	suite "API", ()->
+		test "Calling SimplyImport.scanImports(path) will retrieve import objects for all discovered imports in a file", ()->
+			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js'
+
+			expect(imports.length).to.equal 7
+			expect(imports[0].childPath).to.equal 'withquotes.js'
+			expect(imports[1].childPath).to.equal 'noquotes.js'
+			expect(imports[2].childPath).to.equal 'withext.js'
+			expect(imports[3].childPath).to.equal 'noext'
+			expect(imports[4].childPath).to.equal 'nested/nested1.js'
+			expect(imports[5].childPath).to.equal 'nonexistent.js'
+			expect(imports[6].childPath).to.equal 'variable.js'
+
+
+
+		test "Calling SimplyImport.scanImports(path, true) will retrieve the file paths of all discovered imports in a file", ()->
+			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', true
+
+			expect(imports.length).to.equal 7
+			expect(imports[0]).to.equal 'withquotes.js'
+			expect(imports[1]).to.equal 'noquotes.js'
+			expect(imports[2]).to.equal 'withext.js'
+			expect(imports[3]).to.equal 'noext'
+			expect(imports[4]).to.equal 'nested/nested1.js'
+			expect(imports[5]).to.equal 'nonexistent.js'
+			expect(imports[6]).to.equal 'variable.js'
+
+
+
+		test "Calling SimplyImport.scanImports(content, true, true) will assume that the first argument is the contents of the file", ()->
+			imports = SimplyImport.scanImports 'import testImport.js', true, true
+
+			expect(imports.length).to.equal 1
+			expect(imports[0]).to.equal 'testImport.js'
+
+
+
+
+
+
 
 
 
