@@ -49,7 +49,7 @@ SimplyImport.scanImports = (filePath, pathOnly, pathIsContent)->
 	fileContent
 		.split '\n'
 		.forEach (line)->
-			line.replace regEx.import, (entireLine, priorContent, spacing, conditions='', childPath)->
+			line.replace regEx.import, (entireLine, priorContent, spacing, conditions, childPath)->
 				childPath = childPath.replace /['"]/g, ''
 				if pathOnly
 					dicoveredImports.push childPath
@@ -90,14 +90,17 @@ replaceImports = (subjectFile)->
 
 
 					# ==== Spacing =================================================================================
+					if priorContent and priorContent.replace(/\s/g, '') is ''
+						spacing = priorContent+spacing
+						priorContent = ''
+
 					if spacing and not priorContent
-						spacing = spacing.replace /^\n*/, '' # Strip initial new lines
 						spacedContent = childContent
 							.split '\n'
 							.map (line)-> spacing+line
 							.join '\n'
 						
-						childContent = '\n'+spacedContent
+						childContent = spacedContent
 
 
 					# ==== JS vs. Coffeescript conflicts =================================================================================

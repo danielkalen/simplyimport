@@ -63,9 +63,6 @@ SimplyImport.scanImports = function(filePath, pathOnly, pathIsContent) {
   }
   fileContent.split('\n').forEach(function(line) {
     return line.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions, childPath) {
-      if (conditions == null) {
-        conditions = '';
-      }
       childPath = childPath.replace(/['"]/g, '');
       if (pathOnly) {
         return dicoveredImports.push(childPath);
@@ -111,12 +108,15 @@ replaceImports = function(subjectFile) {
           if (this.options.recursive) {
             childContent = replaceImports(childFile);
           }
+          if (priorContent && priorContent.replace(/\s/g, '') === '') {
+            spacing = priorContent + spacing;
+            priorContent = '';
+          }
           if (spacing && !priorContent) {
-            spacing = spacing.replace(/^\n*/, '');
             spacedContent = childContent.split('\n').map(function(line) {
               return spacing + line;
             }).join('\n');
-            childContent = '\n' + spacedContent;
+            childContent = spacedContent;
           }
           switch (false) {
             case !(subjectFile.isCoffee && !childFile.isCoffee):
