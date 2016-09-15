@@ -106,7 +106,7 @@ replaceImports = (subjectFile)->
 					# ==== JS vs. Coffeescript conflicts =================================================================================
 					switch
 						when subjectFile.isCoffee and not childFile.isCoffee
-							childContent = childContent.replace /^(\s*)((?:.|\n)+)/, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+							childContent = childContent.replace /^(\s*)((?:\w|\W)+)/, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
 								escapedContent = content.replace /`/g, ()-> '\\`'
 								"#{spacing}`#{escapedContent}`"
 						
