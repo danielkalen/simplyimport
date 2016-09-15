@@ -15,7 +15,7 @@ fs = require 'fs'
 inputPath = args.i or args.input or args._[0]
 outputPath = args.o or args.output or args._[1]
 help = args.h or args.help
-outputIsFile = regEx.fileExt.test(outputPath)
+outputIsFile = try fs.statSync(outputPath).isFile()
 passedOptions = 
 	'uglify': args.u or args.uglify
 	'preserve': args.p or args.preserve

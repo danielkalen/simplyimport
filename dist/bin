@@ -22,7 +22,11 @@ outputPath = args.o || args.output || args._[1];
 
 help = args.h || args.help;
 
-outputIsFile = regEx.fileExt.test(outputPath);
+outputIsFile = (function() {
+  try {
+    return fs.statSync(outputPath).isFile();
+  } catch (undefined) {}
+})();
 
 passedOptions = {
   'uglify': args.u || args.uglify,

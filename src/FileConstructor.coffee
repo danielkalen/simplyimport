@@ -23,7 +23,7 @@ File = (input, state={}, @importHistory={})->
 		@content = input
 	else
 		@filePath = path.normalize(input)
-		@fileExt = @filePath.match(regEx.fileExt)?[1].toLowerCase()
+		@fileExt = path.extname(@filePath).toLowerCase().slice(1)
 		@context = helpers.getNormalizedDirname(@filePath)
 		@isCoffee = @checkIfIsCoffee()
 		@content = @getContents()

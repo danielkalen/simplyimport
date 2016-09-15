@@ -24,7 +24,7 @@ consoleLabels = require('./consoleLabels');
  */
 
 File = function(input, state, importHistory) {
-  var key, ref, value;
+  var key, value;
   if (state == null) {
     state = {};
   }
@@ -45,7 +45,7 @@ File = function(input, state, importHistory) {
     this.content = input;
   } else {
     this.filePath = path.normalize(input);
-    this.fileExt = (ref = this.filePath.match(regEx.fileExt)) != null ? ref[1].toLowerCase() : void 0;
+    this.fileExt = path.extname(this.filePath).toLowerCase().slice(1);
     this.context = helpers.getNormalizedDirname(this.filePath);
     this.isCoffee = this.checkIfIsCoffee();
     this.content = this.getContents();
