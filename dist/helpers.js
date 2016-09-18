@@ -36,9 +36,9 @@ helpers = {
     });
   },
   normalizeFilePath: function(inputPath, context) {
-    var pathWithContext, pathWithoutQuotes;
-    pathWithoutQuotes = inputPath.replace(/['"]/g, '');
-    pathWithContext = path.normalize(context + '/' + pathWithoutQuotes);
+    var pathWithContext;
+    inputPath = inputPath.replace(/['"]/g, '').replace(/\s+$/, '');
+    pathWithContext = path.normalize(context + '/' + inputPath);
     return pathWithContext;
   },
   testConditions: function(allowedConditions, conditionsString) {

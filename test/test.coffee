@@ -67,6 +67,12 @@ suite "SimplyImport", ()->
 
 
 
+		test "Unquoted imports that have whitespace after them should not make any difference", ()->
+			result = SimplyImport "import test/samples/standard/nested/nested1.js\t", {recursive:false}, {isStream:true}
+			expect(result).to.equal "('Imported nested level 1');\nimport 'nested/nested2.js'"
+
+
+
 		test "Duplicate imports in the same file will be ignored", ()->
 			importDec = "import 'test/samples/standard/variable.js'"
 			result = SimplyImport importDec+'\n'+importDec, {preserve:true, silent:true}, {isStream:true}

@@ -21,8 +21,10 @@ helpers =
 
 
 	normalizeFilePath: (inputPath, context)->
-		pathWithoutQuotes = inputPath.replace /['"]/g, '' # Remove quotes form pathname
-		pathWithContext = path.normalize context+'/'+pathWithoutQuotes
+		inputPath = inputPath
+			.replace /['"]/g, '' # Remove quotes form pathname
+			.replace /\s+$/, '' # Remove whitespace from the end of the string
+		pathWithContext = path.normalize context+'/'+inputPath
 
 		return pathWithContext
 
