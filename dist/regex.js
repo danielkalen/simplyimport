@@ -4,6 +4,7 @@ var regEx;
 regEx = {
   fileExt: /.+\.(js|coffee)$/i,
   fileContent: /^(\s*)((?:\w|\W)+)/,
+  escapedNewLine: /\\\n/g,
   backTicks: /`/g,
   preEscapedBackTicks: /\\`/g,
   docBlock: /\/\*\*?[\s\S]+?\*\//g,

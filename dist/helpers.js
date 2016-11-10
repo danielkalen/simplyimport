@@ -57,7 +57,7 @@ helpers = {
     return content.replace(regEx.preEscapedBackTicks, '`').replace(regEx.backTicks, '\\`');
   },
   formatJsContentForCoffee: function(jsContent) {
-    return jsContent.replace(regEx.docBlock, '').replace(regEx.fileContent, function(entire, spacing, content) {
+    return jsContent.replace(regEx.escapedNewLine, '').replace(regEx.docBlock, '').replace(regEx.fileContent, function(entire, spacing, content) {
       return spacing + "`" + (helpers.escapeBackticks(content)) + "`";
     });
   }
