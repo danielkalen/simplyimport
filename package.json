@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "2.1.8",
+  "version": "2.1.9",
   "description": "Export-less imports for JS/Coffee files featuring conditional, inline, & minified imports",
   "keywords": [
     "import",
