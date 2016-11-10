@@ -120,12 +120,8 @@ replaceImports = function(subjectFile) {
           }
           switch (false) {
             case !(subjectFile.isCoffee && !childFile.isCoffee):
-              childContent = childContent.replace(/^(\s*)((?:\w|\W)+)/, function(entire, spacing, content) {
-                var escapedContent;
-                escapedContent = content.replace(/`/g, function() {
-                  return '\\`';
-                });
-                return spacing + "`" + escapedContent + "`";
+              childContent = childContent.replace(regEx.fileContent, function(entire, spacing, content) {
+                return spacing + "`" + (helpers.escapeBackticks(content)) + "`";
               });
               break;
             case !(childFile.isCoffee && !subjectFile.isCoffee):

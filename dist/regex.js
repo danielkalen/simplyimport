@@ -3,9 +3,18 @@ var regEx;
 
 regEx = {
   fileExt: /.+\.(js|coffee)$/i,
+  fileContent: /^(\s*)((?:\w|\W)+)/,
+  backTicks: /`/g,
+  preEscapedBackTicks: /\\`/g,
   "import": /^(?:(.*)(\s+)\W?|\W?)import\s+(?:\[(.+)\])?\s*(.+)/g,
   importOnly: /import\s*(?:\[(.+)\])?\s*(.+)/g,
-  trackedImport: /(?:\/\/|\#)\sSimplyImported\s\-(.{32})\-/g
+  trackedImport: /(?:\/\/|\#)\sSimplyImported\s\-(.{32})\-/g,
+  commonJS: {
+    "export": /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])(exports\s*(\[['"]|\.)|module(\.exports|\['exports'\]|\["exports"\])\s*(\[['"]|[=,\.]))/,
+    "import": /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)/g
+  },
+  es6: /(^\s*|[}\);\n]\s*)(import\s*(['"]|(\*\s+as\s+)?[^"'\(\)\n;]+\s*from\s*['"]|\{)|export\s+\*\s+from\s+["']|export\s*(\{|default|function|class|var|const|let|async\s+function))/,
+  AMD: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])define\s*\(\s*("[^"]+"\s*,\s*|'[^']+'\s*,\s*)?\s*(\[(\s*(("[^"]+"|'[^']+')\s*,|\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*(\s*("[^"]+"|'[^']+')\s*,?)?(\s*(\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*\s*\]|function\s*|{|[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*\))/
 };
 
 module.exports = regEx;

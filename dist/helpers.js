@@ -15,11 +15,10 @@ helpers = {
     return inputPath.replace(process.cwd() + '/', '');
   },
   testForComments: function(line, file) {
-    if (file.isCoffee) {
-      return line.includes('#');
-    } else {
-      return line.includes('//');
-    }
+    var hasDocBlockComment, hasSingleLineComment;
+    hasSingleLineComment = file.isCoffee ? line.includes('#') : line.includes('//');
+    hasDocBlockComment = line.includes('* ');
+    return hasSingleLineComment || hasDocBlockComment;
   },
   commentOut: function(line, file, isImportLine) {
     var comment;
@@ -53,6 +52,9 @@ helpers = {
       }
     }
     return true;
+  },
+  escapeBackticks: function(content) {
+    return content.replace(regEx.preEscapedBackTicks, '`').replace(regEx.backTicks, '\\`');
   }
 };
 
