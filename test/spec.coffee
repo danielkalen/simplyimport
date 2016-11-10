@@ -180,6 +180,12 @@ suite "SimplyImport", ()->
 
 
 
+		test "When a Coffee file imports a JS file, escaped newlines should be removed", ()->
+			result = SimplyImport "import 'test/samples/mixed/newline-escaped.js'", {silent:true}, {isCoffee:true, isStream:true}
+			expect(result).to.equal "`multiLineTrick = 'start middle end '`"
+
+
+
 		test "If spacing exists before the import statement, that whitespace will be appended to each line of the imported file", ()->
 			result = SimplyImport "\t\timport 'test/samples/coffeescript/tabbed.coffee'", {silent:true}, {isStream:true, isCoffee:true}
 			resultLines = result.split '\n'
