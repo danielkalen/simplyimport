@@ -56,5 +56,12 @@ helpers =
 
 
 
+	formatJsContentForCoffee: (jsContent)->
+		jsContent
+			.replace regEx.docBlock, ''
+			.replace regEx.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+				"#{spacing}`#{helpers.escapeBackticks(content)}`"
+
+
 
 module.exports = helpers

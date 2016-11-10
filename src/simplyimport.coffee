@@ -106,8 +106,7 @@ replaceImports = (subjectFile)->
 					# ==== JS vs. Coffeescript conflicts =================================================================================
 					switch
 						when subjectFile.isCoffee and not childFile.isCoffee
-							childContent = childContent.replace regEx.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
-								"#{spacing}`#{helpers.escapeBackticks(content)}`"
+							childContent = helpers.formatJsContentForCoffee(childContent)
 						
 
 						when childFile.isCoffee and not subjectFile.isCoffee

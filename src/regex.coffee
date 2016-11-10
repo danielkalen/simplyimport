@@ -21,6 +21,12 @@ regEx =
 		`						# Backtick
 	///g
 
+	docBlock: ///
+		\/\*\*?					# DocBlock start
+		[\s\S]+?				# Inner content
+		\*\/					# DocBlock end
+	///g
+
 	import: ///^
 		(?:
 			(.*)				# prior content
