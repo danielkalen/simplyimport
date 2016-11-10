@@ -17,13 +17,6 @@ else
 
 suite "SimplyImport", ()->
 	suite "General", ()->
-		test "Commented imports won't be imported", ()->
-			importDec = "// import 'test/samples/standard/withquotes.js'"
-			result = SimplyImport importDec, {silent:true}, {isStream:true}
-			expect(result).to.equal importDec
-		
-
-
 		test "Failed imports will be kept in a commented-out form if options.preserve is set to true", ()->
 			importDec = "import 'test/nonexistent'"
 			result = SimplyImport importDec, {silent:true, preserve:true}, {isStream:true}
@@ -120,6 +113,24 @@ suite "SimplyImport", ()->
 			for importDec in imports
 				result2.should.include "// #{importDec}"
 
+
+
+
+		suite "Commented imports won't be imported", ()->
+			test "JS Syntax", ()->
+				importDec = "// import 'test/samples/standard/withquotes.js'"
+				result = SimplyImport importDec, {silent:true}, {isStream:true}
+				expect(result).to.equal importDec
+			
+			test "CoffeeScript Syntax", ()->
+				importDec = "# import 'test/samples/standard/withquotes.js'"
+				result = SimplyImport importDec, {silent:true}, {isStream:true, isCoffee:true}
+				expect(result).to.equal importDec
+			
+			test "DocBlock Syntax", ()->
+				importDec = "* import 'test/samples/standard/withquotes.js'"
+				result = SimplyImport importDec, {silent:true}, {isStream:true}
+				expect(result).to.equal importDec
 
 
 
