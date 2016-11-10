@@ -48,4 +48,13 @@ helpers =
 
 
 
+
+	escapeBackticks: (content)->
+		content
+			.replace regEx.preEscapedBackTicks, '`'
+			.replace regEx.backTicks, '\\`'
+
+
+
+
 module.exports = helpers

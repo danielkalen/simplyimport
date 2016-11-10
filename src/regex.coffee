@@ -16,6 +16,11 @@ regEx =
 		`
 	///g
 
+	preEscapedBackTicks: ///
+		\\						# Existing escapement
+		`						# Backtick
+	///g
+
 	import: ///^
 		(?:
 			(.*)				# prior content
