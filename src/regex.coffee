@@ -5,6 +5,10 @@ regEx =
 		(js|coffee)$			# Extension
 	///i
 
+	backTicks: ///
+		`
+	///g
+
 	import: ///^
 		(?:
 			(.*)				# prior content
