@@ -5,6 +5,13 @@ regEx =
 		(js|coffee)$			# Extension
 	///i
 
+	fileContent: ///^
+		(\s*)					# Whitespace
+		(
+			(?:\w|\W)+			# All content
+		)
+	///
+
 	backTicks: ///
 		`
 	///g
