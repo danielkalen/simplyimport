@@ -168,6 +168,12 @@ suite "SimplyImport", ()->
 
 
 
+		test "Backtick escaping algorithm doesn't escape pre-escaped backticks", ()->
+			result = SimplyImport "import 'test/samples/mixed/js-with-escaped-backticks.js'", {silent:true}, {isCoffee:true, isStream:true}
+			expect(result).to.equal "`var abc = '\\`123\\`\\`';\n// abc \\`123\\` \\``"
+
+
+
 		test "If spacing exists before the import statement, that whitespace will be appended to each line of the imported file", ()->
 			result = SimplyImport "\t\timport 'test/samples/coffeescript/tabbed.coffee'", {silent:true}, {isStream:true, isCoffee:true}
 			resultLines = result.split '\n'
