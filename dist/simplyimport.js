@@ -120,9 +120,7 @@ replaceImports = function(subjectFile) {
           }
           switch (false) {
             case !(subjectFile.isCoffee && !childFile.isCoffee):
-              childContent = childContent.replace(regEx.fileContent, function(entire, spacing, content) {
-                return spacing + "`" + (helpers.escapeBackticks(content)) + "`";
-              });
+              childContent = helpers.formatJsContentForCoffee(childContent);
               break;
             case !(childFile.isCoffee && !subjectFile.isCoffee):
               if (this.options.compileCoffeeChildren) {

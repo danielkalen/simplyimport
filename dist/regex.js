@@ -6,6 +6,7 @@ regEx = {
   fileContent: /^(\s*)((?:\w|\W)+)/,
   backTicks: /`/g,
   preEscapedBackTicks: /\\`/g,
+  docBlock: /\/\*\*?[\s\S]+?\*\//g,
   "import": /^(?:(.*)(\s+)\W?|\W?)import\s+(?:\[(.+)\])?\s*(.+)/g,
   importOnly: /import\s*(?:\[(.+)\])?\s*(.+)/g,
   trackedImport: /(?:\/\/|\#)\sSimplyImported\s\-(.{32})\-/g,
