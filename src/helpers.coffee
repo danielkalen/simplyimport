@@ -3,11 +3,18 @@ path = require 'path'
 regEx = require './regex'
 
 helpers = 
-	getNormalizedDirname: (inputPath)-> path.normalize( path.dirname( path.resolve(inputPath) ) )
+	getNormalizedDirname: (inputPath)->
+		path.normalize( path.dirname( path.resolve(inputPath) ) )
 
-	simplifyPath: (inputPath)-> inputPath.replace process.cwd()+'/', ''
+	simplifyPath: (inputPath)->
+		inputPath.replace process.cwd()+'/', ''
 
-	testForComments: (line, file)-> if file.isCoffee then line.includes('#') else line.includes('//')
+	testForComments: (line, file)->
+		hasSingleLineComment = if file.isCoffee then line.includes('#') else line.includes('//')
+		hasDocBlockComment = line.includes('* ')
+
+		return hasSingleLineComment or hasDocBlockComment
+
 
 	commentOut: (line, file, isImportLine)->
 		comment = if file.isCoffee then '#' else '//'
@@ -15,6 +22,7 @@ helpers =
 			@commentBadImportLine(line, comment)
 		else
 			"#{comment} #{line}"
+
 
 	commentBadImportLine: (importLine, comment)->
 		importLine.replace regEx.importOnly, (importDec)-> "#{comment} #{importDec}"
