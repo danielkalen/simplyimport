@@ -12,6 +12,11 @@ regEx =
 		)
 	///
 
+	escapedNewLine: ///
+		\\						# Escape literal
+		\n 						# Newline
+	///g
+
 	backTicks: ///
 		`
 	///g

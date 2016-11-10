@@ -1,0 +1,4 @@
+multiLineTrick = 'start \
+middle \
+end \
+'
