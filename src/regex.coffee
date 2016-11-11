@@ -26,12 +26,6 @@ regEx =
 		`						# Backtick
 	///g
 
-	docBlock: ///
-		\/\*\*?					# DocBlock start
-		[\s\S]+?				# Inner content
-		\*\/					# DocBlock end
-	///g
-
 	import: ///^
 		(?:
 			(.*)				# prior content
@@ -64,6 +58,8 @@ regEx =
 		\-						# hash end indicator
 	///g
 
+
+	comment: /(^|[^\\])(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg
 
 	commonJS:
 		export: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])(exports\s*(\[['"]|\.)|module(\.exports|\['exports'\]|\["exports"\])\s*(\[['"]|[=,\.]))/
