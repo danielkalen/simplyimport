@@ -162,21 +162,21 @@ suite "SimplyImport", ()->
 
 
 
-		test "When a Coffee file imports a JS file, all the comments should be removed", ()->
+		test "When a Coffee file imports a JS file, single-line comments shouldn't be removed", ()->
 			result = SimplyImport "import 'test/samples/mixed/js-with-backticks.js'", {silent:true}, {isCoffee:true, isStream:true}
-			expect(result).not.to.contain "// abc"
+			expect(result).to.contain "// abc"
 
 
 
 		test "When a Coffee file imports a JS file, all the backticks in the JS file will be escaped", ()->
 			result = SimplyImport "import 'test/samples/mixed/js-with-backticks.js'", {silent:true}, {isCoffee:true, isStream:true}
-			expect(result).to.equal "`var abc = '\\`123\\`\\`';`"
+			expect(result).to.equal "`var abc = '\\`123\\`\\`';\n// abc \\`123\\` \\``"
 
 
 
 		test "Backtick escaping algorithm doesn't escape pre-escaped backticks", ()->
 			result = SimplyImport "import 'test/samples/mixed/js-with-escaped-backticks.js'", {silent:true}, {isCoffee:true, isStream:true}
-			expect(result).to.equal "`var abc = '\\`123\\`\\`';`"
+			expect(result).to.equal "`var abc = '\\`123\\`\\`';\n// abc \\`123\\` \\``"
 
 
 
