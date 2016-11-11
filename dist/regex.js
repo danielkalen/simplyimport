@@ -7,10 +7,10 @@ regEx = {
   escapedNewLine: /\\\n/g,
   backTicks: /`/g,
   preEscapedBackTicks: /\\`/g,
-  docBlock: /\/\*\*?[\s\S]+?\*\//g,
   "import": /^(?:(.*)(\s+)\W?|\W?)import\s+(?:\[(.+)\])?\s*(.+)/g,
   importOnly: /import\s*(?:\[(.+)\])?\s*(.+)/g,
   trackedImport: /(?:\/\/|\#)\sSimplyImported\s\-(.{32})\-/g,
+  comment: /(^|[^\\])(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg,
   commonJS: {
     "export": /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])(exports\s*(\[['"]|\.)|module(\.exports|\['exports'\]|\["exports"\])\s*(\[['"]|[=,\.]))/,
     "import": /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)/g
