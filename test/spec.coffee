@@ -7,7 +7,10 @@ should = chai.should()
 regEx = require '../lib/regex'
 exec = require('child_process').exec
 
-SimplyImport = require '../index.js'
+if process.env.forCoverage
+	SimplyImport = require '../forCoverage/simplyimport.js'
+else
+	SimplyImport = require '../index.js'
 
 
 

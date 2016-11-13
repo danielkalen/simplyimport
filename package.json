@@ -25,8 +25,13 @@
   "license": "MIT",
   "mocha_opts": "-u tdd --compilers coffee:coffee-script/register --slow 1000 --timeout 3000",
   "scripts": {
-    "makeexec": "chmod +x dist/bin",
-    "coverage": "istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts && npm run coverage:badge",
+    "build": "npm run compile && npm run prependbin && npm run makeexec",
+    "compile": "npm run compile:module && npm run compile:bin",
+    "compile:module": "foreach -g 'lib/*' -x 'cat {{path}} | coffee -c -s -b > forCoverage/{{name}}.js'",
+    "compile:bin": "coffee -o ./forCoverage -c -b lib/cli.coffee",
+    "prependbin": "echo '#!/usr/bin/env node' | cat - forCoverage/cli.js > forCoverage/bin && rm -rf forCoverage/cli.js",
+    "makeexec": "chmod +x forCoverage/bin",
+    "coverage": "forCoverage=true istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts && npm run coverage:badge",
     "coverage:badge": "coffee .config/badge-gen.coffee",
     "test": "mocha $npm_package_mocha_opts"
   },
