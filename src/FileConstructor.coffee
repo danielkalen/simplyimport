@@ -39,30 +39,7 @@ File = (input, state={}, @importHistory={})->
 
 
 File::getContents = ()->
-	switch
-		when @fileExt
-			return try fs.readFileSync(@filePath).toString() catch then ''
-		when @isCoffee
-			pathsToTry = ["#{@filePath}.coffee", "#{@filePath}.js"]
-		else
-			pathsToTry = ["#{@filePath}.js", "#{@filePath}.coffee"]
-
-
-	content = ''
-	try
-		try
-			content = fs.readFileSync(pathsToTry[0]).toString()
-			succeededPath = 0
-		catch
-			content = fs.readFileSync(pathsToTry[1]).toString()
-			succeededPath = 1
-
-	
-	if succeededPath?
-		@isCoffee = pathsToTry[succeededPath].includes '.coffee'
-
-	return content
-
+	return try fs.readFileSync(@filePath).toString() catch then ''
 
 
 
