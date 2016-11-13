@@ -52,18 +52,23 @@ SimplyImport = function(input, passedOptions, passedState) {
   }
 };
 
-SimplyImport.scanImports = function(filePath, pathOnly, pathIsContent) {
-  var dicoveredImports, fileContent, subjectFile;
+SimplyImport.scanImports = function(filePath, pathOnly, pathIsContent, pathWithContext) {
+  var context, dicoveredImports, fileContent, subjectFile;
   dicoveredImports = [];
   if (pathIsContent) {
     fileContent = filePath;
+    context = '.';
   } else {
     subjectFile = new File(filePath);
     fileContent = subjectFile.content;
+    context = subjectFile.context;
   }
   fileContent.split('\n').forEach(function(line) {
     return line.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions, childPath) {
-      childPath = childPath.replace(/['"]/g, '');
+      childPath = helpers.normalizeFilePath(childPath, context);
+      if (!pathWithContext) {
+        childPath = childPath.replace(context + '/', '');
+      }
       if (pathOnly) {
         return dicoveredImports.push(childPath);
       } else {

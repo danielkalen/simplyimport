@@ -49,8 +49,11 @@ File = function(input, state, importHistory) {
     this.context = helpers.getNormalizedDirname(this.filePath);
     this.isCoffee = this.checkIfIsCoffee();
     this.content = this.getContents();
-    if (!this.content && !options.silent) {
-      console.warn(consoleLabels.warn + " Failed to import nonexistent file: " + (chalk.dim(helpers.simplifyPath(this.filePath))));
+    if (this.content === false) {
+      this.content = '';
+      if (!options.silent) {
+        console.warn(consoleLabels.warn + " Failed to import nonexistent file: " + (chalk.dim(helpers.simplifyPath(this.filePath))));
+      }
     }
   }
   this.collectTrackedImports();
@@ -59,34 +62,12 @@ File = function(input, state, importHistory) {
 };
 
 File.prototype.getContents = function() {
-  var content, error, error1, pathsToTry, succeededPath;
-  switch (false) {
-    case !this.fileExt:
-      try {
-        return fs.readFileSync(this.filePath).toString();
-      } catch (error) {
-        return '';
-      }
-    case !this.isCoffee:
-      pathsToTry = [this.filePath + ".coffee", this.filePath + ".js"];
-      break;
-    default:
-      pathsToTry = [this.filePath + ".js", this.filePath + ".coffee"];
-  }
-  content = '';
+  var error;
   try {
-    try {
-      content = fs.readFileSync(pathsToTry[0]).toString();
-      succeededPath = 0;
-    } catch (error1) {
-      content = fs.readFileSync(pathsToTry[1]).toString();
-      succeededPath = 1;
-    }
-  } catch (undefined) {}
-  if (succeededPath != null) {
-    this.isCoffee = pathsToTry[succeededPath].includes('.coffee');
+    return fs.readFileSync(this.filePath).toString();
+  } catch (error) {
+    return false;
   }
-  return content;
 };
 
 File.prototype.collectTrackedImports = function() {
