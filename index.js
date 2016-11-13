@@ -1,2 +1,2 @@
 require('coffee-script/register');
-require('./lib/simplyimport');
+module.exports = require('./lib/simplyimport');

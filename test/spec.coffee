@@ -7,10 +7,7 @@ should = chai.should()
 regEx = require '../lib/regex'
 exec = require('child_process').exec
 
-if process.env.fromSrc
-	SimplyImport = require '../lib/simplyimport.coffee'
-else
-	SimplyImport = require '../dist/simplyimport.js'
+SimplyImport = require '../index.js'
 
 
 

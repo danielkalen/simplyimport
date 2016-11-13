@@ -28,7 +28,7 @@
     "makeexec": "chmod +x dist/bin",
     "coverage": "istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts && npm run coverage:badge",
     "coverage:badge": "coffee .config/badge-gen.coffee",
-    "test": "fromSrc=true mocha $npm_package_mocha_opts"
+    "test": "mocha $npm_package_mocha_opts"
   },
   "dependencies": {
     "array-includes": "^3.0.2",
