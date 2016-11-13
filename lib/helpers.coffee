@@ -67,7 +67,7 @@ helpers =
 			.replace /['"]/g, '' # Remove quotes form pathname
 			.replace /\s+$/, '' # Remove whitespace from the end of the string
 
-		resolvedPath = if context then path.normalize(context+'/'+inputPath) else inputPath
+		resolvedPath = path.normalize(context+'/'+inputPath)
 
 		if not path.extname(resolvedPath)
 			inputFileName = path.basename(resolvedPath)
@@ -81,7 +81,7 @@ helpers =
 
 				if fileMatch
 					resolvedPath = "#{parentDir}/#{fileMatch}"
-				else if exactMatch
+				else #if exactMatch
 					resolvedPath = "#{parentDir}/#{inputFileName}"
 					pathStats = fs.statSync(resolvedPath)
 
