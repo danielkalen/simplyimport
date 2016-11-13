@@ -82,7 +82,7 @@ helpers = {
         });
         if (fileMatch) {
           resolvedPath = parentDir + "/" + fileMatch;
-        } else if (exactMatch) {
+        } else {
           resolvedPath = parentDir + "/" + inputFileName;
           pathStats = fs.statSync(resolvedPath);
           if (pathStats.isDirectory()) {

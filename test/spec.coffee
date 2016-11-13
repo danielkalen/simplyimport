@@ -210,30 +210,36 @@ suite "SimplyImport", ()->
 		test "Calling SimplyImport.scanImports(path) will retrieve import objects for all discovered imports in a file", ()->
 			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js'
 
-			expect(imports.length).to.equal 8
+			expect(imports.length).to.equal 11
 			expect(imports[0].childPath).to.equal 'withquotes.js'
 			expect(imports[1].childPath).to.equal 'noquotes.js'
 			expect(imports[2].childPath).to.equal 'withext.js'
 			expect(imports[3].childPath).to.equal 'noext.js'
-			expect(imports[4].childPath).to.equal 'nested/nested1.js'
-			expect(imports[5].childPath).to.equal 'dir/index.js'
-			expect(imports[6].childPath).to.equal 'nonexistent.js'
-			expect(imports[7].childPath).to.equal 'variable.js'
+			expect(imports[4].childPath).to.equal 'realNoExt'
+			expect(imports[5].childPath).to.equal 'nested/nested1.js'
+			expect(imports[6].childPath).to.equal 'dir/index.js'
+			expect(imports[7].childPath).to.equal 'dirNoIndex/index.js'
+			expect(imports[8].childPath).to.equal 'dirNonexistent'
+			expect(imports[9].childPath).to.equal 'nonexistent.js'
+			expect(imports[10].childPath).to.equal 'variable.js'
 
 
 
 		test "Calling SimplyImport.scanImports(path, true) will retrieve the file paths of all discovered imports in a file", ()->
 			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', true
 
-			expect(imports.length).to.equal 8
+			expect(imports.length).to.equal 11
 			expect(imports[0]).to.equal 'withquotes.js'
 			expect(imports[1]).to.equal 'noquotes.js'
 			expect(imports[2]).to.equal 'withext.js'
 			expect(imports[3]).to.equal 'noext.js'
-			expect(imports[4]).to.equal 'nested/nested1.js'
-			expect(imports[5]).to.equal 'dir/index.js'
-			expect(imports[6]).to.equal 'nonexistent.js'
-			expect(imports[7]).to.equal 'variable.js'
+			expect(imports[4]).to.equal 'realNoExt'
+			expect(imports[5]).to.equal 'nested/nested1.js'
+			expect(imports[6]).to.equal 'dir/index.js'
+			expect(imports[7]).to.equal 'dirNoIndex/index.js'
+			expect(imports[8]).to.equal 'dirNonexistent'
+			expect(imports[9]).to.equal 'nonexistent.js'
+			expect(imports[10]).to.equal 'variable.js'
 
 
 
@@ -241,15 +247,18 @@ suite "SimplyImport", ()->
 			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', true, null, true
 			context = "#{__dirname}/samples/standard"
 
-			expect(imports.length).to.equal 8
+			expect(imports.length).to.equal 11
 			expect(imports[0]).to.equal "#{context}/withquotes.js"
 			expect(imports[1]).to.equal "#{context}/noquotes.js"
 			expect(imports[2]).to.equal "#{context}/withext.js"
 			expect(imports[3]).to.equal "#{context}/noext.js"
-			expect(imports[4]).to.equal "#{context}/nested/nested1.js"
-			expect(imports[5]).to.equal "#{context}/dir/index.js"
-			expect(imports[6]).to.equal "#{context}/nonexistent.js"
-			expect(imports[7]).to.equal "#{context}/variable.js"
+			expect(imports[4]).to.equal "#{context}/realNoExt"
+			expect(imports[5]).to.equal "#{context}/nested/nested1.js"
+			expect(imports[6]).to.equal "#{context}/dir/index.js"
+			expect(imports[7]).to.equal "#{context}/dirNoIndex/index.js"
+			expect(imports[8]).to.equal "#{context}/dirNonexistent"
+			expect(imports[9]).to.equal "#{context}/nonexistent.js"
+			expect(imports[10]).to.equal "#{context}/variable.js"
 
 
 
@@ -328,10 +337,13 @@ suite "SimplyImport", ()->
 				imported.should.include  "Imported file without quotes"
 				imported.should.include  "Imported file with extension"
 				imported.should.include  "Imported file without extension"
+				imported.should.include  "Imported file that really doesnt have an extension"
 				imported.should.include  "Imported nested level 1"
 				imported.should.include  "Imported nested level 2"
 				imported.should.include  "Imported index file from dir"
 				imported.should.include  "Imported file from dir index file"
+				imported.should.include  "import 'dirNoIndex'"
+				imported.should.include  "import 'dirNonexistent'"
 				imported.should.include  "import 'nonexistent.js'"
 				imported.should.include  "Imported variable"
 				imported.should.equal importedAsModule
