@@ -32,10 +32,35 @@ helpers =
 		inputPath = inputPath
 			.replace /['"]/g, '' # Remove quotes form pathname
 			.replace /\s+$/, '' # Remove whitespace from the end of the string
-		pathWithContext = path.normalize context+'/'+inputPath
 
-		return pathWithContext
+		resolvedPath = if context then path.normalize(context+'/'+inputPath) else inputPath
 
+		if not path.extname(resolvedPath)
+			inputFileName = path.basename(inputPath)
+			parentDir = path.dirname(inputPath)
+			parentDirListing = @getDirListing(parentDir)
+			inputPathMatches = parentDirListing.filter (targetPath)-> targetPath.includes(inputFileName)
+
+			if inputPathMatches.length is 1
+				resolvedPath = "#{parentDir}/#{inputPathMatches[0]}"
+
+			else if inputPathMatches.length
+				fileMatch = inputPathMatches.find (targetPath)-> targetPath.replace(inputFileName, '').split('.').length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
+				dirMatch = inputPathMatches.find (targetPath)-> targetPath is inputFileName
+
+				if fileMatch
+					resolvedPath = "#{parentDir}/#{fileMatch}"
+				else if dirMatch
+					resolvedPath = "#{parentDir}/#{dirMatch}"
+
+		return resolvedPath
+
+
+	getDirListing: (dirPath)->
+		if dirListingCache[dirPath]?
+			return dirListingCache[dirPath]
+		else
+			return dirListingCache[dirPath] = fs.readdirSync(dirPath)
 
 
 	testConditions: (allowedConditions, conditionsString)->
@@ -64,5 +89,5 @@ helpers =
 				"#{spacing}`#{helpers.escapeBackticks(content)}`"
 
 
-
+dirListingCache = {}
 module.exports = helpers

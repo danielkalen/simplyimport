@@ -50,7 +50,8 @@ SimplyImport.scanImports = (filePath, pathOnly, pathIsContent)->
 		.split '\n'
 		.forEach (line)->
 			line.replace regEx.import, (entireLine, priorContent, spacing, conditions, childPath)->
-				childPath = childPath.replace /['"]/g, ''
+				# childPath = childPath.replace /['"]/g, ''
+				childPath = helpers.normalizeFilePath(childPath)
 				if pathOnly
 					dicoveredImports.push childPath
 				else
