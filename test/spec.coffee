@@ -4,11 +4,11 @@ chaiSpies = require 'chai-spies'
 chai.use chaiSpies
 expect = chai.expect
 should = chai.should()
-regEx = require '../src/regex'
+regEx = require '../lib/regex'
 exec = require('child_process').exec
 
 if process.env.fromSrc
-	SimplyImport = require '../src/simplyimport.coffee'
+	SimplyImport = require '../lib/simplyimport.coffee'
 else
 	SimplyImport = require '../dist/simplyimport.js'
 
@@ -29,7 +29,7 @@ suite "SimplyImport", ()->
 			
 			fs.ensureDir 'test/temp/output', ()->
 				fs.writeFile 'test/temp/theFile.js', importDec, ()->
-					exec "src/cli.coffee -i test/temp/theFile.js -o test/temp/output -s -p", (err, stdout, stderr)->
+					exec "bin -i test/temp/theFile.js -o test/temp/output -s -p", (err, stdout, stderr)->
 						throw err if err
 						result = null
 						expect ()-> result = fs.readFileSync 'test/temp/output/theFile.compiled.js', {encoding:'utf8'}
@@ -42,7 +42,7 @@ suite "SimplyImport", ()->
 
 
 		test "If output path is a directory, an input path must be provided", (done)->
-			exec "echo 'whatever' | src/cli.coffee -o test/", (err, stdout, stderr)->
+			exec "echo 'whatever' | bin -o test/", (err, stdout, stderr)->
 				expect(err).to.be.an 'error'
 				done()
 
@@ -320,7 +320,7 @@ suite "SimplyImport", ()->
 	suite "Batch tests", ()->
 		test "Standard Import", (done)->
 			importedAsModule = SimplyImport('test/samples/standard/_importer.js', {silent:true, preserve:true})
-			exec "src/cli.coffee -i test/samples/standard/_importer.js -s -p", (err, stdout, stderr)->
+			exec "bin -i test/samples/standard/_importer.js -s -p", (err, stdout, stderr)->
 				throw err if err
 				imported = stdout.toString()
 				
@@ -348,7 +348,7 @@ suite "SimplyImport", ()->
 
 		test "Coffeescript Import", (done)->
 			importedAsModule = SimplyImport('test/samples/coffeescript/_importer.coffee', {silent:true, preserve:true})
-			exec "src/cli.coffee -i test/samples/coffeescript/_importer.coffee -s -p", (err, stdout, stderr)->
+			exec "bin -i test/samples/coffeescript/_importer.coffee -s -p", (err, stdout, stderr)->
 				throw err if err
 				imported = stdout.toString()
 				
@@ -378,7 +378,7 @@ suite "SimplyImport", ()->
 
 		test "Coffeescript (tabbed) Import", (done)->
 			importedAsModule = SimplyImport('test/samples/coffeescript-tabbed/_importer.coffee', {silent:true, preserve:true})
-			exec "src/cli.coffee -i test/samples/coffeescript-tabbed/_importer.coffee -s -p", (err, stdout, stderr)->
+			exec "bin -i test/samples/coffeescript-tabbed/_importer.coffee -s -p", (err, stdout, stderr)->
 				throw err if err
 				imported = stdout.toString()
 				
@@ -406,7 +406,7 @@ suite "SimplyImport", ()->
 
 		test "Mixed (coffee+js) Import", (done)->
 			importedAsModule = SimplyImport('test/samples/mixed/_importer.coffee', {silent:true, preserve:true})
-			exec "src/cli.coffee -i test/samples/mixed/_importer.coffee -s -p", (err, stdout, stderr)->
+			exec "bin -i test/samples/mixed/_importer.coffee -s -p", (err, stdout, stderr)->
 				throw err if err
 				imported = stdout.toString()
 				
@@ -438,7 +438,7 @@ suite "SimplyImport", ()->
 		
 		test "Conditions Import", (done)->
 			importedAsModule = SimplyImport('test/samples/conditions/_importer.js', {conditions:['yes', 'yes1'], silent:true})
-			exec "src/cli.coffee -i test/samples/conditions/_importer.js -c yes yes1 -s", (err, stdout, stderr)->
+			exec "bin -i test/samples/conditions/_importer.js -c yes yes1 -s", (err, stdout, stderr)->
 				throw err if err
 				imported = stdout.toString()
 
@@ -469,7 +469,7 @@ suite "SimplyImport", ()->
 		
 		test "Conditions Import (preserve declarations)", (done)->
 			importedAsModule = SimplyImport('test/samples/conditions/_importer.js', {conditions:['yes', 'yes1'], preserve:true, silent:true})
-			exec "src/cli.coffee -i test/samples/conditions/_importer.js -c yes yes1 -s -p", (err, stdout, stderr)->
+			exec "bin -i test/samples/conditions/_importer.js -c yes yes1 -s -p", (err, stdout, stderr)->
 				throw err if err
 				imported = stdout.toString()
 				

@@ -1,4 +1,3 @@
-#!/usr/bin/env coffee
 yargs = require 'yargs'
 	.usage(require './cliUsage')
 	.options(require './cliOptions')

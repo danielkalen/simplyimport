@@ -13,9 +13,9 @@
     "amd",
     "coffee-import"
   ],
-  "main": "dist/simplyimport.js",
+  "main": "index.js",
   "bin": {
-    "simplyimport": "./dist/bin"
+    "simplyimport": "./bin"
   },
   "author": "danielkalen",
   "repository": {
@@ -25,12 +25,6 @@
   "license": "MIT",
   "mocha_opts": "-u tdd --compilers coffee:coffee-script/register --slow 1000 --timeout 3000",
   "scripts": {
-    "watch": "nodemon -e coffee -w ./src -x 'npm run compile'",
-    "build": "npm run compile && npm run prependbin && npm run makeexec",
-    "compile": "npm run compile:module && npm run compile:bin",
-    "compile:module": "foreach -g 'src/*' -x 'cat {{path}} | coffee -c -s -b > dist/{{name}}.js'",
-    "compile:bin": "coffee -o ./dist -c -b src/cli.coffee",
-    "prependbin": "echo '#!/usr/bin/env node' | cat - dist/cli.js > dist/bin && rm -rf dist/cli.js",
     "makeexec": "chmod +x dist/bin",
     "coverage": "istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts && npm run coverage:badge",
     "coverage:badge": "coffee .config/badge-gen.coffee",
@@ -54,7 +48,6 @@
     "istanbul": "^0.4.5",
     "lcov-parse": "0.0.10",
     "mocha": "^3.1.2",
-    "nodemon": "^1.8.1",
     "request": "^2.74.0",
     "svg2png": "^3.0.1"
   }
