@@ -28,8 +28,10 @@ File = (input, state={}, @importHistory={})->
 		@isCoffee = @checkIfIsCoffee()
 		@content = @getContents()
 
-		if not @content and not options.silent
-			console.warn "#{consoleLabels.warn} Failed to import nonexistent file: #{chalk.dim(helpers.simplifyPath @filePath)}"
+		if @content is false
+			@content = ''
+			if not options.silent
+				console.warn "#{consoleLabels.warn} Failed to import nonexistent file: #{chalk.dim(helpers.simplifyPath @filePath)}"
 
 	@collectTrackedImports()
 	@hash = md5(@content)
@@ -39,7 +41,7 @@ File = (input, state={}, @importHistory={})->
 
 
 File::getContents = ()->
-	return try fs.readFileSync(@filePath).toString() catch then ''
+	return try fs.readFileSync(@filePath).toString() catch then false
 
 
 
