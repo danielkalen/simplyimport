@@ -209,6 +209,7 @@ suite "SimplyImport", ()->
 	suite "API", ()->
 		test "Calling SimplyImport.scanImports(path) will retrieve import objects for all discovered imports in a file", ()->
 			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js'
+			importsFromStream = SimplyImport.scanImports fs.readFileSync('test/samples/standard/_importer.js', {encoding:'utf8'}), false, true
 
 			expect(imports.length).to.equal 11
 			expect(imports[0].childPath).to.equal 'withquotes.js'
@@ -222,6 +223,7 @@ suite "SimplyImport", ()->
 			expect(imports[8].childPath).to.equal 'dirNonexistent'
 			expect(imports[9].childPath).to.equal 'nonexistent.js'
 			expect(imports[10].childPath).to.equal 'variable.js'
+			expect(imports).eql importsFromStream
 
 
 
