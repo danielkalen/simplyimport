@@ -208,8 +208,9 @@ suite "SimplyImport", ()->
 
 	suite "API", ()->
 		test "Calling SimplyImport.scanImports(path) will retrieve import objects for all discovered imports in a file", ()->
+			directFileContent = fs.readFileSync('test/samples/standard/_importer.js', {encoding:'utf8'})
 			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js'
-			importsFromStream = SimplyImport.scanImports fs.readFileSync('test/samples/standard/_importer.js', {encoding:'utf8'}), false, true
+			importsFromStream = SimplyImport.scanImports directFileContent, {isStream:true, context:'test/samples/standard'}
 
 			expect(imports.length).to.equal 11
 			expect(imports[0].childPath).to.equal 'withquotes.js'
@@ -227,8 +228,8 @@ suite "SimplyImport", ()->
 
 
 
-		test "Calling SimplyImport.scanImports(path, true) will retrieve the file paths of all discovered imports in a file", ()->
-			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', true
+		test "Specifying an options object of {pathOnly:true} will retrieve the file paths of all discovered imports in a file", ()->
+			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', {pathOnly:true}
 
 			expect(imports.length).to.equal 11
 			expect(imports[0]).to.equal 'withquotes.js'
@@ -245,8 +246,8 @@ suite "SimplyImport", ()->
 
 
 
-		test "Calling SimplyImport.scanImports(path, true, null, true) will retrieve absolute file paths of all discovered imports in a file", ()->
-			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', true, null, true
+		test "Specifying an options object of {pathOnly:true, withContext:true} will retrieve absolute file paths of all discovered imports in a file", ()->
+			imports = SimplyImport.scanImports 'test/samples/standard/_importer.js', {pathOnly:true, withContext:true}
 			context = "#{__dirname}/samples/standard"
 
 			expect(imports.length).to.equal 11
@@ -264,8 +265,8 @@ suite "SimplyImport", ()->
 
 
 
-		test "Calling SimplyImport.scanImports(content, true, true) will assume that the first argument is the contents of the file", ()->
-			imports = SimplyImport.scanImports 'import testImport.js', true, true
+		test "Specifying an options object of {isStream:true, pathOnly:true} will assume that the first argument is the contents of the file", ()->
+			imports = SimplyImport.scanImports 'import testImport.js', {isStream:true, pathOnly:true}
 
 			expect(imports.length).to.equal 1
 			expect(imports[0]).to.equal 'testImport.js'
