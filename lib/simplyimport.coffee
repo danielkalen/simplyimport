@@ -38,11 +38,11 @@ SimplyImport = (input, passedOptions, passedState)->
 
 
 
-SimplyImport.scanImports = (filePath, pathOnly, pathIsContent, pathWithContext)->
+SimplyImport.scanImports = (filePath, {pathOnly, isStream, withContext, context}={})->
 	dicoveredImports = []
-	if pathIsContent
+	if isStream
 		fileContent = filePath
-		context = '.'
+		context ?= process.cwd()
 	else
 		subjectFile = new File(filePath)
 		fileContent = subjectFile.content
@@ -53,7 +53,7 @@ SimplyImport.scanImports = (filePath, pathOnly, pathIsContent, pathWithContext)-
 		.forEach (line)->
 			line.replace regEx.import, (entireLine, priorContent, spacing, conditions, childPath)->
 				childPath = helpers.normalizeFilePath(childPath, context)
-				childPath = childPath.replace context+'/', '' if not pathWithContext
+				childPath = childPath.replace context+'/', '' if not withContext
 				
 				if pathOnly
 					dicoveredImports.push childPath
