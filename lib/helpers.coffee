@@ -32,7 +32,10 @@ helpers =
 		if dirListingCache[dirPath]?
 			return dirListingCache[dirPath]
 		else
-			return dirListingCache[dirPath] = fs.readdirSync(dirPath)
+			try
+				return dirListingCache[dirPath] = fs.readdirSync(dirPath)
+			catch
+				return []
 
 
 	testConditions: (allowedConditions, conditionsString)->
