@@ -79,8 +79,11 @@ helpers =
 			inputPathMatches = parentDirListing.filter (targetPath)-> targetPath.includes(inputFileName)
 
 			if inputPathMatches.length
-				fileMatch = inputPathMatches.find (targetPath)-> targetPath.replace(inputFileName, '').split('.').length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
 				exactMatch = inputPathMatches.find (targetPath)-> targetPath is inputFileName
+				fileMatch = inputPathMatches.find (targetPath)->
+					fileNameSplit = targetPath.replace(inputFileName, '').split('.')
+					return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
+
 
 				if fileMatch
 					resolvedPath = "#{parentDir}/#{fileMatch}"
