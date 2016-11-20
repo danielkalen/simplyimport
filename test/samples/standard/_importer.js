@@ -10,3 +10,4 @@ import 'dirNonexistent'
 import 'nonexistent.js'
 
 variable = import 'variable.js'
+// import 'commented.js'
