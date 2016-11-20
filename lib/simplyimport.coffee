@@ -41,6 +41,7 @@ SimplyImport = (input, passedOptions, passedState)->
 SimplyImport.scanImports = (filePath, {pathOnly, isStream, withContext, context}={})->
 	dicoveredImports = []
 	if isStream
+		subjectFile = {}
 		fileContent = filePath
 		context ?= process.cwd()
 	else
@@ -50,8 +51,9 @@ SimplyImport.scanImports = (filePath, {pathOnly, isStream, withContext, context}
 	
 	fileContent
 		.split '\n'
-		.forEach (line)->
-			line.replace regEx.import, (entireLine, priorContent, spacing, conditions, childPath)->
+		.forEach (originalLine)->
+			originalLine.replace regEx.import, (entireLine, priorContent, spacing, conditions, childPath)->
+				return originalLine if helpers.testForComments(originalLine, subjectFile)
 				childPath = helpers.normalizeFilePath(childPath, context)
 				childPath = childPath.replace context+'/', '' if not withContext
 				
