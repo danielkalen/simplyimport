@@ -38,10 +38,10 @@ SimplyImport = (input, passedOptions, passedState)->
 
 
 
-SimplyImport.scanImports = (filePath, {pathOnly, isStream, withContext, context}={})->
+SimplyImport.scanImports = (filePath, {pathOnly, isStream, isCoffee, withContext, context}={})->
 	dicoveredImports = []
 	if isStream
-		subjectFile = {}
+		subjectFile = {isCoffee}
 		fileContent = filePath
 		context ?= process.cwd()
 	else
