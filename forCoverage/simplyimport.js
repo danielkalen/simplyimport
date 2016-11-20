@@ -52,21 +52,30 @@ SimplyImport = function(input, passedOptions, passedState) {
   }
 };
 
-SimplyImport.scanImports = function(filePath, pathOnly, pathIsContent, pathWithContext) {
-  var context, dicoveredImports, fileContent, subjectFile;
+SimplyImport.scanImports = function(filePath, arg) {
+  var context, dicoveredImports, fileContent, isCoffee, isStream, pathOnly, ref, subjectFile, withContext;
+  ref = arg != null ? arg : {}, pathOnly = ref.pathOnly, isStream = ref.isStream, isCoffee = ref.isCoffee, withContext = ref.withContext, context = ref.context;
   dicoveredImports = [];
-  if (pathIsContent) {
+  if (isStream) {
+    subjectFile = {
+      isCoffee: isCoffee
+    };
     fileContent = filePath;
-    context = '.';
+    if (context == null) {
+      context = process.cwd();
+    }
   } else {
     subjectFile = new File(filePath);
     fileContent = subjectFile.content;
     context = subjectFile.context;
   }
-  fileContent.split('\n').forEach(function(line) {
-    return line.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions, childPath) {
+  fileContent.split('\n').forEach(function(originalLine) {
+    return originalLine.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions, childPath) {
+      if (helpers.testForComments(originalLine, subjectFile)) {
+        return originalLine;
+      }
       childPath = helpers.normalizeFilePath(childPath, context);
-      if (!pathWithContext) {
+      if (!withContext) {
         childPath = childPath.replace(context + '/', '');
       }
       if (pathOnly) {

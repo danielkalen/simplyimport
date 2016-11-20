@@ -74,11 +74,13 @@ helpers = {
         return targetPath.includes(inputFileName);
       });
       if (inputPathMatches.length) {
-        fileMatch = inputPathMatches.find(function(targetPath) {
-          return targetPath.replace(inputFileName, '').split('.').length === 2;
-        });
         exactMatch = inputPathMatches.find(function(targetPath) {
           return targetPath === inputFileName;
+        });
+        fileMatch = inputPathMatches.find(function(targetPath) {
+          var fileNameSplit;
+          fileNameSplit = targetPath.replace(inputFileName, '').split('.');
+          return !fileNameSplit[0] && fileNameSplit.length === 2;
         });
         if (fileMatch) {
           resolvedPath = parentDir + "/" + fileMatch;
