@@ -1,3 +1,5 @@
+process.title = 'simplyimport'
+
 yargs = require 'yargs'
 	.usage(require './cliUsage')
 	.options(require './cliOptions')
