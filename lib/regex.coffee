@@ -38,8 +38,9 @@ regEx =
 		\s+						# whitespace after import declaration
 		(?:\[(.+)\])?			# conditionals
 		\s*						# whitespace after conditional
-		(.+)					# filepath
-	///g
+		(\S+)					# filepath
+		\s*
+	$///g
 
 	importOnly: /// # Without prior content
 		import					# import declaration
