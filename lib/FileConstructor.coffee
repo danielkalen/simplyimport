@@ -3,7 +3,9 @@ md5 = require 'md5'
 path = require 'path'
 chalk = require 'chalk'
 regEx = require './regex'
+deAsync = require 'deasync'
 helpers = require './helpers'
+browserify = require 'browserify'
 consoleLabels = require './consoleLabels'
 
 ###*
@@ -35,6 +37,12 @@ File = (input, state={}, @importHistory={})->
 
 	@collectTrackedImports()
 	@hash = md5(@content)
+
+	if regEx.commonJS.import.test(@content) or regEx.commonJS.export.test(@content)
+		bundle = deAsync browserify(@content, {basedir:path.dirname(@filePath)}).bundle
+		contentBuffer = bundle()
+		@content = contentBuffer.toString()
+
 	return @
 
 
