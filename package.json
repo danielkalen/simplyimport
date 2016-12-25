@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "array-includes": "^3.0.2",
+    "bluebird": "^3.4.7",
     "browserify": "^13.1.1",
     "chai": "^3.5.0",
     "chalk": "^1.1.3",
@@ -44,6 +45,7 @@
     "deasync": "^0.1.9",
     "extend": "^3.0.0",
     "md5": "^2.1.0",
+    "string-replace-async": "^1.2.0",
     "uglify-js": "^2.6.1",
     "yargs": "^3.29.0"
   },

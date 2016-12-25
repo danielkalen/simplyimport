@@ -40,7 +40,7 @@ regEx =
 		\s*						# whitespace after conditional
 		(\S+)					# filepath
 		\s*
-	$///g
+	$///gm
 
 	importOnly: /// # Without prior content
 		import					# import declaration

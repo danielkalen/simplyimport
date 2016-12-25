@@ -1,5 +1,8 @@
 require('array-includes').shim()
-path = require 'path'
+
+Promise = require 'bluebird'
+fs = Promise.promisifyAll require 'fs'
+PATH = require 'path'
 chalk = require 'chalk'
 extend = require 'extend'
 coffeeCompiler = require 'coffee-script'
@@ -16,24 +19,37 @@ EMPTYHASH = "d41d8cd98f00b204e9800998ecf8427e"
 
 
 
-SimplyImport = (input, passedOptions, passedState)->
-	@options = extend({}, defaultOptions, passedOptions)
-	subjectFile = new File(input, passedState)
+SimplyImport = (input, providedOptions, providedState)->
+	options = extend({}, defaultOptions, providedOptions)
+	providedState.isMain = true
+	providedState.context = if providedState.isStream then process.cwd() else helpers.getNormalizedDirname(input)
+	fileContent = if providedState.isStream then Promise.resolve(input) else fs.readFileAsync(PATH.resolve(input), encoding:'utf8')
 
-	if not subjectFile.content
-		throw new Error "#{consoleLabels.error} Import process failed - invalid input #{chalk.underline.magenta(subjectFile.filePath)}"
-	else
-		processedContent = replaceImports(subjectFile)
+	fileContent
+		.then (contents)->
+			subjectFile = new File(contents, options, {duplicates:{}}, providedState)
+			subjectFile.process().then ()->
+				subjectFile.collectImports().then ()->
+					return subjectFile.compile()
 
-		if @options.track
-			trackingInfo = (hash for hash of subjectFile.importHistory)
-				.filter (hash)-> not subjectFile.trackedImportHistory[hash]
-				.map (hash)-> helpers.commentOut "SimplyImported -#{hash}-", subjectFile
-				.join '\n'
+		.catch (err)-> throw err
+
+
+
+	# if not subjectFile.content
+	# 	throw new Error "#{consoleLabels.error} Import process failed - invalid input #{chalk.underline.magenta(subjectFile.filePath)}"
+	# else
+	# 	processedContent = replaceImports(subjectFile)
+
+	# 	if @options.track
+	# 		trackingInfo = (hash for hash of subjectFile.importHistory)
+	# 			.filter (hash)-> not subjectFile.trackedImportHistory[hash]
+	# 			.map (hash)-> helpers.commentOut "SimplyImported -#{hash}-", subjectFile
+	# 			.join '\n'
 			
-			processedContent = "#{trackingInfo}\n#{processedContent}"
+	# 		processedContent = "#{trackingInfo}\n#{processedContent}"
 
-		return processedContent
+	# 	return processedContent
 	
 
 

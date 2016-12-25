@@ -9,8 +9,8 @@ helpers =
 	simplifyPath: (inputPath)->
 		inputPath.replace process.cwd()+'/', ''
 
-	testForComments: (line, file)->
-		hasSingleLineComment = if file.isCoffee then line.includes('#') else line.includes('//')
+	testForComments: (line, isCoffee)->
+		hasSingleLineComment = line.includes(if isCoffee then '#' else '//')
 		hasDocBlockComment = line.includes('* ')
 
 		return hasSingleLineComment or hasDocBlockComment
@@ -30,9 +30,10 @@ helpers =
 
 	getDirListing: (dirPath)->
 		if dirListingCache[dirPath]?
-			return dirListingCache[dirPath]
+			return Promise.resolve dirListingCache[dirPath]
 		else
-			return dirListingCache[dirPath] = fs.readdirSync(dirPath)
+			fs.readdirAsync(dirPath).then (listing)->
+				return dirListingCache[dirPath] = listing
 
 
 	testConditions: (allowedConditions, conditionsString)->
@@ -62,42 +63,42 @@ helpers =
 
 
 
-	normalizeFilePath: (inputPath, context)->
-		inputPath = inputPath
-			.replace /['"]/g, '' # Remove quotes form pathname
-			.replace /\s+$/, '' # Remove whitespace from the end of the string
+	# normalizeFilePath: (inputPath, context)->
+	# 	inputPath = inputPath
+	# 		.replace /['"]/g, '' # Remove quotes form pathname
+	# 		.replace /\s+$/, '' # Remove whitespace from the end of the string
 
-		resolvedPath = path.normalize(context+'/'+inputPath)
+	# 	resolvedPath = path.normalize(context+'/'+inputPath)
 
-		if not path.extname(resolvedPath)
-			inputFileName = path.basename(resolvedPath)
-			parentDir = path.dirname(resolvedPath)
-			parentDirListing = @getDirListing(parentDir)
-			inputPathMatches = parentDirListing.filter (targetPath)-> targetPath.includes(inputFileName)
+	# 	if not path.extname(resolvedPath)
+	# 		inputFileName = path.basename(resolvedPath)
+	# 		parentDir = path.dirname(resolvedPath)
+	# 		parentDirListing = @getDirListing(parentDir)
+	# 		inputPathMatches = parentDirListing.filter (targetPath)-> targetPath.includes(inputFileName)
 
-			if inputPathMatches.length
-				exactMatch = inputPathMatches.find (targetPath)-> targetPath is inputFileName
-				fileMatch = inputPathMatches.find (targetPath)->
-					fileNameSplit = targetPath.replace(inputFileName, '').split('.')
-					return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
+	# 		if inputPathMatches.length
+	# 			exactMatch = inputPathMatches.find (targetPath)-> targetPath is inputFileName
+	# 			fileMatch = inputPathMatches.find (targetPath)->
+	# 				fileNameSplit = targetPath.replace(inputFileName, '').split('.')
+	# 				return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
 
 
-				if fileMatch
-					resolvedPath = "#{parentDir}/#{fileMatch}"
-				else #if exactMatch
-					resolvedPath = "#{parentDir}/#{inputFileName}"
-					pathStats = fs.statSync(resolvedPath)
+	# 			if fileMatch
+	# 				resolvedPath = "#{parentDir}/#{fileMatch}"
+	# 			else #if exactMatch
+	# 				resolvedPath = "#{parentDir}/#{inputFileName}"
+	# 				pathStats = fs.statSync(resolvedPath)
 
-					if pathStats.isDirectory()
-						targetDirListing = @getDirListing(resolvedPath)
-						indexFile = targetDirListing.find (file)-> file.includes('index')
+	# 				if pathStats.isDirectory()
+	# 					targetDirListing = @getDirListing(resolvedPath)
+	# 					indexFile = targetDirListing.find (file)-> file.includes('index')
 
-						if indexFile
-							resolvedPath = "#{parentDir}/#{inputFileName}/#{indexFile}"
-						else
-							resolvedPath = "#{parentDir}/#{inputFileName}/index.js"
+	# 					if indexFile
+	# 						resolvedPath = "#{parentDir}/#{inputFileName}/#{indexFile}"
+	# 					else
+	# 						resolvedPath = "#{parentDir}/#{inputFileName}/index.js"
 
-		return resolvedPath
+	# 	Promise.resolve(resolvedPath)
 
 
 dirListingCache = {}

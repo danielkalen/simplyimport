@@ -133,7 +133,7 @@ suite "SimplyImport", ()->
 				expect(result).to.equal importDec
 
 
-		test.only "Browserify Packages", ()->
+		test.skip "Browserify Packages", ()->
 			# importDec = "var times = require('timeunits')"
 			importDec = "import 'test/samples/standard/commonjs.js'"
 			result = SimplyImport importDec, null, {isStream:true}
