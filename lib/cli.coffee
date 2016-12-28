@@ -10,7 +10,7 @@ args = yargs.argv
 SimplyImport = require './simplyimport'
 regEx = require './regex'
 path = require 'path'
-fs = require 'fs'
+fs = require 'fs-extra'
 
 
 inputPath = args.i or args.input or args._[0]
@@ -54,9 +54,10 @@ if outputPath and not outputIsFile
 
 
 writeResult = (processedContent)->
+	console.log outputPath, outputPath
 	if outputPath
 		outputPath = path.normalize(outputPath)
-		fs.writeFile(outputPath, processedContent)
+		fs.outputFile(outputPath, processedContent)
 	else
 		process.stdout.write(processedContent)
 
@@ -64,12 +65,12 @@ writeResult = (processedContent)->
 
 
 if inputPath? # File i/o
-	writeResult SimplyImport(inputPath, passedOptions)
+	SimplyImport(inputPath, passedOptions).then(writeResult)
 
 else # Stream i/o
 	input = ''
 	process.stdin.on 'data', (data)-> input += data.toString()
-	process.stdin.on 'end', ()-> writeResult SimplyImport(input, passedOptions, isStream:true)
+	process.stdin.on 'end', ()-> SimplyImport(input, passedOptions, isStream:true).then(writeResult)
 
 	setTimeout ()->
 		exitWithHelpMessage() if not input

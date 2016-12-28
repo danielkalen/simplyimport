@@ -14,35 +14,37 @@ helpers = {
   simplifyPath: function(inputPath) {
     return inputPath.replace(process.cwd() + '/', '');
   },
-  testForComments: function(line, file) {
+  testForComments: function(line, isCoffee) {
     var hasDocBlockComment, hasSingleLineComment;
-    hasSingleLineComment = file.isCoffee ? line.includes('#') : line.includes('//');
+    hasSingleLineComment = line.includes(isCoffee ? '#' : '//');
     hasDocBlockComment = line.includes('* ');
     return hasSingleLineComment || hasDocBlockComment;
   },
-  commentOut: function(line, file, isImportLine) {
+  commentOut: function(line, isCoffee, isImportLine) {
     var comment;
-    comment = file.isCoffee ? '#' : '//';
+    comment = isCoffee ? '#' : '//';
     if (isImportLine) {
-      return this.commentBadImportLine(line, comment);
+      return line.replace(regEx.importOnly, function(importDec) {
+        return comment + " " + importDec;
+      });
     } else {
       return comment + " " + line;
     }
   },
-  commentBadImportLine: function(importLine, comment) {
-    return importLine.replace(regEx.importOnly, function(importDec) {
-      return comment + " " + importDec;
-    });
-  },
-  getDirListing: function(dirPath) {
-    if (dirListingCache[dirPath] != null) {
-      return dirListingCache[dirPath];
+  getDirListing: function(dirPath, fromCache) {
+    if ((dirListingCache[dirPath] != null) && fromCache) {
+      return Promise.resolve(dirListingCache[dirPath]);
     } else {
-      return dirListingCache[dirPath] = fs.readdirSync(dirPath);
+      return fs.readdirAsync(dirPath).then(function(listing) {
+        return dirListingCache[dirPath] = listing;
+      });
     }
   },
   testConditions: function(allowedConditions, conditionsString) {
     var condition, conditions, i, len;
+    if (allowedConditions.length === 1 && allowedConditions[0] === '*') {
+      return true;
+    }
     conditions = conditionsString.split(/,\s?/).filter(function(nonEmpty) {
       return nonEmpty;
     });
@@ -62,46 +64,13 @@ helpers = {
       return spacing + "`" + (helpers.escapeBackticks(content)) + "`";
     });
   },
-  normalizeFilePath: function(inputPath, context) {
-    var exactMatch, fileMatch, indexFile, inputFileName, inputPathMatches, parentDir, parentDirListing, pathStats, resolvedPath, targetDirListing;
-    inputPath = inputPath.replace(/['"]/g, '').replace(/\s+$/, '');
-    resolvedPath = path.normalize(context + '/' + inputPath);
-    if (!path.extname(resolvedPath)) {
-      inputFileName = path.basename(resolvedPath);
-      parentDir = path.dirname(resolvedPath);
-      parentDirListing = this.getDirListing(parentDir);
-      inputPathMatches = parentDirListing.filter(function(targetPath) {
-        return targetPath.includes(inputFileName);
-      });
-      if (inputPathMatches.length) {
-        exactMatch = inputPathMatches.find(function(targetPath) {
-          return targetPath === inputFileName;
-        });
-        fileMatch = inputPathMatches.find(function(targetPath) {
-          var fileNameSplit;
-          fileNameSplit = targetPath.replace(inputFileName, '').split('.');
-          return !fileNameSplit[0] && fileNameSplit.length === 2;
-        });
-        if (fileMatch) {
-          resolvedPath = parentDir + "/" + fileMatch;
-        } else {
-          resolvedPath = parentDir + "/" + inputFileName;
-          pathStats = fs.statSync(resolvedPath);
-          if (pathStats.isDirectory()) {
-            targetDirListing = this.getDirListing(resolvedPath);
-            indexFile = targetDirListing.find(function(file) {
-              return file.includes('index');
-            });
-            if (indexFile) {
-              resolvedPath = parentDir + "/" + inputFileName + "/" + indexFile;
-            } else {
-              resolvedPath = parentDir + "/" + inputFileName + "/index.js";
-            }
-          }
-        }
-      }
-    }
-    return resolvedPath;
+  genUniqueVar: function() {
+    return "_sim_" + (Math.floor((1 + Math.random()) * 100000).toString(16));
+  },
+  addSpacingToString: function(string, spacing) {
+    return string.split('\n').map(function(line) {
+      return spacing + line;
+    }).join('\n');
   }
 };
 

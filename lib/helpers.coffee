@@ -16,20 +16,17 @@ helpers =
 		return hasSingleLineComment or hasDocBlockComment
 
 
-	commentOut: (line, file, isImportLine)->
-		comment = if file.isCoffee then '#' else '//'
+	commentOut: (line, isCoffee, isImportLine)->
+		comment = if isCoffee then '#' else '//'
 		if isImportLine
-			@commentBadImportLine(line, comment)
+			line.replace regEx.importOnly, (importDec)-> "#{comment} #{importDec}"
 		else
 			"#{comment} #{line}"
 
 
-	commentBadImportLine: (importLine, comment)->
-		importLine.replace regEx.importOnly, (importDec)-> "#{comment} #{importDec}"
 
-
-	getDirListing: (dirPath)->
-		if dirListingCache[dirPath]?
+	getDirListing: (dirPath, fromCache)->
+		if dirListingCache[dirPath]? and fromCache
 			return Promise.resolve dirListingCache[dirPath]
 		else
 			fs.readdirAsync(dirPath).then (listing)->
@@ -37,6 +34,7 @@ helpers =
 
 
 	testConditions: (allowedConditions, conditionsString)->
+		return true if allowedConditions.length is 1 and allowedConditions[0] is '*'
 		conditions = conditionsString.split(/,\s?/).filter (nonEmpty)-> nonEmpty
 
 		for condition in conditions
@@ -62,43 +60,17 @@ helpers =
 				"#{spacing}`#{helpers.escapeBackticks(content)}`"
 
 
-
-	# normalizeFilePath: (inputPath, context)->
-	# 	inputPath = inputPath
-	# 		.replace /['"]/g, '' # Remove quotes form pathname
-	# 		.replace /\s+$/, '' # Remove whitespace from the end of the string
-
-	# 	resolvedPath = path.normalize(context+'/'+inputPath)
-
-	# 	if not path.extname(resolvedPath)
-	# 		inputFileName = path.basename(resolvedPath)
-	# 		parentDir = path.dirname(resolvedPath)
-	# 		parentDirListing = @getDirListing(parentDir)
-	# 		inputPathMatches = parentDirListing.filter (targetPath)-> targetPath.includes(inputFileName)
-
-	# 		if inputPathMatches.length
-	# 			exactMatch = inputPathMatches.find (targetPath)-> targetPath is inputFileName
-	# 			fileMatch = inputPathMatches.find (targetPath)->
-	# 				fileNameSplit = targetPath.replace(inputFileName, '').split('.')
-	# 				return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
+	genUniqueVar: ()->
+		"_sim_#{Math.floor((1+Math.random()) * 100000).toString(16)}"
 
 
-	# 			if fileMatch
-	# 				resolvedPath = "#{parentDir}/#{fileMatch}"
-	# 			else #if exactMatch
-	# 				resolvedPath = "#{parentDir}/#{inputFileName}"
-	# 				pathStats = fs.statSync(resolvedPath)
+	addSpacingToString: (string, spacing)->
+		string
+			.split '\n'
+			.map (line)-> spacing+line
+			.join '\n'
 
-	# 				if pathStats.isDirectory()
-	# 					targetDirListing = @getDirListing(resolvedPath)
-	# 					indexFile = targetDirListing.find (file)-> file.includes('index')
 
-	# 					if indexFile
-	# 						resolvedPath = "#{parentDir}/#{inputFileName}/#{indexFile}"
-	# 					else
-	# 						resolvedPath = "#{parentDir}/#{inputFileName}/index.js"
-
-	# 	Promise.resolve(resolvedPath)
 
 
 dirListingCache = {}

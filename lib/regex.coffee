@@ -29,7 +29,7 @@ regEx =
 	import: ///^
 		(?:
 			(.*)				# prior content
-			(\s+)				# prior space
+			([\ \t\r]+)			# prior space (excluding new line)
 			\W?					# no letters
 				|				# or if above aren't present
 			\W?					# no letters
@@ -67,7 +67,7 @@ regEx =
 
 	commonJS:
 		export: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])(exports\s*(\[['"]|\.)|module(\.exports|\['exports'\]|\["exports"\])\s*(\[['"]|[=,\.]))/
-		import: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)/g
+		import: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(?\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)?/
 
 	es6: /(^\s*|[}\);\n]\s*)(import\s*(['"]|(\*\s+as\s+)?[^"'\(\)\n;]+\s*from\s*['"]|\{)|export\s+\*\s+from\s+["']|export\s*(\{|default|function|class|var|const|let|async\s+function))/
 

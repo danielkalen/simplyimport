@@ -4,5 +4,6 @@ module.exports =
 	'preserve': false
 	'silent': false
 	'track': false
+	'dirCache': true
 	'compileCoffeeChildren': false
 	'conditions': []

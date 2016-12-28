@@ -1,181 +1,78 @@
 require('array-includes').shim()
-
 Promise = require 'bluebird'
-fs = Promise.promisifyAll require 'fs'
+fs = Promise.promisifyAll require 'fs-extra'
+uniq = require 'uniq'
 PATH = require 'path'
-chalk = require 'chalk'
 extend = require 'extend'
-coffeeCompiler = require 'coffee-script'
-uglifier = require 'uglify-js'
-helpers = require './helpers'
 regEx = require './regex'
+helpers = require './helpers'
 defaultOptions = require './defaultOptions'
-consoleLabels = require './consoleLabels'
 File = require './FileConstructor'
-EMPTYHASH = "d41d8cd98f00b204e9800998ecf8427e"
 
 
 
 
-
-
-SimplyImport = (input, providedOptions, providedState)->
-	options = extend({}, defaultOptions, providedOptions)
-	providedState.isMain = true
-	providedState.context = if providedState.isStream then process.cwd() else helpers.getNormalizedDirname(input)
-	fileContent = if providedState.isStream then Promise.resolve(input) else fs.readFileAsync(PATH.resolve(input), encoding:'utf8')
-
-	fileContent
-		.then (contents)->
-			subjectFile = new File(contents, options, {duplicates:{}}, providedState)
-			subjectFile.process().then ()->
-				subjectFile.collectImports().then ()->
-					return subjectFile.compile()
-
-		.catch (err)-> throw err
-
-
-
-	# if not subjectFile.content
-	# 	throw new Error "#{consoleLabels.error} Import process failed - invalid input #{chalk.underline.magenta(subjectFile.filePath)}"
-	# else
-	# 	processedContent = replaceImports(subjectFile)
-
-	# 	if @options.track
-	# 		trackingInfo = (hash for hash of subjectFile.importHistory)
-	# 			.filter (hash)-> not subjectFile.trackedImportHistory[hash]
-	# 			.map (hash)-> helpers.commentOut "SimplyImported -#{hash}-", subjectFile
-	# 			.join '\n'
-			
-	# 		processedContent = "#{trackingInfo}\n#{processedContent}"
-
-	# 	return processedContent
-	
-
-
-
-SimplyImport.scanImports = (filePath, {pathOnly, isStream, isCoffee, withContext, context}={})->
-	dicoveredImports = []
-	if isStream
-		subjectFile = {isCoffee}
-		fileContent = filePath
-		context ?= process.cwd()
+SimplyImport = (input, options, state={})->
+	options = extend({}, defaultOptions, options)
+	options.conditions = [].concat(options.conditions) if not Array.isArray(options.conditions)
+	state.isMain = true
+	state.context = if state.isStream then process.cwd() else helpers.getNormalizedDirname(input)
+	if state.isStream
+		fileContent = Promise.resolve(input)
 	else
-		subjectFile = new File(filePath)
-		fileContent = subjectFile.content
-		context = subjectFile.context
+		fileContent = fs.readFileAsync(PATH.resolve(input), encoding:'utf8')
+		state.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'
+
+	fileContent.then (contents)->
+		subjectFile = new File(contents, options, {duplicates:{}}, state)
+		subjectFile.process().then ()->
+			subjectFile.collectImports().then ()->
+				return subjectFile.compile()
+
 	
-	fileContent
-		.split '\n'
-		.forEach (originalLine)->
-			originalLine.replace regEx.import, (entireLine, priorContent, spacing, conditions, childPath)->
-				return originalLine if helpers.testForComments(originalLine, subjectFile)
-				childPath = helpers.normalizeFilePath(childPath, context)
-				childPath = childPath.replace context+'/', '' if not withContext
+
+
+
+SimplyImport.scanImports = (input, opts={})->
+	importOptions = extend({}, defaultOptions, {recursive:false})
+	opts = extend {}, opts, {isMain:true}
+	opts.context ?= if opts.isStream then process.cwd() else helpers.getNormalizedDirname(input)
+	opts.context = PATH.resolve(opts.context) if not ['/','\\'].includes(opts.context[0])
+	opts.context = opts.context.slice(0,-1) if opts.context.slice(-1)[0] is '/'
+	
+	if opts.isStream
+		fileContent = Promise.resolve(input)
+	else
+		fileContent = fs.readFileAsync(PATH.resolve(input), encoding:'utf8')
+		opts.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'
+	
+	fileContent.then (contents)->
+		subjectFile = new File(contents, importOptions, {duplicates:{}}, opts)
+		subjectFile.process().then ()->
+			subjectFile.collectImports().then ()->
 				
-				if pathOnly
-					dicoveredImports.push childPath
-				else
-					dicoveredImports.push {entireLine, priorContent, spacing, conditions, childPath}
+				uniq(subjectFile.imports)
+					.sort (hashA,hashB)-> subjectFile.lineRefs[hashA][0] - subjectFile.lineRefs[hashB][0]
+					.map (childHash)->
+						childPath = subjectFile.importRefs[childHash].filePath
+						childPath = childPath.replace opts.context+'/', '' if not opts.withContext
 
-	return dicoveredImports
+						if opts.pathOnly
+							return childPath
+						else
+							importStats = {}
+							entireLine = subjectFile.contentLines[subjectFile.lineRefs[childHash]]
+							entireLine.replace regEx.import, (entireLine, priorContent, spacing, conditions)->
+								importStats = {entireLine, priorContent, spacing, conditions, childPath}
+							
+							return importStats
 
-
-
-
-
-replaceImports = (subjectFile)->
-	subjectFile.content
-		.split '\n'
-		.map((originalLine)-> originalLine.replace regEx.import, (entireLine, priorContent, spacing, conditions='', childPath)->
-			return originalLine if helpers.testForComments(originalLine, subjectFile)
-			failedReplacement = if @options.preserve then helpers.commentOut(originalLine, subjectFile, true) else ''
-			
-			if helpers.testConditions(@options.conditions, conditions)
-				childPath = helpers.normalizeFilePath(childPath, subjectFile.context)
-				childFile = new File childPath, {'isCoffee':subjectFile.isCoffee}, subjectFile.importHistory
 				
-				if subjectFile.importHistory[childFile.hash]
-					unless @options.silent
-						importerPath = chalk.dim(helpers.simplifyPath subjectFile.importHistory[childFile.hash])
-						childPath = chalk.dim(helpers.simplifyPath childPath)
-						console.warn "#{consoleLabels.warn} Duplicate import found #{childPath} - originally imported from #{importerPath}"
-				
-			
-				else if childFile.hash isnt EMPTYHASH
-					subjectFile.importHistory[childFile.hash] = subjectFile.filePath or 'stdin'
-					childContent = childFile.content
-
-					# ==== Child Imports =================================================================================
-					if @options.recursive
-						childContent = replaceImports(childFile)
-
-
-					# ==== Spacing =================================================================================
-					if priorContent and priorContent.replace(/\s/g, '') is ''
-						spacing = priorContent+spacing
-						priorContent = ''
-
-					if spacing and not priorContent
-						spacedContent = childContent
-							.split '\n'
-							.map (line)-> spacing+line
-							.join '\n'
-						
-						childContent = spacedContent
-
-
-					# ==== JS vs. Coffeescript conflicts =================================================================================
-					switch
-						when subjectFile.isCoffee and not childFile.isCoffee
-							childContent = helpers.formatJsContentForCoffee(childContent)
-						
-
-						when childFile.isCoffee and not subjectFile.isCoffee
-							if @options.compileCoffeeChildren
-								childContent = coffeeCompiler.compile childContent, 'bare':true
-							else
-								throw new Error "#{consoleLabels.error} You're attempting to import a Coffee file into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children"
-
-
-					
-					# ==== Minificaiton =================================================================================								
-					if @options.uglify
-						childContent = uglifier.minify(childContent, {'fromString':true, 'compressor':{'keep_fargs':true, 'unused':false}}).code
-
-
-			if priorContent and childContent
-				childContent = priorContent + spacing + childContent
-
-			return childContent or failedReplacement
-		
-		).join '\n'
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+SimplyImport.defaults = defaultOptions
 module.exports = SimplyImport
