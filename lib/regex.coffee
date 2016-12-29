@@ -38,26 +38,82 @@ regEx =
 		\s+						# whitespace after import declaration
 		(?:\[(.+)\])?			# conditionals
 		\s*						# whitespace after conditional
-		(\S+)					# filepath
-		\s*
+		(?:
+			(?:
+				([^\*,\{\s]+) 	# default member
+				,?\ ?			# trailing comma
+			)?
+			(
+				\*\ as\ \S+		# all members
+					|
+				\{.+\} 			# specific members
+			)?
+			\ from
+		)?
+		\s*						# whitespace after members
+		(\S+?)					# filepath
+		(\).*?|\s*?)			# trailing whitespace/parentheses
 	$///gm
 
-	importOnly: /// # Without prior content
-		import					# import declaration
-		\s*						# whitespace after import declaration
-		(?:\[(.+)\])?			# conditionals
-		\s*						# whitespace after conditional
-		(.+)					# filepath
-	///g
 
+	export: ///^
+		export
+		\s+
+		(?:
+			(\{.+\}) 										# export mapping
+				|
+			(default|function\*?|class|var|const|let) 		# export type
+			\s+ 											# spacing
+			(\S+)? 											# item label
+		)?
+		(.*) 												# trailing content
+	$///gm
 
-	trackedImport: ///
-		(?:\/\/|\#)				# comment declaration
-		\sSimplyImported\s		# simplyimport label
-		\-						# hash start indicator
-		(.{32}) 				# actual hash
-		\-						# hash end indicator
-	///g
+	commonJS:
+		export: ///^
+			(.+[\ \t\r]|.+\;|)								# prior content
+			(?:
+				exports\s* 									# plain exports variable
+					|
+				(?: 										# module.exports variable variations
+					module
+					(?:
+						\.exports
+							|
+						\['exports'\]
+							|
+						\["exports"\]
+					)
+					\s* 									# variable-access trailing whitespace
+				)
+			)
+			(
+				\[ 											# property string-notation access
+					|
+				[=\.] 										# property dot-notation access
+			)
+			(.*) 											# trailing content
+		$///gm
+
+		import: ///^
+			(.+[\ \t\r]|.+\;|)								# prior content
+			require 										# require reference
+			(?:
+				\s+ | \( 									# trailing char after 'require' (either bracket or space)
+			)
+			\s*
+			(
+				".*?"
+					|
+				'.*?'
+			)
+			(?:
+				\) | [^\n\S]? 									# trailing char after end of 'require' (either bracket or space)
+			)
+			(.*) 											# trailing content
+		$///gm
+
+		# import: /(^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(?\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)?/
 
 
 	# comment: /(^|[^\\])\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$/mg
@@ -65,13 +121,8 @@ regEx =
 		singleLine: /([^:]|^)\/\/(.*)$/mg
 		multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg
 
-	commonJS:
-		export: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])(exports\s*(\[['"]|\.)|module(\.exports|\['exports'\]|\["exports"\])\s*(\[['"]|[=,\.]))/
-		import: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(?\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)?/
 
-	es6: /(^\s*|[}\);\n]\s*)(import\s*(['"]|(\*\s+as\s+)?[^"'\(\)\n;]+\s*from\s*['"]|\{)|export\s+\*\s+from\s+["']|export\s*(\{|default|function|class|var|const|let|async\s+function))/
-
-	AMD: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])define\s*\(\s*("[^"]+"\s*,\s*|'[^']+'\s*,\s*)?\s*(\[(\s*(("[^"]+"|'[^']+')\s*,|\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*(\s*("[^"]+"|'[^']+')\s*,?)?(\s*(\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*\s*\]|function\s*|{|[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*\))/
+	# AMD: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])define\s*\(\s*("[^"]+"\s*,\s*|'[^']+'\s*,\s*)?\s*(\[(\s*(("[^"]+"|'[^']+')\s*,|\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*(\s*("[^"]+"|'[^']+')\s*,?)?(\s*(\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*\s*\]|function\s*|{|[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*\))/
 	
 
 

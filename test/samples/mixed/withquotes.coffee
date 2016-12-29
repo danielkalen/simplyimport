@@ -1,1 +1,0 @@
-('Imported file with quotes.');

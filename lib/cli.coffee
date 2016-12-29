@@ -20,8 +20,6 @@ outputIsFile = try fs.statSync(outputPath).isFile()
 passedOptions = 
 	'uglify': args.u or args.uglify
 	'preserve': args.p or args.preserve
-	'silent': args.s or args.silent
-	'track': args.t or args.track
 	'recursive': args.r or args.recursive
 	'conditions': args.c or args.conditions or []
 	'compileCoffeeChildren': args.C or args['compile-coffee-children']

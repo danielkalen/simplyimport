@@ -1,4 +1,0 @@
-multiLineTrick = 'start \
-middle \
-end \
-'

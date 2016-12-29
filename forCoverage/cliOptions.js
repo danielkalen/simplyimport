@@ -33,18 +33,6 @@ module.exports = {
     "default": void 0,
     type: 'boolean'
   },
-  's': {
-    alias: 'silent',
-    describe: 'Suppress warnings (default:false)',
-    "default": void 0,
-    type: 'boolean'
-  },
-  't': {
-    alias: 'track',
-    describe: 'Prepend [commented] tracking info in the output file so that future files importing this one will know which files are already imported (default:false)',
-    "default": void 0,
-    type: 'boolean'
-  },
   'C': {
     alias: 'compile-coffee-children',
     describe: 'If a JS file is importing coffeescript files, the imported files will be compiled to JS first (default:false)',

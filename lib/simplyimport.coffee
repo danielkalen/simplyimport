@@ -8,6 +8,12 @@ regEx = require './regex'
 helpers = require './helpers'
 defaultOptions = require './defaultOptions'
 File = require './FileConstructor'
+RegExp::test = do ()-> # RegExp::test function patch to reset index after each test
+	origTestFn = RegExp::test
+	return ()->
+		result = origTestFn.apply(@, arguments)
+		@lastIndex = 0
+		return result
 
 
 
@@ -16,7 +22,7 @@ SimplyImport = (input, options, state={})->
 	options = extend({}, defaultOptions, options)
 	options.conditions = [].concat(options.conditions) if not Array.isArray(options.conditions)
 	state.isMain = true
-	state.context = if state.isStream then process.cwd() else helpers.getNormalizedDirname(input)
+	state.context ?= if state.isStream then process.cwd() else helpers.getNormalizedDirname(input)
 	if state.isStream
 		fileContent = Promise.resolve(input)
 	else
@@ -50,10 +56,12 @@ SimplyImport.scanImports = (input, opts={})->
 		subjectFile = new File(contents, importOptions, {duplicates:{}}, opts)
 		subjectFile.process().then ()->
 			subjectFile.collectImports().then ()->
+
+				subjectFile.imports
+					.sort (hashA, hashB)->
+						subjectFile.orderRefs.findIndex((ref)->ref is hashA) - subjectFile.orderRefs.findIndex((ref)->ref is hashB)
 				
-				uniq(subjectFile.imports)
-					.sort (hashA,hashB)-> subjectFile.lineRefs[hashA][0] - subjectFile.lineRefs[hashB][0]
-					.map (childHash)->
+					.map (childHash, childIndex)->
 						childPath = subjectFile.importRefs[childHash].filePath
 						childPath = childPath.replace opts.context+'/', '' if not opts.withContext
 
@@ -61,9 +69,9 @@ SimplyImport.scanImports = (input, opts={})->
 							return childPath
 						else
 							importStats = {}
-							entireLine = subjectFile.contentLines[subjectFile.lineRefs[childHash]]
-							entireLine.replace regEx.import, (entireLine, priorContent, spacing, conditions)->
-								importStats = {entireLine, priorContent, spacing, conditions, childPath}
+							entireLine = subjectFile.contentLines[subjectFile.lineRefs[childIndex]]
+							entireLine.replace regEx.import, (entireLine, priorContent='', spacing='', conditions)->
+								importStats = {entireLine, priorContent, spacing, conditions, path:childPath}
 							
 							return importStats
 

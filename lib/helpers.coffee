@@ -1,6 +1,14 @@
-fs = require 'fs'
+Promise = require 'bluebird'
+resolveModule = Promise.promisify require('resolve')
+fs = Promise.promisifyAll require 'fs-extra'
 path = require 'path'
+acorn = require 'acorn'
+escodegen = require 'escodegen'
 regEx = require './regex'
+consoleLabels = require './consoleLabels'
+
+escodegen.ReturnStatement = (argument)->
+	{type:'ReturnStatement', argument}
 
 helpers = 
 	getNormalizedDirname: (inputPath)->
@@ -11,17 +19,23 @@ helpers =
 
 	testForComments: (line, isCoffee)->
 		hasSingleLineComment = line.includes(if isCoffee then '#' else '//')
-		hasDocBlockComment = line.includes('* ')
+		hasDocBlockComment = /^(?:\s+\*|\*)/.test(line)
 
 		return hasSingleLineComment or hasDocBlockComment
 
 
-	commentOut: (line, isCoffee, isImportLine)->
+	resolveModulePath: (moduleName, basedir)->
+		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir})
+		moduleLoad
+			.then (modulePath)=> Promise.resolve(modulePath)
+			.catch (err)=> Promise.resolve()
+			.then (modulePath)=> Promise.resolve(modulePath)
+
+
+
+	commentOut: (line, isCoffee)->
 		comment = if isCoffee then '#' else '//'
-		if isImportLine
-			line.replace regEx.importOnly, (importDec)-> "#{comment} #{importDec}"
-		else
-			"#{comment} #{line}"
+		line.replace /import/, (entire)-> "#{comment} #{entire}"
 
 
 
@@ -70,6 +84,95 @@ helpers =
 			.map (line)-> spacing+line
 			.join '\n'
 
+
+
+	parseMembersString: (membersString)->
+		if not membersString
+			return {}
+		else
+			output = {}
+			membersString = membersString
+				.replace /^\{\s*/, ''
+				.replace /\s*\}$/, ''
+
+			if membersString.startsWith('*')
+				output['!*!'] = membersString.split(/\s+as\s+/)[1]
+
+			else #if membersString.startsWith('{')
+				members = membersString.split(/,\s*/)
+				members.forEach (memberSignature)->
+					member = memberSignature.split(/\s+as\s+/)
+					output[member[0]] = member[1] or member[0] # alias
+
+			return output
+
+
+
+	normalizeExportMap: (mappingString)->
+		output = mappingString
+			.replace /^\{\s*/, ''
+			.replace /\s*\}$/, ''
+			.split /,\s*/
+			.map (memberSignature)->
+				member = memberSignature.split(/\s+as\s+/)
+				"'#{member[1] or member[0]}':#{member[0]}" # alias
+			.join ', '
+
+		return "{#{output}}"
+
+
+
+	wrapInExportsClosure: (content, isCoffee)->
+		if isCoffee
+			"do (exports={})=>\n\
+				#{@addSpacingToString 'module = {exports}', '\t'}\n\
+				#{@addSpacingToString content, '\t'}\n\
+				#{@addSpacingToString 'return exports', '\t'}
+			"
+		else
+			"(function(exports){\n\
+				var module = {exports:exports};\n\
+				#{content}\n\
+				return exports;\n\
+			}).call(this, {});
+			"
+
+
+	wrapInClosure: (content, isCoffee)->
+		if isCoffee
+			"do ()=>\n\
+				#{@addSpacingToString content, '\t'}\n\
+			"
+		else
+			"(function(){\
+				#{content}\
+			}).call(this);
+			"
+
+
+	modToReturnLastStatement: (content)->
+		try
+			AST = acorn.parse(content, {allowReserved:true, allowReturnOutsideFunction:true})
+			lastStatement = AST.body[AST.body.length-1]
+
+			switch lastStatement.type
+				when 'ReturnStatement'
+					return content
+				
+				when 'ExpressionStatement'
+					AST.body[AST.body.length-1] = escodegen.ReturnStatement(lastStatement.expression)
+					return escodegen.generate(AST)
+				
+				when 'VariableDeclaration'
+					lastDeclarationID = lastStatement.declarations.slice(-1)[0].id
+					AST.body.push escodegen.ReturnStatement(lastDeclarationID)
+					return escodegen.generate(AST)
+
+				else return content
+		
+		catch e
+			console.error(consoleLabels.error, e)
+			return content
 
 
 

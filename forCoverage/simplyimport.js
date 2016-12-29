@@ -21,6 +21,17 @@ defaultOptions = require('./defaultOptions');
 
 File = require('./FileConstructor');
 
+RegExp.prototype.test = (function() {
+  var origTestFn;
+  origTestFn = RegExp.prototype.test;
+  return function() {
+    var result;
+    result = origTestFn.apply(this, arguments);
+    this.lastIndex = 0;
+    return result;
+  };
+})();
+
 SimplyImport = function(input, options, state) {
   var fileContent;
   if (state == null) {
@@ -31,7 +42,9 @@ SimplyImport = function(input, options, state) {
     options.conditions = [].concat(options.conditions);
   }
   state.isMain = true;
-  state.context = state.isStream ? process.cwd() : helpers.getNormalizedDirname(input);
+  if (state.context == null) {
+    state.context = state.isStream ? process.cwd() : helpers.getNormalizedDirname(input);
+  }
   if (state.isStream) {
     fileContent = Promise.resolve(input);
   } else {
@@ -92,9 +105,13 @@ SimplyImport.scanImports = function(input, opts) {
     }, opts);
     return subjectFile.process().then(function() {
       return subjectFile.collectImports().then(function() {
-        return uniq(subjectFile.imports).sort(function(hashA, hashB) {
-          return subjectFile.lineRefs[hashA][0] - subjectFile.lineRefs[hashB][0];
-        }).map(function(childHash) {
+        return subjectFile.imports.sort(function(hashA, hashB) {
+          return subjectFile.orderRefs.findIndex(function(ref) {
+            return ref === hashA;
+          }) - subjectFile.orderRefs.findIndex(function(ref) {
+            return ref === hashB;
+          });
+        }).map(function(childHash, childIndex) {
           var childPath, entireLine, importStats;
           childPath = subjectFile.importRefs[childHash].filePath;
           if (!opts.withContext) {
@@ -104,14 +121,20 @@ SimplyImport.scanImports = function(input, opts) {
             return childPath;
           } else {
             importStats = {};
-            entireLine = subjectFile.contentLines[subjectFile.lineRefs[childHash]];
+            entireLine = subjectFile.contentLines[subjectFile.lineRefs[childIndex]];
             entireLine.replace(regEx["import"], function(entireLine, priorContent, spacing, conditions) {
+              if (priorContent == null) {
+                priorContent = '';
+              }
+              if (spacing == null) {
+                spacing = '';
+              }
               return importStats = {
                 entireLine: entireLine,
                 priorContent: priorContent,
                 spacing: spacing,
                 conditions: conditions,
-                childPath: childPath
+                path: childPath
               };
             });
             return importStats;
