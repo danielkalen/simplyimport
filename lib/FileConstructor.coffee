@@ -128,6 +128,9 @@ File::checkIfIsThirdPartyBundle = ()->
 		@content.includes("typeof module ===") or
 		@content.includes("typeof module !==") or
 		@content.includes("typeof define === 'function'") or 
+		@content.includes("typeof define === \"function\"") or 
+		@content.includes("typeof require === 'function'") or 
+		@content.includes("typeof require === \"function\"") or 
 		@content.includes("' has not been defined'")
 
 
@@ -215,8 +218,8 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 
 	@collectedImports
 		.then ()=>
-			if regEx.export.test(@content) or regEx.commonJS.export.test(@content)
-				@hasExports = true unless @isThirdPartyBundle
+			if (regEx.export.test(@content) or regEx.commonJS.export.test(@content)) and not @isThirdPartyBundle
+				@hasExports = true
 				@normalizeExports()	
 
 		.then ()=>
@@ -231,11 +234,10 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 
 File::normalizeExports = ()->
 	# ==== CommonJS syntax =================================================================================
-	unless @isThirdPartyBundle
-		@content.replace regEx.commonJS.export, (entireLine, priorContent, operator, trailingContent)=>
-			operator = " #{operator}" if operator is '='
-			lineIndex = @contentLines.indexOf(entireLine)
-			@contentLines[lineIndex] = "#{priorContent}exports#{operator}#{trailingContent}"
+	@content.replace regEx.commonJS.export, (entireLine, priorContent, operator, trailingContent)=>
+		operator = " #{operator}" if operator is '='
+		lineIndex = @contentLines.indexOf(entireLine)
+		@contentLines[lineIndex] = "#{priorContent}exports#{operator}#{trailingContent}"
 
 
 	# ==== ES6/SimplyImport syntax =================================================================================
