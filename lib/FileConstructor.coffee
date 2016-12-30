@@ -57,7 +57,7 @@ File::getContents = ()->
 				return content
 
 			.catch (err)=>
-				console.error "#{consoleLabels.error} File/module doesn't exist #{chalk.dim(helpers.simplifyPath @filePath)}"
+				console.error "#{consoleLabels.error} File/module doesn't exist #{chalk.dim(helpers.simplifyPath @filePath)}" if @options.recursive
 				Promise.reject(err)
 
 
@@ -164,21 +164,25 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 		
 		else
 			childFile = new File childPath, @options, @importRefs
-			childFile.process().then ()=>
-				@importRefs.duplicates[childFile.hash] = helpers.genUniqueVar() if @importRefs[childFile.hash] and not @importRefs.duplicates[childFile.hash]
-				@importRefs[childFile.hash] = childFile
-				@imports[orderRefIndex] = childFile.hash
-				@orderRefs[orderRefIndex] = childFile.hash
-				@addLineRef(entireLine, orderRefIndex)
+			childFile.process()
+				.then ()=>
+					@importRefs.duplicates[childFile.hash] = helpers.genUniqueVar() if @importRefs[childFile.hash] and not @importRefs.duplicates[childFile.hash]
+					@importRefs[childFile.hash] = childFile
+					@imports[orderRefIndex] = childFile.hash
+					@orderRefs[orderRefIndex] = childFile.hash
+					@addLineRef(entireLine, orderRefIndex)
 
-				if defaultMember or members
-					@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
-					childFile.hasUsefulExports = true
-				
-				else if priorContent
-					childFile.hasUsefulExports = true
+					if defaultMember or members
+						@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
+						childFile.hasUsefulExports = true
+					
+					else if priorContent
+						childFile.hasUsefulExports = true
 
-				Promise.resolve()
+					Promise.resolve()
+
+				.catch (err)=>
+					Promise.reject(err) if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
 
 
 

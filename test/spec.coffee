@@ -34,7 +34,11 @@ tempFile = (fileNames...)->
 
 suite "SimplyImport", ()->
 	suiteTeardown ()-> fs.removeAsync(path.join 'test','temp')
-	suiteSetup ()-> fs.ensureDirAsync(path.join 'test','temp','output').then ()-> fs.outputFileAsync(path.join('test','temp','someFile.js'), 'abc123')
+	suiteSetup ()-> fs.ensureDirAsync(path.join 'test','temp','output').then ()->
+		Promise.all [
+			fs.outputFileAsync(path.join('test','temp','someFile.js'), 'abc123')
+			fs.outputFileAsync(path.join('test','temp','someFile2.js'), 'def456')
+		]
 
 
 
@@ -120,8 +124,6 @@ suite "SimplyImport", ()->
 
 
 		test "if options.dirCache is true then cached dir listings will be used in file path resolving", ()->
-			origLog = console.error
-			console.error = chai.spy()
 			opts = {isStream:true, pathOnly:true, context:path.join(__dirname,'../')}
 			SimplyImport.defaults.dirCache = true
 			
@@ -129,7 +131,7 @@ suite "SimplyImport", ()->
 				expect(result[0]).to.equal "test/temp/someFile.js"
 				
 				fs.outputFileAsync(tempFile('dirWithIndex', 'index.js'), 'abc123').then ()->
-					SimplyImport.scanImports("import test/temp/dirWithIndex", opts)
+					SimplyImport("import test/temp/dirWithIndex", opts)
 						.then (result)-> expect(true).to.be.false # Shouldn't execute
 						.catch (err)->
 							expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
@@ -137,8 +139,6 @@ suite "SimplyImport", ()->
 			
 							SimplyImport.scanImports("import test/temp/dirWithIndex", opts).then (result)->
 								expect(result[0]).to.equal "test/temp/dirWithIndex/index.js"
-								expect(console.error).to.have.been.called.exactly(1)
-								console.error = origLog
 
 
 		test "Quoted import/require statements will be ignored", ()->
@@ -1096,6 +1096,17 @@ suite "SimplyImport", ()->
 					expect(result[0]).to.equal "someFile.js"
 
 
+
+		test "Passing files that import nonexistent files shall not reject promises and should just skip the nonexistent ones", ()->
+			imports = [
+				"import 'test/temp/someFile.js'"
+				"import 'test/temp/doesntExist.js'"
+				"import 'test/temp/someFile2.js'"
+			]
+			SimplyImport.scanImports(imports.join('\n'), {isStream:true, pathOnly:true}).then (result)->
+				expect(result.length).to.equal 2
+				expect(result[0]).to.equal 'test/temp/someFile.js'
+				expect(result[1]).to.equal 'test/temp/someFile2.js'
 
 
 

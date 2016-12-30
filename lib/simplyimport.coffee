@@ -60,9 +60,8 @@ SimplyImport.scanImports = (input, opts={})->
 			subjectFile.collectImports().then ()->
 
 				subjectFile.imports
-					.sort (hashA, hashB)->
-						subjectFile.orderRefs.findIndex((ref)->ref is hashA) - subjectFile.orderRefs.findIndex((ref)->ref is hashB)
-				
+					.filter (validImport)-> validImport
+					.sort (hashA, hashB)-> subjectFile.orderRefs.findIndex((ref)->ref is hashA) - subjectFile.orderRefs.findIndex((ref)->ref is hashB)
 					.map (childHash, childIndex)->
 						childPath = subjectFile.importRefs[childHash].filePath
 						childPath = childPath.replace opts.context+'/', '' if not opts.withContext
