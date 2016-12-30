@@ -1,5 +1,6 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
+resolveModule = Promise.promisify require('resolve')
 replaceAsync = require 'string-replace-async'
 md5 = require 'md5'
 PATH = require 'path'
@@ -18,15 +19,16 @@ consoleLabels = require './consoleLabels'
  * @param {Object} state	          	(optional) initial state map to indicate if 'isStream', 'isCoffee', and 'context'
  * @param {Object} importHistory	 	(optional) the import history collected so far since the main faile import
 ###
-module.exports = File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
+File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
 	@input = input
 	@imports = []
 	@badImports = []
 	@importMemberRefs = []
 	@lineRefs = []
 	@orderRefs = []
+	@cacheRef = if @isMain then '*main*' else input
 
-	return @
+	return File.instanceCache[@cacheRef] or @
 
 
 
@@ -37,12 +39,14 @@ File::process = ()->
 		.then(@checkIfIsCoffee)
 		.then(@getContents)
 		.then(@checkIfIsBrowserified)
+		.then ()=> File.instanceCache[@cacheRef] = @
 		
 
 
 File::getContents = ()->
 	if @isMain
 		@contentLines = @input.split '\n'
+		@hash = md5(@input)
 		return @content = @input
 	else
 		fs.readFileAsync(@filePath, encoding:'utf8')
@@ -112,6 +116,25 @@ File::checkIfIsBrowserified = ()->
 	@isBrowserified = @content.includes '.code="MODULE_NOT_FOUND"'
 
 
+File::checkIfImportsFile = (targetFile)->
+	iteratedArrays = [@imports]
+	importRefs = @importRefs
+	
+	checkArray = (importsArray)=>
+		importsArray.includes(targetFile.hash) or
+		importsArray.find (importHash)->
+			currentFile = importRefs[importHash]
+			if iteratedArrays.includes(currentFile.imports)
+				return currentFile
+			else
+				iteratedArrays.push(currentFile.imports)
+				return checkArray(currentFile.imports)
+
+	checkArray(@imports)
+
+	
+
+
 File::addLineRef = (entireLine, targetRef, contentLines=@contentLines, offset=0)->
 	lineIndex = contentLines.indexOf(entireLine)+offset
 	existingRef = @lineRefs.findIndex (existingLineRef)-> existingLineRef is lineIndex
@@ -122,62 +145,67 @@ File::addLineRef = (entireLine, targetRef, contentLines=@contentLines, offset=0)
 		@lineRefs[targetRef] = lineIndex
 
 
+File::processImport = (childPath, entireLine, priorContent, spacing, conditions='', defaultMember='', members='')->
+	orderRefIndex = @orderRefs.push(entireLine)-1
+	childPath = origChildPath = childPath
+		.replace /['"]/g, '' # Remove quotes form pathname
+		.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
 
-File::collectImports = ()-> @collectedImports or @collectedImports =
-	Promise.resolve()
-	.then ()=>
-		processImport = (childPath, entireLine, priorContent, spacing, conditions='', defaultMember='', members='')=>
-			orderRefIndex = @orderRefs.push(entireLine)-1
-			childPath = childPath
-				.replace /['"]/g, '' # Remove quotes form pathname
-				.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
+	helpers.resolveModulePath(childPath, @context).then (modulePath)=>
+		childPath = modulePath or PATH.resolve(@context, childPath)
 
-			helpers.resolveModulePath(childPath, @context).then (modulePath)=>
-				childPath = modulePath or PATH.resolve(@context, childPath)
-
-				if helpers.testForComments(entireLine, @isCoffee)
-					Promise.resolve()
-				
-				else if not helpers.testConditions(@options.conditions, conditions)
-					@badImports.push(childPath)
-					@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
-					Promise.resolve()
-				
-				else
-					childFile = new File childPath, @options, @importRefs
-					childFile.process().then ()=>
-						@importRefs.duplicates[childFile.hash] = helpers.genUniqueVar() if @importRefs[childFile.hash] and not @importRefs.duplicates[childFile.hash]
-						@importRefs[childFile.hash] = childFile
-						@imports[orderRefIndex] = childFile.hash
-						@orderRefs[orderRefIndex] = childFile.hash
-						@addLineRef(entireLine, orderRefIndex)
-
-						if defaultMember or members
-							@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
-							childFile.hasUsefulExports = true
-						
-						else if priorContent
-							childFile.hasUsefulExports = true
-
-						Promise.resolve()
+		if helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or resolveModule.isCore(origChildPath)
+			Promise.resolve()
 		
-		replaceAsync @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)->
-			processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
+		else if not helpers.testConditions(@options.conditions, conditions)
+			@badImports.push(childPath)
+			@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
+			Promise.resolve()
+		
+		else
+			childFile = new File childPath, @options, @importRefs
+			childFile.process().then ()=>
+				@importRefs.duplicates[childFile.hash] = helpers.genUniqueVar() if @importRefs[childFile.hash] and not @importRefs.duplicates[childFile.hash]
+				@importRefs[childFile.hash] = childFile
+				@imports[orderRefIndex] = childFile.hash
+				@orderRefs[orderRefIndex] = childFile.hash
+				@addLineRef(entireLine, orderRefIndex)
+
+				if defaultMember or members
+					@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
+					childFile.hasUsefulExports = true
+				
+				else if priorContent
+					childFile.hasUsefulExports = true
+
+				Promise.resolve()
+
+
+
+File::collectImports = ()-> if @collectedImports then @collectedImports else
+	@collectedImports = Promise.resolve()
+		.then ()=>
+			replaceAsync @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
+				@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
+
+		.then ()=> unless @isBrowserified
+			replaceAsync @content, regEx.commonJS.import, (entireLine, priorContent, childPath)=>
+				@processImport(childPath, entireLine, priorContent)
+
+
+	@collectedImports
+		.then ()=>
+			if regEx.export.test(@content) or regEx.commonJS.export.test(@content)
+				@hasExports = true unless @isBrowserified
+				@normalizeExports()	
 
 		.then ()=>
-			return if @isBrowserified
-			replaceAsync @content, regEx.commonJS.import, (entireLine, priorContent, childPath)->
-				processImport(childPath, entireLine, priorContent)
-
-
-	.then ()=>
-		if regEx.export.test(@content) or regEx.commonJS.export.test(@content)
-			@hasExports = true unless @isBrowserified
-			@normalizeExports()	
-
-	.then ()=>
-		if @options.recursive
-			Promise.all(@importRefs[childFileHash].collectImports() for childFileHash in @imports)
+			if @options.recursive
+				Promise.all(@imports
+					.map (childFileHash)=> @importRefs[childFileHash]
+					.filter (file)=> not file.checkIfImportsFile(@)
+					.map (file)-> file.collectImports()
+				)
 
 
 
@@ -221,7 +249,7 @@ File::normalizeExports = ()->
 
 
 File::replaceImports = (childImports)->
-	for childHash,importIndex in @imports
+	@imports.forEach (childHash, importIndex)=>
 		childFile = @importRefs[childHash]
 		childContent = childImports[importIndex]
 		targetLine = @lineRefs[importIndex]
@@ -335,11 +363,12 @@ File::prependDuplicateRefs = (content)->
 
 
 
-File::compile = ()->
+File::compile = (importer)-> if @compilePromise then @compilePromise else
 	return (@compiledContent=@content) if not @options.recursive and not @isMain
 
-	Promise
-		.all(@importRefs[childFileHash].compile() for childFileHash in @imports)
+	@compilePromise = Promise
+		.all @imports.map (childHash)=> @importRefs[childHash].compile(@) unless @importRefs[childHash] is importer
+		
 		.then (childImports)=>
 			@replaceImports(childImports)
 			@replaceBadImports(childImports)
@@ -357,3 +386,5 @@ File::compile = ()->
 
 
 
+File.instanceCache = {}
+module.exports = File

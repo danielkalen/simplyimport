@@ -19,6 +19,7 @@ RegExp::test = do ()-> # RegExp::test function patch to reset index after each t
 
 
 SimplyImport = (input, options, state={})->
+	File.instanceCache = {}
 	options = extend({}, defaultOptions, options)
 	options.conditions = [].concat(options.conditions) if not Array.isArray(options.conditions)
 	state.isMain = true
@@ -40,6 +41,7 @@ SimplyImport = (input, options, state={})->
 
 
 SimplyImport.scanImports = (input, opts={})->
+	File.instanceCache = {}
 	importOptions = extend({}, defaultOptions, {recursive:false})
 	opts = extend {}, opts, {isMain:true}
 	opts.context ?= if opts.isStream then process.cwd() else helpers.getNormalizedDirname(input)

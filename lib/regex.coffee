@@ -1,4 +1,6 @@
 regEx = 
+	stringContents: /".+?"|'.+?'/g
+	
 	fileExt: ///
 		.+ 						# File name
 		\. 						# Period separator

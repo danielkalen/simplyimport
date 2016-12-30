@@ -2,6 +2,7 @@ Promise = require 'bluebird'
 resolveModule = Promise.promisify require('resolve')
 fs = Promise.promisifyAll require 'fs-extra'
 path = require 'path'
+chalk = require 'chalk'
 acorn = require 'acorn'
 escodegen = require 'escodegen'
 regEx = require './regex'
@@ -22,6 +23,21 @@ helpers =
 		hasDocBlockComment = /^(?:\s+\*|\*)/.test(line)
 
 		return hasSingleLineComment or hasDocBlockComment
+
+	
+	testForOuterString: (line)->
+		insideQuotes = line.match(regEx.stringContents)
+		
+		if insideQuotes
+			# importSyntax = if regEx.import.test(line) then /\Wimport\W?/ else /\Wrequire\W?/
+			importSyntax = do ()->
+				word = if regEx.import.test(line) then 'import' else 'require'
+				new RegExp("\\b#{word}\\b")
+			
+			for quote in insideQuotes
+				return true if importSyntax.test(quote)
+		
+		return false
 
 
 	resolveModulePath: (moduleName, basedir)->
@@ -134,7 +150,7 @@ helpers =
 				var module = {exports:exports};\n\
 				#{content}\n\
 				return exports;\n\
-			}).call(this, {});
+			}).call(this, {})
 			"
 
 
@@ -146,7 +162,7 @@ helpers =
 		else
 			"(function(){\
 				#{content}\
-			}).call(this);
+			}).call(this)
 			"
 
 
@@ -170,8 +186,15 @@ helpers =
 
 				else return content
 		
-		catch e
-			console.error(consoleLabels.error, e)
+		catch syntaxErr
+			OFFSET = 20
+			MAX_CHARS = 100
+			preview = syntaxErr.preview = content.substr syntaxErr.pos-OFFSET, MAX_CHARS
+			preview = preview.substr(0,OFFSET) + chalk.red.bold(preview[OFFSET]) + preview.substr(OFFSET+1)
+			preview += '...' if preview.length is MAX_CHARS
+			preview = chalk.dim(preview)
+
+			console.error(consoleLabels.error, syntaxErr, preview)
 			return content
 
 
