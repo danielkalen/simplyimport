@@ -2,6 +2,7 @@
 var regEx;
 
 regEx = {
+  stringContents: /".+?"|'.+?'/g,
   fileExt: /.+\.(js|coffee)$/i,
   fileContent: /^(\s*)((?:\w|\W)+)/,
   escapedNewLine: /\\\n/g,
@@ -16,8 +17,7 @@ regEx = {
   comment: {
     singleLine: /([^:]|^)\/\/(.*)$/mg,
     multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg
-  },
-  AMD: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])define\s*\(\s*("[^"]+"\s*,\s*|'[^']+'\s*,\s*)?\s*(\[(\s*(("[^"]+"|'[^']+')\s*,|\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*(\s*("[^"]+"|'[^']+')\s*,?)?(\s*(\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*\s*\]|function\s*|{|[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*\))/
+  }
 };
 
 module.exports = regEx;

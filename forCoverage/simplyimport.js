@@ -37,6 +37,7 @@ SimplyImport = function(input, options, state) {
   if (state == null) {
     state = {};
   }
+  File.instanceCache = {};
   options = extend({}, defaultOptions, options);
   if (!Array.isArray(options.conditions)) {
     options.conditions = [].concat(options.conditions);
@@ -73,6 +74,7 @@ SimplyImport.scanImports = function(input, opts) {
   if (opts == null) {
     opts = {};
   }
+  File.instanceCache = {};
   importOptions = extend({}, defaultOptions, {
     recursive: false
   });

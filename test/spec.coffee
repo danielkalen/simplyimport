@@ -544,12 +544,17 @@ suite "SimplyImport", ()->
 
 		test "Cyclic imports are supported", ()->
 			Promise.all([
-				fs.outputFileAsync tempFile('importer.js'), "var fileA = import 'fileA.js'\n var fileB = import 'fileB.js'"
-				fs.outputFileAsync tempFile('fileA.js'), "var theOtherOne = import 'fileB.js';\n var thisOne = 'fileA'+theOtherOne"
-				fs.outputFileAsync tempFile('fileB.js'), "var theOtherOne = import 'fileA.js';\n var thisOne = 'fileB'+theOtherOne"
+				fs.outputFileAsync tempFile('importer.js'), "var fileA = import 'fileA.js'\n var fileB = import 'fileB.js'\n var fileC = import 'fileC.js'"
+				fs.outputFileAsync tempFile('fileA.js'), "var theOtherOne = import 'fileB.js';\n var thisOne = 'fileA-'+theOtherOne"
+				fs.outputFileAsync tempFile('fileB.js'), "var theOtherOne = import 'fileA.js';\n var thisOne = 'fileB-'+theOtherOne"
+				fs.outputFileAsync tempFile('fileC.js'), "exports = import 'fileD.js';"
+				fs.outputFileAsync tempFile('fileD.js'), "import 'fileA.js';"
 			]).then ()->
 				SimplyImport("import test/temp/importer.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 					eval(result)
+					expect(fileA).to.equal 'fileA-undefined'
+					expect(fileB).to.equal 'fileB-fileA-undefined'
+					expect(fileC).to.equal 'fileA-undefined'
 
 
 

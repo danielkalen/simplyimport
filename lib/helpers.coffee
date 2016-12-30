@@ -188,13 +188,14 @@ helpers =
 		
 		catch syntaxErr
 			OFFSET = 20
+			### istanbul ignore next ###
+			OFFSET = 0 if content.length < OFFSET*2
 			MAX_CHARS = 100
 			preview = syntaxErr.preview = content.substr syntaxErr.pos-OFFSET, MAX_CHARS
 			preview = preview.substr(0,OFFSET) + chalk.red.bold(preview[OFFSET]) + preview.substr(OFFSET+1)
-			preview += '...' if preview.length is MAX_CHARS
-			preview = chalk.dim(preview)
+			preview = '\n'+chalk.dim(preview)
 
-			console.error(consoleLabels.error, syntaxErr, preview)
+			console.error(consoleLabels.error, preview, syntaxErr)
 			return content
 
 
