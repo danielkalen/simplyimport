@@ -38,7 +38,7 @@ File::process = ()->
 		.then(@resolveContext)
 		.then(@checkIfIsCoffee)
 		.then(@getContents)
-		.then(@checkIfIsBrowserified)
+		.then(@checkIfIsThirdPartyBundle)
 		.then ()=> File.instanceCache[@cacheRef] = @
 		
 
@@ -112,8 +112,16 @@ File::checkIfIsCoffee = ()->
 	@isCoffee = if @isMain then @isCoffee else PATH.extname(@filePath).toLowerCase().slice(1) is 'coffee'
 
 
-File::checkIfIsBrowserified = ()->
-	@isBrowserified = @content.includes '.code="MODULE_NOT_FOUND"'
+File::checkIfIsThirdPartyBundle = ()->
+	### istanbul ignore next ###
+	@isThirdPartyBundle =
+		@content.includes('.code="MODULE_NOT_FOUND"') or
+		@content.includes('__webpack_require__') or
+		@content.includes('System.register') or 
+		@content.includes("typeof module ===") or
+		@content.includes("typeof module !==") or
+		@content.includes("typeof define === 'function'") or 
+		@content.includes("' has not been defined'")
 
 
 File::checkIfImportsFile = (targetFile)->
@@ -135,17 +143,18 @@ File::checkIfImportsFile = (targetFile)->
 	
 
 
-File::addLineRef = (entireLine, targetRef, contentLines=@contentLines, offset=0)->
-	lineIndex = contentLines.indexOf(entireLine)+offset
+File::addLineRef = (entireLine, targetRef, offset=0)->
+	lineIndex = @contentLines.indexOf(entireLine, offset)
 	existingRef = @lineRefs.findIndex (existingLineRef)-> existingLineRef is lineIndex
 
 	if existingRef >= 0
-		@addLineRef(entireLine, targetRef, contentLines.slice(lineIndex+1), lineIndex+1)
+		@addLineRef(entireLine, targetRef, lineIndex+1)
 	else
 		@lineRefs[targetRef] = lineIndex
 
 
 File::processImport = (childPath, entireLine, priorContent, spacing, conditions='', defaultMember='', members='')->
+	entireLine = entireLine.replace /^\n+/, ''
 	orderRefIndex = @orderRefs.push(entireLine)-1
 	childPath = origChildPath = childPath
 		.replace /['"]/g, '' # Remove quotes form pathname
@@ -192,7 +201,7 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 			replaceAsync @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
 				@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
 
-		.then ()=> unless @isBrowserified
+		.then ()=> unless @isThirdPartyBundle
 			replaceAsync @content, regEx.commonJS.import, (entireLine, priorContent, childPath)=>
 				@processImport(childPath, entireLine, priorContent)
 
@@ -200,7 +209,7 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 	@collectedImports
 		.then ()=>
 			if regEx.export.test(@content) or regEx.commonJS.export.test(@content)
-				@hasExports = true unless @isBrowserified
+				@hasExports = true unless @isThirdPartyBundle
 				@normalizeExports()	
 
 		.then ()=>
@@ -215,7 +224,7 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 
 File::normalizeExports = ()->
 	# ==== CommonJS syntax =================================================================================
-	unless @isBrowserified
+	unless @isThirdPartyBundle
 		@content.replace regEx.commonJS.export, (entireLine, priorContent, operator, trailingContent)=>
 			operator = " #{operator}" if operator is '='
 			lineIndex = @contentLines.indexOf(entireLine)

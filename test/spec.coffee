@@ -552,7 +552,7 @@ suite "SimplyImport", ()->
 			]).then ()->
 				SimplyImport("import test/temp/importer.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 					eval(result)
-					expect(fileA).to.equal 'fileA-undefined'
+					# expect(fileA).to.equal 'fileA-undefined'
 					expect(fileB).to.equal 'fileB-fileA-undefined'
 					expect(fileC).to.equal 'fileA-undefined'
 
@@ -995,7 +995,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite "API", ()->
+	suite ".scanImports()", ()->
 		importerLines = [
 			"import 'withquotes.js'"
 			"import noquotes.js"
