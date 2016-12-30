@@ -52,7 +52,6 @@ if outputPath and not outputIsFile
 
 
 writeResult = (processedContent)->
-	console.log outputPath, outputPath
 	if outputPath
 		outputPath = path.normalize(outputPath)
 		fs.outputFile(outputPath, processedContent)
