@@ -128,7 +128,6 @@ helpers =
 
 	formatJsContentForCoffee: (jsContent)->
 		jsContent
-			.replace regEx.comment.multiLine, '$1'
 			.replace regEx.escapedNewLine, ''
 			.replace regEx.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
 				"#{spacing}`#{helpers.escapeBackticks(content)}`"

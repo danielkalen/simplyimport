@@ -142,11 +142,12 @@ File::checkIfImportsFile = (targetFile)->
 		importsArray.includes(targetFile.hash) or
 		importsArray.find (importHash)->
 			currentFile = importRefs[importHash]
-			if iteratedArrays.includes(currentFile.imports)
-				return currentFile
-			else
-				iteratedArrays.push(currentFile.imports)
-				return checkArray(currentFile.imports)
+			if currentFile
+				if iteratedArrays.includes(currentFile.imports)
+					return currentFile
+				else
+					iteratedArrays.push(currentFile.imports)
+					return checkArray(currentFile.imports)
 
 	checkArray(@imports)
 

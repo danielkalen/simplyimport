@@ -571,10 +571,15 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync tempFile('fileD.js'), "import 'fileA.js';"
 			]).then ()->
 				SimplyImport("import test/temp/importer.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
-					eval(result)
-					# expect(fileA).to.equal 'fileA-undefined'
-					expect(fileB).to.equal 'fileB-fileA-undefined'
-					expect(fileC).to.equal 'fileA-undefined'
+					try
+						eval(result)
+						expect(fileA).to.equal 'fileA-undefined'
+						expect(fileB).to.equal 'fileB-fileA-undefined'
+						expect(fileC).to.equal 'fileA-undefined'
+					catch err
+						console.log(result)
+						throw err
+
 
 
 
@@ -654,24 +659,6 @@ suite "SimplyImport", ()->
 			").then ()->
 				SimplyImport("import 'test/temp/js-with-escaped-backticks.js'", null, {isCoffee:true, isStream:true}).then (result)->
 					expect(result).to.equal "`var abc = '\\`123\\`\\`';\n// abc \\`123\\` \\``"
-
-
-
-		test "When a Coffee file imports a JS file, all DocBlocks' should be removed", ()->
-			fs.outputFileAsync(tempFile('docblock.js'), "
-				AAA;\n
-				/* @preserve\n
-				 * Copyright (c) 2013-2015 What Ever Name\n
-				 */\n
-				BBB;\n
-				/**\n
-				 * Additional data here\n
-				 * bla bla bla\n
-				*/\n
-				CCC;
-			").then ()->
-				SimplyImport("import 'test/temp/docblock.js'", null, {isCoffee:true, isStream:true}).then (result)->
-					expect(result).to.equal "`AAA;\n \n BBB;\n \n CCC;`"
 
 
 
