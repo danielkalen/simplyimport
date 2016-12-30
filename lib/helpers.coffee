@@ -119,8 +119,7 @@ helpers =
 
 
 
-	formatJsContentForCoffee: (jsContent, modToReturnLastStatement)->
-		jsContent = @modToReturnLastStatement(jsContent) if modToReturnLastStatement
+	formatJsContentForCoffee: (jsContent)->
 		jsContent
 			.replace regEx.comment.multiLine, '$1'
 			.replace regEx.escapedNewLine, ''
@@ -158,7 +157,7 @@ helpers =
 			"
 
 
-	modToReturnLastStatement: (content)->
+	modToReturnLastStatement: (content, filePath)->
 		try
 			AST = acorn.parse(content, {allowReserved:true, allowReturnOutsideFunction:true})
 			lastStatement = AST.body[AST.body.length-1]
@@ -186,6 +185,7 @@ helpers =
 			preview = syntaxErr.preview = content.substr syntaxErr.pos-OFFSET, MAX_CHARS
 			preview = preview.substr(0,OFFSET) + chalk.red.bold(preview[OFFSET]) + preview.substr(OFFSET+1)
 			preview = '\n'+chalk.dim(preview)
+			syntaxErr.targetFile = filePath
 
 			console.error(consoleLabels.error, preview, syntaxErr)
 			return content

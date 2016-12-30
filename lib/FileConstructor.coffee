@@ -35,6 +35,7 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
 File::process = ()->
 	Promise.bind(@)
 		.then(@getFilePath)
+		.then(@getSimpleFilePath)
 		.then(@resolveContext)
 		.then(@checkIfIsCoffee)
 		.then(@getContents)
@@ -57,7 +58,7 @@ File::getContents = ()->
 				return content
 
 			.catch (err)=>
-				console.error "#{consoleLabels.error} File/module doesn't exist #{chalk.dim(helpers.simplifyPath @filePath)}" if @options.recursive
+				console.error "#{consoleLabels.error} File/module doesn't exist #{chalk.dim(@filePathSimple)}" if @options.recursive
 				Promise.reject(err)
 
 
@@ -102,6 +103,13 @@ File::getFilePath = ()->
 								else
 									return @filePath = PATH.join parentDir, inputFileName, 'index.js'
 
+
+
+File::getSimpleFilePath = ()->
+	if @filePath
+		@filePathSimple = helpers.simplifyPath @filePath
+	else
+		@filePathSimple = '*MAIN FILE*'
 
 
 File::resolveContext = ()->
@@ -359,15 +367,15 @@ File::prependDuplicateRefs = (content)->
 		for importHash,varName of @importRefs.duplicates
 			childFile = @importRefs[importHash]
 			declaration = if not @isCoffee then "var #{varName}" else varName
-			
-			if @isCoffee
-				if not childFile.isCoffee
-					childContent = helpers.formatJsContentForCoffee(childFile.compiledContent, true)
+			switch
+				when @isCoffee and not childFile.isCoffee
+					childContent = helpers.modToReturnLastStatement(childFile.compiledContent, childFile.filePathSimple)
+					childContent = helpers.formatJsContentForCoffee(childContent)
 					addFakeReturn = true
-				else
+				when @isCoffee
 					childContent = childFile.compiledContent
-			else
-				childContent = helpers.modToReturnLastStatement(childFile.compiledContent)
+				else
+					childContent = helpers.modToReturnLastStatement(childFile.compiledContent, childFile.filePathSimple)
 
 			value = helpers.wrapInClosure(childContent, @isCoffee, addFakeReturn)
 			assignments.push "#{declaration} = #{value}"
