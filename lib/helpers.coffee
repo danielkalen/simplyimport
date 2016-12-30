@@ -50,6 +50,13 @@ helpers =
 		return true
 
 
+	testIfIsExportMap: (string)->
+		if objContents=string.match(/^\{(.+?)\};?$/)?[1]
+			return not objContents.includes(':')
+
+		return false
+
+
 
 	commentOut: (line, isCoffee)->
 		comment = if isCoffee then '#' else '//'

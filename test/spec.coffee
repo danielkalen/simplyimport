@@ -379,6 +379,26 @@ suite "SimplyImport", ()->
 										expect(allA.namedFn()).to.equal(allB.namedFn())
 										expect(allA.namedFn2()).to.equal(allB.namedFn2())
 										expect(allA['*default*']()).to.equal(allB['*default*']())
+										
+										fs.outputFileAsync(tempFile('exportAdvanced.js'), "
+											var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
+											export default {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
+											export var another = 'anotherValue'\n\
+											export let kid ='kiddy';
+										").then ()->
+											SimplyImport("import theDefault,{kid as kido,another} from test/temp/exportAdvanced.js", opts, {isStream:true}).then (result)->
+												try
+													eval(result)
+												catch err
+													console.error(result)
+													throw err
+												
+												expect(theDefault.AAA).to.equal 'aaa'
+												expect(theDefault.BBB).to.equal 'bbb'
+												expect(theDefault.ccc).to.equal 'ccc'
+												expect(theDefault.DDDDD).to.equal 'ddd'
+												expect(another).to.equal 'anotherValue'
+												expect(kido).to.equal 'kiddy'
 
 
 

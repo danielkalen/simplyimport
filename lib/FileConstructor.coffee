@@ -247,8 +247,12 @@ File::normalizeExports = ()->
 			when exportMap
 				@contentLines[lineIndex] = "exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
 			
-			when exportType is 'default'
-				@contentLines[lineIndex] = "exports['*default*'] = #{label}#{trailingContent}"
+			when exportType is 'default' then switch
+				when helpers.testIfIsExportMap(label+trailingContent)
+					exportMap = label+trailingContent.replace(/;$/, '')
+					@contentLines[lineIndex] = "exports['*default*'] = #{helpers.normalizeExportMap(exportMap)}"
+				else
+					@contentLines[lineIndex] = "exports['*default*'] = #{label}#{trailingContent}"
 			
 			when exportType?.includes('function')
 				labelName = label.replace(/\(.*?\).*$/, '')
