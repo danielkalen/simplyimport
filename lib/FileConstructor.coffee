@@ -361,11 +361,15 @@ File::prependDuplicateRefs = (content)->
 			declaration = if not @isCoffee then "var #{varName}" else varName
 			
 			if @isCoffee
-				value = helpers.wrapInClosure(childFile.compiledContent, @isCoffee)
+				if not childFile.isCoffee
+					childContent = helpers.formatJsContentForCoffee(childFile.compiledContent, true)
+					addFakeReturn = true
+				else
+					childContent = childFile.compiledContent
 			else
 				childContent = helpers.modToReturnLastStatement(childFile.compiledContent)
-				value = helpers.wrapInClosure(childContent, @isCoffee)
 
+			value = helpers.wrapInClosure(childContent, @isCoffee, addFakeReturn)
 			assignments.push "#{declaration} = #{value}"
 
 		assignments = assignments.reverse().join('\n')

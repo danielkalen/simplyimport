@@ -40,12 +40,14 @@ helpers =
 		return false
 
 
-	resolveModulePath: (moduleName, basedir)->
-		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir})
-		moduleLoad
-			.then (modulePath)=> Promise.resolve(modulePath)
-			.catch (err)=> Promise.resolve()
-			.then (modulePath)=> Promise.resolve(modulePath)
+	testConditions: (allowedConditions, conditionsString)->
+		return true if allowedConditions.length is 1 and allowedConditions[0] is '*'
+		conditions = conditionsString.split(/,\s?/).filter (nonEmpty)-> nonEmpty
+
+		for condition in conditions
+			return false if not allowedConditions.includes(condition)
+
+		return true
 
 
 
@@ -61,45 +63,6 @@ helpers =
 		else
 			fs.readdirAsync(dirPath).then (listing)->
 				return dirListingCache[dirPath] = listing
-
-
-	testConditions: (allowedConditions, conditionsString)->
-		return true if allowedConditions.length is 1 and allowedConditions[0] is '*'
-		conditions = conditionsString.split(/,\s?/).filter (nonEmpty)-> nonEmpty
-
-		for condition in conditions
-			return false if not allowedConditions.includes(condition)
-
-		return true
-
-
-
-
-	escapeBackticks: (content)->
-		content
-			.replace regEx.preEscapedBackTicks, '`'
-			.replace regEx.backTicks, '\\`'
-
-
-
-	formatJsContentForCoffee: (jsContent)->
-		jsContent
-			.replace regEx.comment.multiLine, '$1'
-			.replace regEx.escapedNewLine, ''
-			.replace regEx.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
-				"#{spacing}`#{helpers.escapeBackticks(content)}`"
-
-
-	genUniqueVar: ()->
-		"_sim_#{Math.floor((1+Math.random()) * 100000).toString(16)}"
-
-
-	addSpacingToString: (string, spacing)->
-		string
-			.split '\n'
-			.map (line)-> spacing+line
-			.join '\n'
-
 
 
 	parseMembersString: (membersString)->
@@ -137,6 +100,34 @@ helpers =
 		return "{#{output}}"
 
 
+	genUniqueVar: ()->
+		"_sim_#{Math.floor((1+Math.random()) * 100000).toString(16)}"
+
+
+	addSpacingToString: (string, spacing)->
+		string
+			.split '\n'
+			.map (line)-> spacing+line
+			.join '\n'
+
+
+
+	escapeBackticks: (content)->
+		content
+			.replace regEx.preEscapedBackTicks, '`'
+			.replace regEx.backTicks, '\\`'
+
+
+
+	formatJsContentForCoffee: (jsContent, modToReturnLastStatement)->
+		jsContent = @modToReturnLastStatement(jsContent) if modToReturnLastStatement
+		jsContent
+			.replace regEx.comment.multiLine, '$1'
+			.replace regEx.escapedNewLine, ''
+			.replace regEx.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+				"#{spacing}`#{helpers.escapeBackticks(content)}`"
+
+
 
 	wrapInExportsClosure: (content, isCoffee)->
 		if isCoffee
@@ -154,10 +145,11 @@ helpers =
 			"
 
 
-	wrapInClosure: (content, isCoffee)->
+	wrapInClosure: (content, isCoffee, addFakeReturn)->
 		if isCoffee
 			"do ()=>\n\
 				#{@addSpacingToString content, '\t'}\n\
+				#{if addFakeReturn then '\treturn' else ''}
 			"
 		else
 			"(function(){\
@@ -197,6 +189,15 @@ helpers =
 
 			console.error(consoleLabels.error, preview, syntaxErr)
 			return content
+
+
+
+	resolveModulePath: (moduleName, basedir)->
+		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir})
+		moduleLoad
+			.then (modulePath)=> Promise.resolve(modulePath)
+			.catch (err)=> Promise.resolve()
+			.then (modulePath)=> Promise.resolve(modulePath)
 
 
 

@@ -731,6 +731,21 @@ suite "SimplyImport", ()->
 
 
 
+		test "Duplicate imports of VanillaJS files should cause the duplicate references have backticks wrapped around them", ()->
+			fs.outputFileAsync(tempFile('jsFile.js'), "var jsFn = function(){return 42;}").then ()->
+				SimplyImport("import test/temp/jsFile\nimport test/temp/jsFile", null, {isStream:true, isCoffee:true}).then (result)->
+					try
+						resultValue = eval(coffeeCompiler.compile result, 'bare':true)
+					catch err
+						console.error(result)
+						throw err
+					
+					expect(typeof resultValue).to.equal 'function'
+					expect(resultValue()).to.equal(42)
+
+
+
+
 		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()->
 			opts = {preventGlobalLeaks:false}
 			fs.outputFileAsync(tempFile('exportBasic.coffee'), "
