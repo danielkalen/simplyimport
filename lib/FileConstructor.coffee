@@ -12,7 +12,6 @@ helpers = require './helpers'
 consoleLabels = require './consoleLabels'
 
 
-
 ###*
  * The object created for each file path the program needs to open/import/read.
  * @param {String} input               	File's path or file's contents
@@ -32,8 +31,8 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
 
 
 
-File::process = ()->
-	Promise.bind(@)
+File::process = ()-> if @processPromise then @processPromise else
+	@processPromise = Promise.bind(@)
 		.then(@getFilePath)
 		.then(@getSimpleFilePath)
 		.then(@resolveContext)
