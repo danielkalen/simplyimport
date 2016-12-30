@@ -14,6 +14,7 @@ regEx = require '../lib/regex'
 exec = require('child_process').exec
 bin = path.join '.', 'bin'
 
+
 if process.env.forCoverage
 	SimplyImport = require '../forCoverage/simplyimport.js'
 else
@@ -21,8 +22,8 @@ else
 
 SimplyImport.defaults.dirCache = false
 
-
-Promise.config longStackTraces:true
+require('pretty-error').start()
+# Promise.config longStackTraces:true
 
 tempFile = (fileNames...)->
 	path.join 'test','temp',path.join.apply(path, fileNames)
@@ -138,6 +139,16 @@ suite "SimplyImport", ()->
 								expect(result[0]).to.equal "test/temp/dirWithIndex/index.js"
 								expect(console.error).to.have.been.called.exactly(1)
 								console.error = origLog
+
+
+		test "Quoted import/require statements will be ignored", ()->
+			fileContent = "var ignored = 'this require(\'statement\') will be ignored'"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				expect(result).to.equal(fileContent)
+				
+				fileContent = "var ignored = 'this statment will also be ignored import statement2'"
+				SimplyImport(fileContent, null, {isStream:true}).then (result)->
+					expect(result).to.equal(fileContent)
 
 
 
@@ -422,23 +433,27 @@ suite "SimplyImport", ()->
 								expect(allExports.AAA).to.equal 'aaa'
 								expect(allExports.DDDDD).to.equal 'ddd'
 								delete allExports
+										
+								SimplyImport("var fetchedAAA = (import test/temp/exportBasic.js).AAA", opts, {isStream:true}).then (result)->
+									eval(result)
+									expect(fetchedAAA).to.equal 'aaa'
+									delete fetchedAAA
 
-
-							Promise.all([
-								SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
-								SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
-							]).then (results)->
-								eval(results[0])
-								eval(results[1])
-								expect(allA).to.exist
-								expect(allB).to.exist
-								expect(allA.AAA).to.equal(allB.AAA)
-								expect(allA.BBB).to.equal(allB.BBB)
-								expect(allA.ddd).to.equal(allB.ddd)
-								expect(allA.kid).to.equal(allB.kid)
-								expect(allA.kiddy).to.equal(allB.kiddy)
-								expect(allA.another).to.equal(allB.another)
-								expect(allA()).to.equal(allB())
+									Promise.all([
+										SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
+										SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
+									]).then (results)->
+										eval(results[0])
+										eval(results[1])
+										expect(allA).to.exist
+										expect(allB).to.exist
+										expect(allA.AAA).to.equal(allB.AAA)
+										expect(allA.BBB).to.equal(allB.BBB)
+										expect(allA.ddd).to.equal(allB.ddd)
+										expect(allA.kid).to.equal(allB.kid)
+										expect(allA.kiddy).to.equal(allB.kiddy)
+										expect(allA.another).to.equal(allB.another)
+										expect(allA()).to.equal(allB())
 
 
 
@@ -517,6 +532,24 @@ suite "SimplyImport", ()->
 							eval(result)
 							expect(typeof units).to.equal 'string'
 							expect(units).to.equal 'localFile'
+
+
+
+		test "Core NPM modules won't be imported", ()->
+			fileContent = "var fs = require('fs')"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				expect(result).to.equal(fileContent)
+
+
+
+		test "Cyclic imports are supported", ()->
+			Promise.all([
+				fs.outputFileAsync tempFile('importer.js'), "var fileA = import 'fileA.js'\n var fileB = import 'fileB.js'"
+				fs.outputFileAsync tempFile('fileA.js'), "var theOtherOne = import 'fileB.js';\n var thisOne = 'fileA'+theOtherOne"
+				fs.outputFileAsync tempFile('fileB.js'), "var theOtherOne = import 'fileA.js';\n var thisOne = 'fileB'+theOtherOne"
+			]).then ()->
+				SimplyImport("import test/temp/importer.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
+					eval(result)
 
 
 
@@ -825,24 +858,29 @@ suite "SimplyImport", ()->
 								expect(allExports.AAA).to.equal 'aaa'
 								expect(allExports.DDDDD).to.equal 'ddd'
 								delete allExports
+										
+								SimplyImport("fetchedAAA = (import test/temp/exportBasic.coffee).AAA", opts, {isStream:true, isCoffee:true}).then (result)->
+									eval(result = coffeeCompiler.compile result, 'bare':true)
+									expect(fetchedAAA).to.equal 'aaa'
+									delete fetchedAAA
 
 
-							Promise.all([
-								SimplyImport("import * as allA from test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true})
-								SimplyImport("allB = import test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true})
-							]).then (results)->
-								results = results.map (result)-> coffeeCompiler.compile result, 'bare':true
-								eval(results[0])
-								eval(results[1])
-								expect(allA).to.exist
-								expect(allB).to.exist
-								expect(allA.AAA).to.equal(allB.AAA)
-								expect(allA.BBB).to.equal(allB.BBB)
-								expect(allA.ddd).to.equal(allB.ddd)
-								expect(allA.kid).to.equal(allB.kid)
-								expect(allA.kiddy).to.equal(allB.kiddy)
-								expect(allA.another).to.equal(allB.another)
-								expect(allA()).to.equal(allB())
+									Promise.all([
+										SimplyImport("import * as allA from test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true})
+										SimplyImport("allB = import test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true})
+									]).then (results)->
+										results = results.map (result)-> coffeeCompiler.compile result, 'bare':true
+										eval(results[0])
+										eval(results[1])
+										expect(allA).to.exist
+										expect(allB).to.exist
+										expect(allA.AAA).to.equal(allB.AAA)
+										expect(allA.BBB).to.equal(allB.BBB)
+										expect(allA.ddd).to.equal(allB.ddd)
+										expect(allA.kid).to.equal(allB.kid)
+										expect(allA.kiddy).to.equal(allB.kiddy)
+										expect(allA.another).to.equal(allB.another)
+										expect(allA()).to.equal(allB())
 
 
 
