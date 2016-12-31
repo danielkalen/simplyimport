@@ -1,6 +1,5 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
-resolveModule = Promise.promisify require('resolve')
 replaceAsync = require 'string-replace-async'
 md5 = require 'md5'
 PATH = require 'path'
@@ -174,7 +173,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 	helpers.resolveModulePath(childPath, @context).then (modulePath)=>
 		childPath = modulePath or PATH.resolve(@context, childPath)
 
-		if helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or resolveModule.isCore(origChildPath)
+		if helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
 			Promise.resolve()
 		
 		else if not helpers.testConditions(@options.conditions, conditions)

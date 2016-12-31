@@ -1,5 +1,5 @@
 Promise = require 'bluebird'
-resolveModule = Promise.promisify require('resolve')
+resolveModule = Promise.promisify require('browser-resolve')
 fs = Promise.promisifyAll require 'fs-extra'
 path = require 'path'
 chalk = require 'chalk'
@@ -7,7 +7,31 @@ acorn = require 'acorn'
 escodegen = require 'escodegen'
 regEx = require './regex'
 consoleLabels = require './consoleLabels'
-
+coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
+coreModuleShims = 
+	'': path.resolve(__dirname,'..','node_modules','')
+	'assert':					path.resolve(__dirname,'..','node_modules','assert','assert.js')
+	'zlib':						path.resolve(__dirname,'..','node_modules','browserify-zlib','src','index.js')
+	'buffer':					path.resolve(__dirname,'..','node_modules','buffer','index.js')
+	'console':					path.resolve(__dirname,'..','node_modules','console-browserify','index.js')
+	'constants':				path.resolve(__dirname,'..','node_modules','constants-browserify','constants.json')
+	'crypto':					path.resolve(__dirname,'..','node_modules','crypto-browserify','index.js')
+	'domain':					path.resolve(__dirname,'..','node_modules','domain-browser','index.js')
+	'events':					path.resolve(__dirname,'..','node_modules','events','events.js')
+	'https':					path.resolve(__dirname,'..','node_modules','https-browserify','index.js')
+	'os':						path.resolve(__dirname,'..','node_modules','os-browserify','browser.js')
+	'path':						path.resolve(__dirname,'..','node_modules','path-browserify','index.js')
+	'process':					path.resolve(__dirname,'..','node_modules','process','browser.js')
+	'punycode':					path.resolve(__dirname,'..','node_modules','punycode','punycode.js')
+	'querystring':				path.resolve(__dirname,'..','node_modules','querystring-es3','index.js')
+	'http':						path.resolve(__dirname,'..','node_modules','stream-http','index.js')
+	'string_decoder':			path.resolve(__dirname,'..','node_modules','string_decoder','index.js')
+	'stream':					path.resolve(__dirname,'..','node_modules','stream-browserify','index.js')
+	'timers':					path.resolve(__dirname,'..','node_modules','timers-browserify','main.js')
+	'tty':						path.resolve(__dirname,'..','node_modules','tty-browserify','index.js')
+	'url':						path.resolve(__dirname,'..','node_modules','url','url.js')
+	'util':						path.resolve(__dirname,'..','node_modules','util','util.js')
+	'vm':						path.resolve(__dirname,'..','node_modules','vm-browserify','index.js')
 escodegen.ReturnStatement = (argument)->
 	{type:'ReturnStatement', argument}
 
@@ -199,11 +223,15 @@ helpers =
 
 
 	resolveModulePath: (moduleName, basedir)->
-		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir})
+		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir, modules:coreModuleShims})
 		moduleLoad
 			.then (modulePath)=> Promise.resolve(modulePath)
 			.catch (err)=> Promise.resolve()
 			.then (modulePath)=> Promise.resolve(modulePath)
+
+
+	isCoreModule: (moduleName)->
+		coreModulesUnsupported.includes(moduleName)
 
 
 

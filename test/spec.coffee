@@ -555,10 +555,50 @@ suite "SimplyImport", ()->
 
 
 
-		test "Core NPM modules won't be imported", ()->
-			fileContent = "var fs = require('fs')"
+		test "Unsupported Core NPM modules won't be imported", ()->
+			fileContent = "
+				var fs = require('fs');
+				var child_process = require('child_process');
+				var cluster = require('cluster');
+				var dgram = require('dgram');
+				var dns = require('dns');
+				var module = require('module');
+				var net = require('net');
+				var readline = require('readline');
+				var repl = require('repl');
+				var tls = require('tls');
+			"
 			SimplyImport(fileContent, null, {isStream:true}).then (result)->
 				expect(result).to.equal(fileContent)
+
+
+		test.skip "Supported core NPM modules will be imported as polyfills", ()->
+			fileContent = "
+				var assertB = import 'assert';\n\
+				var zlibB = import 'zlib';\n\
+				var bufferB = import 'buffer';\n\
+				var consoleB = import 'console';\n\
+				var constantsB = import 'constants';\n\
+				var cryptoB = import 'crypto';\n\
+				var domainB = import 'domain';\n\
+				var eventsB = import 'events';\n\
+				var httpsB = import 'https';\n\
+				var osB = import 'os';\n\
+				var pathB = import 'path';\n\
+				var processB = import 'process';\n\
+				var punycodeB = import 'punycode';\n\
+				var querystringB = import 'querystring';\n\
+				var httpB = import 'http';\n\
+				var string_decoderB = import 'string_decoder';\n\
+				var timersB = import 'timers';\n\
+				var ttyB = import 'tty';\n\
+				var urlB = import 'url';\n\
+				var utilB = import 'util';\n\
+				var vmB = import 'vm';\n\
+			"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				console.log result.length
+				expect(result).not.to.equal(fileContent)
 
 
 
