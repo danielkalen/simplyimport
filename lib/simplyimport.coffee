@@ -32,7 +32,7 @@ SimplyImport = (input, options, state={})->
 		state.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'
 
 	fileContent.then (contents)->
-		subjectFile = new File(contents, options, {duplicates:{}}, state)
+		subjectFile = new File(contents, options, {}, state)
 		subjectFile.process().then ()->
 			subjectFile.collectImports().then ()->
 				return subjectFile.compile()
@@ -56,7 +56,7 @@ SimplyImport.scanImports = (input, opts={})->
 		opts.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'
 	
 	fileContent.then (contents)->
-		subjectFile = new File(contents, importOptions, {duplicates:{}}, opts)
+		subjectFile = new File(contents, importOptions, {}, opts)
 		subjectFile.process().then ()->
 			subjectFile.collectImports().then ()->
 

@@ -12,7 +12,7 @@ Browserify = require 'browserify'
 Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
 regEx = require '../lib/regex'
 exec = require('child_process').exec
-bin = path.join '.', 'bin'
+bin = path.resolve 'bin'
 
 
 if process.env.forCoverage
@@ -229,18 +229,18 @@ suite "SimplyImport", ()->
 				invokeCount++
 				expect(result).to.equal expectation
 
-			adjustResult = (result, lines)->
+			adjustResult = (result, minIndex)->
 				result
 					.split '\n'
-					.map (line, index)-> if lines.includes(index) then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
+					.map (line, index)-> if index >= minIndex then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
 					.join '\n'
 
-			fs.outputFileAsync(tempFile('fileA.js'), "output = 'varLess'").then ()->
+			fs.outputFileAsync(tempFile('fileA.js'), "var output = 'varLess'").then ()->
 				SimplyImport("import 'test/temp/fileA.js'\n".repeat(2), null, {isStream:true}).then (result)->
 					expect(result.startsWith "var output = 'varLess'").to.be.false
 
 					expectation = 'varLess'
-					eval(adjustResult(result, [1,2]))
+					eval(adjustResult(result, 2))
 					expect(invokeCount).to.equal 2
 
 					fs.outputFileAsync(tempFile('fileB.js'), "var output = 'withVar'").then ()->
@@ -248,7 +248,7 @@ suite "SimplyImport", ()->
 							expect(result.startsWith "var output = 'withVar'").to.be.false
 
 							expectation = 'withVar'
-							eval(adjustResult(result, [2,3]))
+							eval(adjustResult(result, 2))
 							expect(invokeCount).to.equal 4
 
 						fs.outputFileAsync(tempFile('fileC.js'), "return 'returnStatment'").then ()->
@@ -256,7 +256,7 @@ suite "SimplyImport", ()->
 								expect(result.startsWith "return 'returnStatment'").to.be.false
 
 								expectation = 'returnStatment'
-								eval(adjustResult(result, [1,2]))
+								eval(adjustResult(result, 1))
 								expect(invokeCount).to.equal 6
 
 								fs.outputFileAsync(tempFile('fileD.js'), "if (true) {output = 'condA'} else {output = 'condB'}").then ()->
@@ -264,7 +264,7 @@ suite "SimplyImport", ()->
 										expect(result.startsWith "if (true)").to.be.false
 
 										expectation = undefined
-										eval(adjustResult(result, [1,2]))
+										eval(adjustResult(result, 1))
 										expect(invokeCount).to.equal 8
 
 										origLog = console.error
@@ -286,7 +286,7 @@ suite "SimplyImport", ()->
 					origResult = result
 					result = result
 						.split '\n'
-						.map (line, index)-> if [2,3,4].includes(index) then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
+						.map (line, index)-> if index then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
 						.join '\n'
 
 					invokeCount = 0
@@ -764,7 +764,7 @@ suite "SimplyImport", ()->
 				SimplyImport("import 'test/temp/importingA.coffee'\nimport 'test/temp/importingB.coffee'\nimport 'test/temp/variable.coffee'", null, {isStream:true, isCoffee:true}).then (result)->
 					result = result
 						.split '\n'
-						.map (line, index)-> if [7,8,9].includes(index) then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
+						.map (line, index)-> if index > 2 then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
 						.join '\n'
 					result = coffeeCompiler.compile result, 'bare':true
 

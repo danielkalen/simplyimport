@@ -19,11 +19,13 @@ consoleLabels = require './consoleLabels'
 ###
 File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
 	@input = input
+	@importedCount = 0
 	@imports = []
 	@badImports = []
 	@importMemberRefs = []
 	@lineRefs = []
 	@orderRefs = []
+	@contentReference = helpers.genUniqueVar()
 	@cacheRef = if @isMain then '*main*' else input
 
 	return File.instanceCache[@cacheRef] or @
@@ -185,7 +187,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 			childFile = new File childPath, @options, @importRefs
 			childFile.process()
 				.then ()=>
-					@importRefs.duplicates[childFile.hash] = helpers.genUniqueVar() if @importRefs[childFile.hash] and not @importRefs.duplicates[childFile.hash]
+					childFile.importedCount++
 					@importRefs[childFile.hash] = childFile
 					@imports[orderRefIndex] = childFile.hash
 					@orderRefs[orderRefIndex] = childFile.hash
@@ -208,11 +210,11 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 File::collectImports = ()-> if @collectedImports then @collectedImports else
 	@collectedImports = Promise.resolve()
 		.then ()=>
-			replaceAsync @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
+			replaceAsync.seq @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
 				@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
 
 		.then ()=> unless @isThirdPartyBundle
-			replaceAsync @content, regEx.commonJS.import, (entireLine, priorContent, childPath)=>
+			replaceAsync.seq @content, regEx.commonJS.import, (entireLine, priorContent, childPath)=>
 				@processImport(childPath, entireLine, priorContent)
 
 
@@ -281,8 +283,8 @@ File::replaceImports = (childImports)->
 		targetLine = @lineRefs[importIndex]
 
 		replaceLine = (childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)=>
-			if @importRefs.duplicates[childHash]
-				childContent = @importRefs.duplicates[childHash]
+			if childFile.importedCount > 1
+				childContent = childFile.contentReference
 			else
 				# ==== Spacing =================================================================================
 				if priorContent and priorContent.replace(/\s/g, '') is ''
@@ -365,28 +367,26 @@ File::replaceBadImports = ()->
 
 
 File::prependDuplicateRefs = (content)->
-	if Object.keys(@importRefs.duplicates).length
+	duplicates = (file for hash,file of @importRefs when file.importedCount > 1)
+
+	if duplicates.length
 		@requiresClosure = true
 		assignments = []
-		duplicates = Object.entries(@importRefs.duplicates)
-			.sort (a,b)=> @orderRefs.findIndex((hash)-> hash is a[0]) - @orderRefs.findIndex((hash)-> hash is b[0])
-			.map (entry)=> entry[0] = @importRefs[entry[0]]; entry
 		
-		for dup in duplicates
-			childFile = dup[0]
-			varName = dup[1]
+		for file in duplicates
+			varName = file.contentReference
 			declaration = if not @isCoffee then "var #{varName}" else varName
 			switch
-				when @isCoffee and not childFile.isCoffee
-					childContent = helpers.modToReturnLastStatement(childFile.compiledContent, childFile.filePathSimple)
-					childContent = helpers.formatJsContentForCoffee(childContent)
+				when @isCoffee and not file.isCoffee
+					fileContent = helpers.modToReturnLastStatement(file.compiledContent, file.filePathSimple)
+					fileContent = helpers.formatJsContentForCoffee(fileContent)
 					addFakeReturn = true
 				when @isCoffee
-					childContent = childFile.compiledContent
+					fileContent = file.compiledContent
 				else
-					childContent = helpers.modToReturnLastStatement(childFile.compiledContent, childFile.filePathSimple)
+					fileContent = helpers.modToReturnLastStatement(file.compiledContent, file.filePathSimple)
 
-			value = helpers.wrapInClosure(childContent, @isCoffee, addFakeReturn)
+			value = helpers.wrapInClosure(fileContent, @isCoffee, addFakeReturn)
 			assignments.push "#{declaration} = #{value}"
 
 		assignments = assignments.reverse().join('\n')
@@ -399,6 +399,7 @@ File::prependDuplicateRefs = (content)->
 
 File::compile = (importer)-> if @compilePromise then @compilePromise else
 	return (@compiledContent=@content) if not @options.recursive and not @isMain
+
 
 	@compilePromise = Promise
 		.all @imports.map (childHash)=> @importRefs[childHash].compile(@) unless @importRefs[childHash] is importer
