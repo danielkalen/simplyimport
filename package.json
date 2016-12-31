@@ -47,6 +47,7 @@
     "extend": "^3.0.0",
     "fs-extra": "^0.30.0",
     "md5": "^2.1.0",
+    "object.entries": "^1.0.4",
     "resolve": "^1.2.0",
     "string-replace-async": "^1.2.0",
     "uglify-js": "^2.6.1",

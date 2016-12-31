@@ -369,9 +369,13 @@ File::prependDuplicateRefs = (content)->
 	if Object.keys(@importRefs.duplicates).length
 		@requiresClosure = true
 		assignments = []
+		duplicates = Object.entries(@importRefs.duplicates)
+			.sort (a,b)=> @orderRefs.findIndex((hash)-> hash is a[0]) - @orderRefs.findIndex((hash)-> hash is b[0])
+			.map (entry)=> entry[0] = @importRefs[entry[0]]; entry
 		
-		for importHash,varName of @importRefs.duplicates
-			childFile = @importRefs[importHash]
+		for dup in duplicates
+			childFile = dup[0]
+			varName = dup[1]
 			declaration = if not @isCoffee then "var #{varName}" else varName
 			switch
 				when @isCoffee and not childFile.isCoffee

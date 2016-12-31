@@ -1,4 +1,5 @@
 require('array-includes').shim()
+require('object.entries').shim()
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
 uniq = require 'uniq'
