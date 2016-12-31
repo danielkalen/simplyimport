@@ -22,7 +22,7 @@ else
 
 SimplyImport.defaults.dirCache = false
 
-require('pretty-error').start()
+require('pretty-error').start() unless process.env.CI
 # Promise.config longStackTraces:true
 
 tempFile = (fileNames...)->
