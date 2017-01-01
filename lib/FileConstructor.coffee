@@ -398,12 +398,14 @@ File::prependDuplicateRefs = (content)->
 
 
 
-File::compile = (importer)-> if @compilePromise then @compilePromise else
+File::compile = (importer=@)-> if @compilePromise then @compilePromise else
 	return (@compiledContent=@content) if not @options.recursive and not @isMain
 
 
 	@compilePromise = Promise
-		.all @imports.map (childHash)=> @importRefs[childHash].compile(@) unless @importRefs[childHash] is importer
+		.all @imports.map (hash)=>
+			childFile = @importRefs[hash]
+			childFile.compile(@) unless childFile is importer or childFile.checkIfImportsFile(importer)
 		
 		.then (childImports)=>
 			@replaceImports(childImports)
