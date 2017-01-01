@@ -50,16 +50,11 @@ File::getContents = ()->
 		@hash = md5(@input)
 		return @content = @input
 	else
-		fs.readFileAsync(@filePath, encoding:'utf8')
-			.then (content)=>
-				@content = content
-				@hash = md5(content)
-				@contentLines = content.split '\n'
-				return content
-
-			.catch (err)=>
-				console.error "#{consoleLabels.error} File/module doesn't exist #{chalk.dim(@filePathSimple)}" if @options.recursive
-				Promise.reject(err)
+		fs.readFileAsync(@filePath, encoding:'utf8').then (content)=>
+			@content = content
+			@hash = md5(content)
+			@contentLines = content.split '\n'
+			return content
 
 
 
@@ -203,7 +198,9 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 					Promise.resolve()
 
 				.catch (err)=>
-					Promise.reject(err) if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
+					if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
+						console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple or childPath} #{chalk.dim('(imported by '+@filePathSimple+')')}"
+						Promise.reject(err)
 
 
 
