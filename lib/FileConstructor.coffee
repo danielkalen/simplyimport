@@ -212,8 +212,11 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 				@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
 
 		.then ()=> unless @isThirdPartyBundle
-			replaceAsync.seq @content, regEx.commonJS.import, (entireLine, priorContent, childPath)=>
-				@processImport(childPath, entireLine, priorContent)
+			replaceAsync.seq @content, regEx.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)=>
+				if regEx.singleBracketEnd.test(trailingContent) then Promise.resolve() else @processImport(childPath, entireLine, priorContent)
+				# If the trailing content has a closing bracket w/out an opening then it means the 'childPath'
+				# is some sort of an expression (i.e. "'st'+'ing'" or "'string'+suffix") which is currently
+				# unsupported and means the childPath wasn't fully captured
 
 
 	@collectedImports
@@ -345,8 +348,8 @@ File::replaceImports = (childImports)->
 			@contentLines[targetLine] = @contentLines[targetLine].replace regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath, trailingContent)->
 				replaceLine(childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)
 		else
-			@contentLines[targetLine] = @contentLines[targetLine].replace regEx.commonJS.import, (entireLine, priorContent, childPath, trailingContent)->
-				replaceLine(childPath, entireLine, priorContent, trailingContent, '')
+			@contentLines[targetLine] = @contentLines[targetLine].replace regEx.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)->
+				if regEx.singleBracketEnd.test(trailingContent) then Promise.resolve() else replaceLine(childPath, entireLine, priorContent, trailingContent, '')
 
 	return
 

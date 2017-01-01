@@ -1,5 +1,6 @@
 regEx = 
 	stringContents: /".+?"|'.+?'/g
+	singleBracketEnd: /^[^\(]*\)/
 	
 	fileExt: ///
 		.+ 						# File name
@@ -100,7 +101,7 @@ regEx =
 		import: ///^
 			(.+[\ \t\r]|.+\;|)								# prior content
 			require 										# require reference
-			(?:
+			(
 				\s+ | \( 									# trailing char after 'require' (either bracket or space)
 			)
 			\s*
