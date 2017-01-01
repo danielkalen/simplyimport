@@ -24,7 +24,7 @@
     "url": "https://github.com/danielkalen/simplyimport"
   },
   "license": "MIT",
-  "mocha_opts": "-u tdd --compilers coffee:coffee-script/register --slow 1000 --timeout 3000",
+  "mocha_opts": "-u tdd --compilers coffee:coffee-script/register --slow 1000 --timeout 5000",
   "scripts": {
     "build": "npm run compile && npm run prependbin && npm run makeexec",
     "compile": "npm run compile:module && npm run compile:bin",
@@ -85,7 +85,6 @@
     "istanbul": "^0.4.5",
     "lcov-parse": "0.0.10",
     "mocha": "^3.1.2",
-    "pretty-error": "^2.0.2",
     "request": "^2.74.0",
     "streamify-string": "^1.0.1",
     "svg2png": "^3.0.1",

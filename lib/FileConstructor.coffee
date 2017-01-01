@@ -246,7 +246,7 @@ File::normalizeExports = ()->
 	# ==== ES6/SimplyImport syntax =================================================================================
 	@content.replace regEx.export, (entireLine, exportMap, exportType, label, trailingContent)=>
 		lineIndex = @contentLines.indexOf(entireLine)
-		
+		### istanbul ignore else ###
 		switch
 			when exportMap
 				@contentLines[lineIndex] = "exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
@@ -272,8 +272,8 @@ File::normalizeExports = ()->
 			when not exportType and not exportMap
 				label = trailingContent.match(/^\S+/)[0]
 				@contentLines[lineIndex] = "exports['#{label}'] = #{trailingContent}"
-			# else
-			# 	throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
+			else
+				throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
 
 
 

@@ -1,4 +1,5 @@
 Promise = require 'bluebird'
+# Promise.config longStackTraces:true
 fs = Promise.promisifyAll require 'fs-extra'
 path = require 'path'
 chai = require 'chai'
@@ -13,23 +14,13 @@ Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
 regEx = require '../lib/regex'
 exec = require('child_process').exec
 bin = path.resolve 'bin'
-
-
-if process.env.forCoverage
-	SimplyImport = require '../forCoverage/simplyimport.js'
-else
-	SimplyImport = require '../index.js'
-
+SimplyImport = require if process.env.forCoverage then '../forCoverage/simplyimport.js' else '../index.js'
 SimplyImport.defaults.dirCache = false
 
-require('pretty-error').start() unless process.env.CI
-# Promise.config longStackTraces:true
+
 
 tempFile = (fileNames...)->
 	path.join 'test','temp',path.join.apply(path, fileNames)
-			# fs.outputFileAsync(tempFile('nestedA.js'), "A").then ()->
-			# 	SimplyImport("import 'test/temp/nestedA.js'", null, {isStream:true}).then (result)->
-			# 		expect(result).to.equal "A"
 			
 
 suite "SimplyImport", ()->
@@ -572,10 +563,9 @@ suite "SimplyImport", ()->
 				expect(result).to.equal(fileContent)
 
 
-		test.skip "Supported core NPM modules will be imported as polyfills", ()->
+		test "Supported core NPM modules will be imported as polyfills", ()->
 			fileContent = "
 				var assertB = import 'assert';\n\
-				var zlibB = import 'zlib';\n\
 				var bufferB = import 'buffer';\n\
 				var consoleB = import 'console';\n\
 				var constantsB = import 'constants';\n\
@@ -596,6 +586,7 @@ suite "SimplyImport", ()->
 				var utilB = import 'util';\n\
 				var vmB = import 'vm';\n\
 			"
+				# var zlibB = import 'zlib';\n\
 			SimplyImport(fileContent, null, {isStream:true}).then (result)->
 				console.log result.length
 				expect(result).not.to.equal(fileContent)
