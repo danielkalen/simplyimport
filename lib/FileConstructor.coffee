@@ -48,10 +48,11 @@ File::process = ()-> if @processPromise then @processPromise else
 		.then(@getContents)
 		.then(@checkIfIsThirdPartyBundle)
 		.then ()=>
-			if File.instanceCache[@hash] and not File.instanceCache[@cacheRef]
-				File.instanceCache[@cacheRef] = File.instanceCache[@hash]
-			else
-				File.instanceCache[@hash] = @
+			unless @isMain
+				if File.instanceCache[@hash] and not File.instanceCache[@cacheRef]
+					File.instanceCache[@cacheRef] = File.instanceCache[@hash]
+				else
+					File.instanceCache[@hash] = @
 
 			return File.instanceCache[@cacheRef] ||= @
 		
