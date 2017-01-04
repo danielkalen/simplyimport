@@ -234,9 +234,9 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 
 	@collectedImports
 		.then ()=>
-			if (regEx.export.test(@content) or regEx.commonJS.export.test(@content)) and not @isThirdPartyBundle
+			if regEx.export.test(@content) or regEx.commonJS.export.test(@content) or regEx.exportsVar.test(@content)
 				@hasExports = true
-				@normalizeExports()	
+				@normalizeExports()	unless @isThirdPartyBundle
 
 		.then ()=>
 			if @options.recursive

@@ -1,6 +1,7 @@
 regEx = 
 	stringContents: /".+?"|'.+?'/g
 	singleBracketEnd: /^[^\(]*\)/
+	exportsVar: /\bexports\b/
 	useStrict: /["']use strict["'];\n\n/
 	
 	fileExt: ///
