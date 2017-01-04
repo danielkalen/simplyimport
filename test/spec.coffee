@@ -696,6 +696,15 @@ suite "SimplyImport", ()->
 
 
 
+		test "Transpiling to ES5 should not strip 'use strict' statements", ()-> if nodeVersion <= 4 then @skip() else 
+			fs.outputFileAsync(tempFile('es6strict.js'), "'use strict';\n\nlet abc = 123;").then ()->
+				SimplyImport('import test/temp/es6strict.js', {toES5:true}, isStream:true).then (result)->
+					expect(result).not.to.include('let abc')
+					expect(result).to.include('var abc')
+					expect(result).to.include('use strict')
+
+
+
 
 
 

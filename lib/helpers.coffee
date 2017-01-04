@@ -227,9 +227,6 @@ helpers =
 			content = "return #{content}" if filePath.endsWith('json')
 			return content
 
-		when not content
-			return content
-
 		else
 			try
 				AST = acorn.parse(content, {allowReserved:true, allowReturnOutsideFunction:true})
@@ -271,9 +268,10 @@ helpers =
 
 
 
-	transpileES6toES5: (code)-> if not code then code else
+	transpileES6toES5: (code)->
 		transpiled = babel.transform(code, presets:'latest', ast:false).code
 		transpiled = transpiled.replace(regEx.useStrict, '') unless regEx.useStrict.test(code)
+		return transpiled
 
 
 
