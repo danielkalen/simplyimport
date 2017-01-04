@@ -1,7 +1,7 @@
 module.exports =
 	'i':
 		alias: 'input'
-		describe: 'Path of the file to compile (relative or absolute)'
+		describe: 'Path of the file to compile (stdin will be used if omitted)'
 		type: 'string'
 
 	'o':
@@ -11,7 +11,7 @@ module.exports =
 
 	'c':
 		alias: 'conditions'
-		describe: 'Conditions list that import directives which have conditions should match against. Syntax: -c condA [condB...]'
+		describe: 'Conditions list that import statements which have conditions should match against. \'*\' will match all conditions. Syntax: -c condA [condB...]'
 		type: 'array'
 
 	'u':
@@ -22,13 +22,13 @@ module.exports =
 
 	'r':
 		alias: 'recursive'
-		describe: 'Follow/attend import directives inside imported files, (--no-r to disable) (default:true)'
+		describe: 'Follow/attend import statements inside imported files, (--no-r to disable) (default:true)'
 		default: undefined
 		type: 'boolean'
 
 	'p':
 		alias: 'preserve'
-		describe: 'Invalid import directives should be kept in the file in a comment format (default:false)'
+		describe: 'Invalid import statements should be kept in the file in a comment format (default:false)'
 		default: undefined
 		type: 'boolean'
 

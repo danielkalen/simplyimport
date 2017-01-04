@@ -8,8 +8,8 @@ labels =
 	'exportExamples': chalk.bgCyan.black('Export Examples')
 
 values =
-	'usage': "simplyimport -i #{chalk.italic.dim('<input>')} -o #{chalk.italic.dim('<output>')} -[c|u|r|p|s|C]"
-	'importDirective': "import [#{chalk.italic.dim('<conditions>')}] [#{chalk.italic.dim('<defaultMember> {<members>}')}] #{chalk.italic.dim('<file/module path>')} #{orLabel} require(#{chalk.italic.dim('<file/module path>')})"
+	'usage': "simplyimport -i #{chalk.italic.dim('<input>')} -o #{chalk.italic.dim('<output>')} -[c|u|r|p|s|t|C]"
+	'importDirective': "import [#{chalk.italic.dim('<conditions>')}] [#{chalk.italic.dim('<defaultMember> {<members>}')} from] #{chalk.italic.dim('<filepath/module>')} #{orLabel} require(#{chalk.italic.dim('<filepath/module>')})"
 	'importExamples': [
 		"import 'parts/someFile.js'"
 		"import 'parts/someFile.coffee'"
