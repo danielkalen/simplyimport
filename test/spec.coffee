@@ -52,14 +52,13 @@ suite "SimplyImport", ()->
 					expect(result).to.equal "// #{importDec}"
 			
 					SimplyImport(importDec, null, {isStream:true}).then (result)->
-						expect(result).to.equal ""
+						expect(result).to.equal "{}"
 			
-
-					fs.outputFileAsync(tempFile('failedImport.coffee'), '123').then ()->
-						importDec = "import [abc] 'test/temp/failedImport.coffee'"
-					
-						SimplyImport(importDec, {preserve:true}, {isStream:true, isCoffee:true}).then (result)->
-							expect(result).to.equal "\# #{importDec}"
+						fs.outputFileAsync(tempFile('failedImport.coffee'), '123').then ()->
+							importDec = "import [abc] 'test/temp/failedImport.coffee'"
+						
+							SimplyImport(importDec, {preserve:true}, {isStream:true, isCoffee:true}).then (result)->
+								expect(result).to.equal "\# #{importDec}"
 
 
 
@@ -89,7 +88,7 @@ suite "SimplyImport", ()->
 
 
 
-		test "If output path is a directory, the result will be written to the a file with the same name as the input file appended with .compiled at the end", ()->			
+		test "If output path is a directory, the result will be written to the a file with the same name as the input file appended with .compiled at the end", ()->
 			Promise.all([
 				fs.outputFileAsync(tempFile('childFile.js'), 'abc123')
 				fs.outputFileAsync(tempFile('theFile.js'), "import 'childFile.js'")
@@ -138,6 +137,7 @@ suite "SimplyImport", ()->
 			
 							SimplyImport.scanImports("import test/temp/dirWithIndex", opts).then (result)->
 								expect(result[0]).to.equal "test/temp/dirWithIndex/index.js"
+
 
 
 		test "Quoted import/require statements will be ignored", ()->
@@ -221,6 +221,14 @@ suite "SimplyImport", ()->
 
 
 
+		test "An import statement with non-ExpressionStatement contents that is placed after preceding content will be wrapped in a IIFE closure", ()->
+			fs.outputFileAsync(tempFile('nonExpression.js'), "var thisShallBeReturned = 'abc123'").then ()->
+				SimplyImport("var imported = import test/temp/nonExpression.js", null, {isStream:true}).then (result)->
+					eval(result)
+					expect(imported).to.equal 'abc123'
+
+
+
 		test "Duplicate imports will cause the imported file to be wrapped in an IIFE and have its last statement returned with all imports referencing the return value", ()->
 			invokeCount = 0
 			expectation = null
@@ -229,17 +237,13 @@ suite "SimplyImport", ()->
 				expect(result).to.equal expectation
 
 			adjustResult = (result, minIndex)->
-				result
-					.split '\n'
-					.map (line, index)-> if index >= minIndex then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
-					.join '\n'
+				result.replace /\_s\$m\(\d+\)/g, (entire)-> "invokeFn(#{entire})"
 
 			fs.outputFileAsync(tempFile('fileA.js'), "var output = 'varLess'").then ()->
 				SimplyImport("import 'test/temp/fileA.js'\n".repeat(2), null, {isStream:true}).then (result)->
 					expect(result.startsWith "var output = 'varLess'").to.be.false
-
 					expectation = 'varLess'
-					eval(adjustResult(result, 2))
+					eval(adjustResult(result))
 					expect(invokeCount).to.equal 2
 
 					fs.outputFileAsync(tempFile('fileB.js'), "var output = 'withVar'").then ()->
@@ -247,7 +251,7 @@ suite "SimplyImport", ()->
 							expect(result.startsWith "var output = 'withVar'").to.be.false
 
 							expectation = 'withVar'
-							eval(adjustResult(result, 2))
+							eval(adjustResult(result))
 							expect(invokeCount).to.equal 4
 
 						fs.outputFileAsync(tempFile('fileC.js'), "return 'returnStatment'").then ()->
@@ -255,7 +259,7 @@ suite "SimplyImport", ()->
 								expect(result.startsWith "return 'returnStatment'").to.be.false
 
 								expectation = 'returnStatment'
-								eval(adjustResult(result, 1))
+								eval(adjustResult(result))
 								expect(invokeCount).to.equal 6
 
 								fs.outputFileAsync(tempFile('fileD.js'), "if (true) {output = 'condA'} else {output = 'condB'}").then ()->
@@ -263,7 +267,7 @@ suite "SimplyImport", ()->
 										expect(result.startsWith "if (true)").to.be.false
 
 										expectation = undefined
-										eval(adjustResult(result, 1))
+										eval(adjustResult(result))
 										expect(invokeCount).to.equal 8
 
 										origLog = console.error
@@ -283,10 +287,10 @@ suite "SimplyImport", ()->
 			]).then ()->				
 				SimplyImport("import 'test/temp/importingA.js'\nimport 'test/temp/importingB.js'\nimport 'test/temp/variable.js'", null, {isStream:true}).then (result)->
 					origResult = result
-					result = result
-						.split '\n'
-						.map (line, index)-> if index then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
-						.join '\n'
+					result = do ()->
+						partA = result.split('\n').slice(0,4).join('\n')
+						partB = result.split('\n').slice(4).join('\n')
+						partA+'\n'+partB.replace /\_s\$m\(\d+\)/g, (entire)-> "invokeFn(#{entire})"
 
 					invokeCount = 0
 					invokeFn = (result)->
@@ -299,13 +303,13 @@ suite "SimplyImport", ()->
 
 
 		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()->
-			opts = {preventGlobalLeaks:false}
+			opts = {preventGlobalLeaks:false, toES5:true}
 			fs.outputFileAsync(tempFile('exportBasic.js'), "
 				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
 				export {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
 				export default function(){return 33};\n\
 				export function namedFn (){return 33};\n\
-				export function namedFn2 = ()=> 33;\n\
+				export var namedFn2 = ()=> 33;\n\
 				export class someClass {};\n\
 				export var another = 'anotherValue'\n\
 				export let kid ='kiddy';
@@ -405,7 +409,7 @@ suite "SimplyImport", ()->
 			opts = {preventGlobalLeaks:false}
 			fs.outputFileAsync(tempFile('exportBasic.js'), "
 				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
-				exports = function(){return 33};\n\
+				exports = module.exports = function(){return 33};\n\
 				module.exports.AAA = AAA\n\
 				module.exports[BBB.toUpperCase()] = BBB;\n\
 				var moduleExports = exports;\n\
@@ -502,7 +506,7 @@ suite "SimplyImport", ()->
 					SimplyImport(importLines.join('\n'), null, {isStream:true, context:'test/temp'})
 					SimplyImport(requireLines.join('\n'), null, {isStream:true, context:'test/temp'})
 				]).then (results)->
-					expect(results[0].split('\n').slice(0,-1)).to.eql(results[1].split('\n').slice(0,-1))
+					expect(results[0].split('\n').slice(0,-2)).to.eql(results[1].split('\n').slice(0,-2))
 
 
 
@@ -628,21 +632,37 @@ suite "SimplyImport", ()->
 
 		test "Cyclic imports are supported", ()->
 			Promise.all([
-				fs.outputFileAsync tempFile('importer.js'), "var fileA = import 'fileA.js'\n var fileB = import 'fileB.js'\n var fileC = import 'fileC.js'"
+				fs.outputFileAsync tempFile('importer.js'), "var fileA = import 'fileA.js'\nvar fileB = import 'fileB.js'\nvar fileC = import 'fileC.js'"
+				fs.outputFileAsync tempFile('importerSingle.js'), "var fileA = import 'fileA.js'\nvar fileA2 = import 'fileA.js'"
 				fs.outputFileAsync tempFile('fileA.js'), "var theOtherOne = import 'fileB.js';\n var thisOne = 'fileA-'+theOtherOne"
 				fs.outputFileAsync tempFile('fileB.js'), "var theOtherOne = import 'fileA.js';\n var thisOne = 'fileB-'+theOtherOne"
-				fs.outputFileAsync tempFile('fileC.js'), "exports = import 'fileD.js';"
+				fs.outputFileAsync tempFile('fileC.js'), "module.exports = import 'fileD.js';"
 				fs.outputFileAsync tempFile('fileD.js'), "import 'fileA.js';"
 			]).then ()->
 				SimplyImport("import test/temp/importer.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 					try
 						eval(result)
-						# expect(fileA).to.equal 'fileA-undefined'
-						# expect(fileB).to.equal 'fileB-fileA-undefined'
-						# expect(fileC).to.equal 'fileA-undefined'
+						expect(fileA).to.equal 'fileA-fileB-[object Object]'
+						expect(fileB).to.equal 'fileB-[object Object]'
+						expect(fileC).to.equal 'fileA-fileB-[object Object]'
 					catch err
 						console.log(result)
 						throw err
+					
+					SimplyImport("import test/temp/importerSingle.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
+						eval(result)
+						expect(fileA).to.equal('fileA-fileB-[object Object]')
+
+
+
+		test "Self imports are supported", ()->
+			fs.outputFileAsync(tempFile('selfImporter.js'), "module.exports = {name:'thySelf'};\nprocess.nextTick(()=> exports.selfRef = import 'selfImporter.js'\n)").then ()->
+				SimplyImport('var data = import test/temp/selfImporter.js', {preventGlobalLeaks:false}, {isStream:true}).then (result)->
+					eval(result)
+					process.nextTick ()->
+						expect(typeof data).to.equal 'object'
+						expect(data.name).to.equal 'thySelf'
+						expect(data.selfRef).to.equal data
 
 
 
@@ -654,11 +674,24 @@ suite "SimplyImport", ()->
 					fs.outputFileAsync tempFile('browserified.js'), browserified
 				]).then ()->
 					SimplyImport("import test/temp/browserifyImporter.js", null, {isStream:true}).then (result)->
+						# console.log result
 						eval(result)
-						expect(typeof units).to.equal 'function'
-						units = units('timeunits')
-						expect(units.hour).to.equal 3600000
+						expect(result).to.include("require('timeunits');")
+						expect(typeof units).to.equal 'object'
+						# units = units('timeunits')
+						# expect(units.hour).to.equal 3600000
 
+
+
+		test "Imported files with es6 syntax will have their contents transpiled to es5-compatible code when options.toES5 is on", ()->
+			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->
+				SimplyImport('import test/temp/es6.js', null, isStream:true).then (result)->
+					expect(result).to.include('let abc')
+					expect(result).not.to.include('var abc')
+					
+					SimplyImport('import test/temp/es6.js', {toES5:true}, isStream:true).then (result)->
+						expect(result).not.to.include('let abc')
+						expect(result).to.include('var abc')
 
 
 
@@ -764,10 +797,7 @@ suite "SimplyImport", ()->
 				SimplyImport("#{importDec}\n #{importDec}\n", null, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).not.to.equal "var output = 'someOutput'\n var output = 'someOutput'\n"
 					result = coffeeCompiler.compile result, 'bare':true
-					result = result
-						.split '\n'
-						.map (line, index)-> if [7,8].includes(index) then line.replace(/(\_sim\_.+?);/, 'invokeFn($1);') else line
-						.join '\n'
+					result = result.replace /\_s\$m\(\d+\)/g, (entire)-> "invokeFn(#{entire})"
 
 					invokeCount = 0
 					invokeFn = (result)->
@@ -786,10 +816,11 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync(tempFile('importingA.coffee'), "import variable.coffee")
 			]).then ()->				
 				SimplyImport("import 'test/temp/importingA.coffee'\nimport 'test/temp/importingB.coffee'\nimport 'test/temp/variable.coffee'", null, {isStream:true, isCoffee:true}).then (result)->
-					result = result
-						.split '\n'
-						.map (line, index)-> if index > 2 then line.replace(/(\_sim\_.{5})/, 'invokeFn($1)') else line
-						.join '\n'
+					result = do ()->
+						partA = result.split('\n').slice(0,5).join('\n')
+						partB = result.split('\n').slice(5).join('\n')
+						partA+'\n'+partB.replace /\_s\$m\(\d+\)/g, (entire)-> "invokeFn(#{entire})"
+
 					result = coffeeCompiler.compile result, 'bare':true
 
 					invokeCount = 0
@@ -902,7 +933,7 @@ suite "SimplyImport", ()->
 			opts = {preventGlobalLeaks:false}
 			fs.outputFileAsync(tempFile('exportBasic.coffee'), "
 				AAA = 'aaa'; BBB = 'bbb'; CCC = 'ccc'; DDD = 'ddd';\n\
-				exports = ()-> 33\n\
+				exports = module.exports = ()-> 33\n\
 				module.exports.AAA = AAA\n\
 				module.exports[BBB.toUpperCase()] = BBB\n\
 				moduleExports = exports\n\
@@ -1002,7 +1033,7 @@ suite "SimplyImport", ()->
 					SimplyImport(importLines.join('\n'), null, {isStream:true, isCoffee:true, context:'test/temp'})
 					SimplyImport(requireLines.join('\n'), null, {isStream:true, isCoffee:true, context:'test/temp'})
 				]).then (results)->
-					expect(results[0].split('\n').slice(0,-1)).to.eql(results[1].split('\n').slice(0,-1))
+					expect(results[0].split('\n').slice(0,-2)).to.eql(results[1].split('\n').slice(0,-2))
 					Promise.all [
 						fs.removeAsync(tempFile('noext.coffee'))
 						fs.removeAsync(tempFile('realNoExt'))

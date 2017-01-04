@@ -205,8 +205,8 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 						@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
 						childFile.hasUsefulExports = true
 					
-					else if priorContent
-						childFile.hasUsefulExports = true
+					if priorContent
+						childFile.requiresReturnedClosure = /\S/.test(priorContent)
 
 					Promise.resolve()
 
@@ -293,12 +293,12 @@ File::normalizeExports = ()->
 File::replaceImports = (childImports)->
 	@imports.forEach (childHash, importIndex)=>
 		childFile = @importRefs[childHash]
-		childContent = childImports[importIndex]
+		childContent = childFile.compiledContent
 		targetLine = @lineRefs[importIndex]
 
 		replaceLine = (childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)=>
 			if childFile.importedCount > 1
-				childContent = childFile.contentReference
+				childContent = "_s$m(#{childFile.contentReference})"
 			else
 				# ==== Spacing =================================================================================
 				if priorContent and priorContent.replace(/\s/g, '') is ''
@@ -380,64 +380,82 @@ File::replaceBadImports = ()->
 
 
 
+
 File::prependDuplicateRefs = (content)->
 	duplicates = (file for hash,file of @importRefs when file.importedCount > 1)
+	return content if not duplicates.length
 
-	if duplicates.length
-		@requiresClosure = true
-		assignments = []
-		
-		for file in duplicates
-			varName = file.contentReference
-			declaration = if not @isCoffee then "var #{varName}" else varName
-			switch
-				when @isCoffee and not file.isCoffee
-					fileContent = helpers.modToReturnLastStatement(file.compiledContent, file.filePathSimple)
-					fileContent = helpers.formatJsContentForCoffee(fileContent)
-					addFakeReturn = true
-				when @isCoffee
-					fileContent = file.compiledContent
-				else
-					fileContent = helpers.modToReturnLastStatement(file.compiledContent, file.filePathSimple)
+	Promise
+		.all duplicates.map (file)-> file.compile()
+		.then ()=>
+			@requiresClosure = true
+			assignments = []
+			
+			for file in duplicates
+				value = if @isCoffee and not file.isCoffee
+							helpers.formatJsContentForCoffee(file.compiledContent)
+						else
+							file.compiledContent
 
-			value = helpers.wrapInClosure(fileContent, @isCoffee, addFakeReturn)
-			assignments.push "#{declaration} = #{value}"
+				assignments.push "m[#{file.contentReference}] = #{value}"
 
-		assignments = assignments.reverse().join('\n')
-		content = "#{assignments}\n#{content}"
-
-	return content
+			loader = helpers.wrapInLoaderClosure(assignments, '\t', @isCoffee)
+			result = "#{loader}\n#{content}"
+			result = if @options.preventGlobalLeaks then helpers.wrapInClosure(result, @isCoffee) else result
+			return result
 
 
 
 
-File::compile = (importer=@)-> if @compilePromise then @compilePromise else
+
+File::compile = (importerStack=[])-> if @compilePromise then @compilePromise else
 	return (@compiledContent=@content) if not @options.recursive and not @isMain
 
+	importerStack.push(@) unless importerStack.includes(@)
 
-	@compilePromise = Promise
-		.all @imports.map (hash)=>
+	childImportsPromise = Promise.delay().then ()=>
+		Promise.all @imports.map (hash)=>
 			childFile = @importRefs[hash]
-			childFile.compile(@) unless childFile is importer or childFile.checkIfImportsFile(importer)
+			childFile.compile(importerStack) unless importerStack.includes(childFile)
+
 		
+	@compilePromise = childImportsPromise
 		.then (childImports)=>
 			@replaceImports(childImports)
 			@replaceBadImports(childImports)
 			return @contentLines.join '\n'
-			
 
 		.then (compiledResult)=>
-			compiledResult = helpers.wrapInExportsClosure(compiledResult, @isCoffee) if @hasExports
-			compiledResult = @prependDuplicateRefs(compiledResult) if @isMain		
-			compiledResult = helpers.wrapInClosure(compiledResult, @isCoffee) if @requiresClosure and @options.preventGlobalLeaks
-			
-			@compiledContent = compiledResult
+			switch
+				when @isMain
+					return @prependDuplicateRefs(compiledResult)
+				
+				when @hasExports
+					return helpers.wrapInExportsClosure(compiledResult, @isCoffee, @importedCount>1)
+				
+				when @requiresReturnedClosure or @importedCount>1
+					if @isCoffee
+						return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1)
+					else
+						modifiedContent = helpers.modToReturnLastStatement(compiledResult||='{}', @filePathSimple)
+						if modifiedContent is 'ExpressionStatement'
+							return compiledResult unless @importedCount>1
+							modifiedContent = "return #{compiledResult}"
+						
+						return helpers.wrapInClosure(modifiedContent, false, @importedCount>1)
+				
+				when @requiresClosure
+					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1)
+
+				else compiledResult
+		
 		.then (compiledResult)=>
 			if @options.toES5 and not @isCoffee and @isMain
 				helpers.transpileES6toES5(compiledResult)
 			else
 				compiledResult
 		
+		.then (result)=> @compiledContent = result or '{}'
 
 
 
