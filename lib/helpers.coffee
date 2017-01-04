@@ -12,7 +12,7 @@ coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'mod
 coreModuleShims = 
 	'': path.resolve(__dirname,'..','node_modules','')
 	'assert':					path.resolve(__dirname,'..','node_modules','assert','assert.js')
-	'zlib':						path.resolve(__dirname,'..','node_modules','browserify-zlib','src','index.js')
+	'zlib':						path.resolve(__dirname,'..','node_modules','@danielkalen','browserify-zlib','src','index.js')
 	'buffer':					path.resolve(__dirname,'..','node_modules','buffer','index.js')
 	'console':					path.resolve(__dirname,'..','node_modules','console-browserify','index.js')
 	'constants':				path.resolve(__dirname,'..','node_modules','constants-browserify','constants.json')
@@ -33,8 +33,12 @@ coreModuleShims =
 	'url':						path.resolve(__dirname,'..','node_modules','url','url.js')
 	'util':						path.resolve(__dirname,'..','node_modules','util','util.js')
 	'vm':						path.resolve(__dirname,'..','node_modules','vm-browserify','index.js')
-escodegen.ReturnStatement = (argument)->
-	{type:'ReturnStatement', argument}
+
+
+escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
+
+
+
 
 helpers = 
 	getNormalizedDirname: (inputPath)->

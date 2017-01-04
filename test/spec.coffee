@@ -2,6 +2,8 @@ Promise = require 'bluebird'
 # Promise.config longStackTraces:true
 fs = Promise.promisifyAll require 'fs-extra'
 path = require 'path'
+chalk = require 'chalk'
+mocha = require 'mocha'
 chai = require 'chai'
 chaiSpies = require 'chai-spies'
 chai.use chaiSpies
@@ -15,6 +17,7 @@ regEx = require '../lib/regex'
 exec = require('child_process').exec
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
+badES6Support = parseFloat(process.version[1]) < 6
 bin = path.resolve 'bin'
 SimplyImport = require if process.env.forCoverage then '../forCoverage/simplyimport.js' else '../index.js'
 SimplyImport.defaults.dirCache = false
@@ -568,33 +571,58 @@ suite "SimplyImport", ()->
 				expect(result).to.equal(fileContent)
 
 
-		test "Supported core NPM modules will be imported as polyfills", ()->
+
+		test "Supported core NPM modules will be imported as polyfills", ()-> if badES6Support then @skip() else
 			fileContent = "
-				var assertB = import 'assert';\n\
-				var bufferB = import 'buffer';\n\
-				var consoleB = import 'console';\n\
-				var constantsB = import 'constants';\n\
-				var cryptoB = import 'crypto';\n\
-				var domainB = import 'domain';\n\
-				var eventsB = import 'events';\n\
-				var httpsB = import 'https';\n\
-				var osB = import 'os';\n\
-				var pathB = import 'path';\n\
-				var processB = import 'process';\n\
-				var punycodeB = import 'punycode';\n\
-				var querystringB = import 'querystring';\n\
-				var httpB = import 'http';\n\
-				var string_decoderB = import 'string_decoder';\n\
-				var timersB = import 'timers';\n\
-				var ttyB = import 'tty';\n\
-				var urlB = import 'url';\n\
-				var utilB = import 'util';\n\
-				var vmB = import 'vm';\n\
+				global.assertB = import 'assert';\n\
+				global.consoleB = import 'console';\n\
+				global.constantsB = import 'constants';\n\
+				global.cryptoB = import 'crypto';\n\
+				global.domainB = import 'domain';\n\
+				global.eventsB = import 'events';\n\
+				global.httpB = import 'http';\n\
+				global.httpsB = import 'https';\n\
+				global.osB = import 'os';\n\
+				global.pathB = import 'path';\n\
+				global.processB = import 'process';\n\
+				global.punycodeB = import 'punycode';\n\
+				global.querystringB = import 'querystring';\n\
+				global.string_decoderB = import 'string_decoder';\n\
+				global.bufferB = import 'buffer';\n\
+				global.timersB = import 'timers';\n\
+				global.ttyB = import 'tty';\n\
+				global.urlB = import 'url';\n\
+				global.utilB = import 'util';\n\
+				global.vmB = import 'vm';\n\
+				global.zlibB = import 'zlib';\n\
 			"
-				# var zlibB = import 'zlib';\n\
 			SimplyImport(fileContent, null, {isStream:true}).then (result)->
-				console.log result.length
 				expect(result).not.to.equal(fileContent)
+				# fs.outputFileAsync('./crypo.js', result);
+
+				global.XMLHttpRequest = ()-> {open:()->}
+				eval(result)
+				expect(typeof assertB.deepEqual).to.equal 'function'
+				expect(typeof consoleB.log).to.equal 'function'
+				expect(typeof constantsB).to.equal 'object'
+				expect(typeof cryptoB.pbkdf2).to.equal 'function'
+				expect(typeof domainB.create).to.equal 'function'
+				expect(typeof eventsB).to.equal 'function'
+				expect(typeof httpB.get).to.equal 'function'
+				expect(typeof httpsB.get).to.equal 'function'
+				expect(typeof osB.hostname).to.equal 'function'
+				expect(typeof pathB.resolve).to.equal 'function'
+				expect(typeof processB.cwd).to.equal 'function'
+				expect(typeof punycodeB.decode).to.equal 'function'
+				expect(typeof querystringB.encode).to.equal 'function'
+				expect(typeof string_decoderB.StringDecoder).to.equal 'function'
+				expect(typeof bufferB.Buffer).to.equal 'function'
+				expect(typeof timersB.setTimeout).to.equal 'function'
+				expect(typeof ttyB.isatty).to.equal 'function'
+				expect(typeof urlB.parse).to.equal 'function'
+				expect(typeof utilB.inspect).to.equal 'function'
+				expect(typeof vmB.Script).to.equal 'function'
+				expect(typeof zlibB.createGzip).to.equal 'function'
 
 
 
