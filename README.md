@@ -190,7 +190,7 @@ SimplyImport.scanImports('./main.js').then(function(imports){
 
 
 ## Case-specific notes
-#### Returning the last statement of exprot-less imports
+### Returning the last statement of exprot-less imports
 If an import statement is assigned to a variable its content will be modified to return the last expression if it doesn't have any exports.
 ```javascript
 /*--- childFile.js ---*/
@@ -220,7 +220,7 @@ var importedContent = (function(){
 ```
 
 
-#### Commented imports/requires
+### Commented imports/requires
 If SimplyImport encounters a commented import/require, the import will be ignored and will not be scanned.
 ```javascript
 // import 'someFile.js'
@@ -236,11 +236,11 @@ var another = /*contents of anotherFile.js*/;
 ```
 
 
-#### Module/filepath precedence
+### Module/filepath precedence
 SimplyImport will first attempt to resolve supplied import paths as NPM packages and only if no package was found will it proceed to resolving as regular files. This means that if you have a NPM package installed named *uniq* and have a file called *./uniq.js*, `require('uniq')` will resolve to the NPM package if it's installed, otherwise the local file will be used.
 
 
-#### ES6-syntax import statements can be wrapped in parenthesis and used in any scope
+### ES6-syntax import statements can be wrapped in parenthesis and used in any scope
 Regular ES6 imports are only allowed in the outer-most scope and may not be placed inside closures or block statements, but SimplyImport allows import statements to be placed in any place you desire.
 ```javascript
 /*--- func.js ---*/
