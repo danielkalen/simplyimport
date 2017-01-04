@@ -17,7 +17,8 @@ regEx = require '../lib/regex'
 exec = require('child_process').exec
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
-badES6Support = parseFloat(process.version[1]) < 6
+nodeVersion = parseFloat(process.version[1])
+badES6Support = nodeVersion < 6
 bin = path.resolve 'bin'
 SimplyImport = require if process.env.forCoverage then '../forCoverage/simplyimport.js' else '../index.js'
 SimplyImport.defaults.dirCache = false
@@ -302,7 +303,7 @@ suite "SimplyImport", ()->
 
 
 
-		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()->
+		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()-> if nodeVersion <= 4 then @skip() else 
 			opts = {preventGlobalLeaks:false, toES5:true}
 			fs.outputFileAsync(tempFile('exportBasic.js'), "
 				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
