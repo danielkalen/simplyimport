@@ -27,6 +27,7 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
 	@orderRefs = []
 	@contentReference = helpers.genUniqueVar()
 	@cacheRef = if @isMain then '*main*' else input
+	@importRefs.main = @ if @isMain
 
 	return File.instanceCache[@cacheRef] or @
 
