@@ -3,6 +3,9 @@ var regEx;
 
 regEx = {
   stringContents: /".+?"|'.+?'/g,
+  singleBracketEnd: /^[^\(]*\)/,
+  exportsVar: /\bexports\b/,
+  useStrict: /["']use strict["'];\n\n/,
   fileExt: /.+\.(js|coffee)$/i,
   fileContent: /^(\s*)((?:\w|\W)+)/,
   escapedNewLine: /\\\n/g,
@@ -12,7 +15,7 @@ regEx = {
   "export": /^export\s+(?:(\{.+\})|(default|function\*?|class|var|const|let)\s+(\S+)?)?(.*)$/gm,
   commonJS: {
     "export": /^(.+[ \t\r]|.+\;|)(?:exports\s*|(?:module(?:\.exports|\['exports'\]|\["exports"\])\s*))(\[|[=\.])(.*)$/gm,
-    "import": /^(.+[ \t\r]|.+\;|)require(?:\s+|\()\s*(".*?"|'.*?')(?:\)|[^\n\S]?)(.*)$/gm
+    "import": /^(.+[ \t\r]|.+\;|)require(\s+|\()\s*(".*?"|'.*?')(?:\)|[^\n\S]?)(.*)$/gm
   },
   comment: {
     singleLine: /([^:]|^)\/\/(.*)$/mg,

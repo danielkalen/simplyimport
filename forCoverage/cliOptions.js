@@ -33,6 +33,12 @@ module.exports = {
     "default": void 0,
     type: 'boolean'
   },
+  't': {
+    alias: 'to-es5',
+    describe: 'Transpile all ES6 code present in imported files to be ES5 compatible (default:false)',
+    "default": void 0,
+    type: 'boolean'
+  },
   'C': {
     alias: 'compile-coffee-children',
     describe: 'If a JS file is importing coffeescript files, the imported files will be compiled to JS first (default:false)',

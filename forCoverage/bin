@@ -60,7 +60,6 @@ if (outputPath && !outputIsFile) {
 }
 
 writeResult = function(processedContent) {
-  console.log(outputPath, outputPath);
   if (outputPath) {
     outputPath = path.normalize(outputPath);
     return fs.outputFile(outputPath, processedContent);

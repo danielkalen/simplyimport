@@ -3,6 +3,8 @@ var File, PATH, Promise, SimplyImport, defaultOptions, extend, fs, helpers, regE
 
 require('array-includes').shim();
 
+require('object.entries').shim();
+
 Promise = require('bluebird');
 
 fs = Promise.promisifyAll(require('fs-extra'));
@@ -58,9 +60,7 @@ SimplyImport = function(input, options, state) {
   }
   return fileContent.then(function(contents) {
     var subjectFile;
-    subjectFile = new File(contents, options, {
-      duplicates: {}
-    }, state);
+    subjectFile = new File(contents, options, {}, state);
     return subjectFile.process().then(function() {
       return subjectFile.collectImports().then(function() {
         return subjectFile.compile();
@@ -102,12 +102,12 @@ SimplyImport.scanImports = function(input, opts) {
   }
   return fileContent.then(function(contents) {
     var subjectFile;
-    subjectFile = new File(contents, importOptions, {
-      duplicates: {}
-    }, opts);
+    subjectFile = new File(contents, importOptions, {}, opts);
     return subjectFile.process().then(function() {
       return subjectFile.collectImports().then(function() {
-        return subjectFile.imports.sort(function(hashA, hashB) {
+        return subjectFile.imports.filter(function(validImport) {
+          return validImport;
+        }).sort(function(hashA, hashB) {
           return subjectFile.orderRefs.findIndex(function(ref) {
             return ref === hashA;
           }) - subjectFile.orderRefs.findIndex(function(ref) {

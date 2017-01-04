@@ -152,12 +152,12 @@ File::checkIfImportsFile = (targetFile)->
 		importsArray.includes(targetFile.hash) or
 		importsArray.find (importHash)->
 			currentFile = importRefs[importHash]
-			if currentFile
-				if iteratedArrays.includes(currentFile.imports)
-					return false
-				else
-					iteratedArrays.push(currentFile.imports)
-					return checkArray(currentFile.imports)
+
+			if iteratedArrays.includes(currentFile.imports)
+				return false
+			else
+				iteratedArrays.push(currentFile.imports)
+				return checkArray(currentFile.imports)
 
 	checkArray(@imports)
 
@@ -195,7 +195,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 		else
 			childFile = new File childPath, @options, @importRefs
 			childFile.process()
-				.then (childFile)=>
+				.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
 					childFile.importedCount++
 					@importRefs[childFile.hash] = childFile
 					@imports[orderRefIndex] = childFile.hash
@@ -214,7 +214,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 				.catch (err)=>
 					if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
 						selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)
-						console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple or childPath} #{chalk.dim(selfReference)}"
+						console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple} #{chalk.dim(selfReference)}"
 						Promise.reject(err)
 
 
@@ -260,12 +260,11 @@ File::normalizeExports = ()->
 	# ==== ES6/SimplyImport syntax =================================================================================
 	@content.replace regEx.export, (entireLine, exportMap, exportType, label, trailingContent)=>
 		lineIndex = @contentLines.indexOf(entireLine)
-		### istanbul ignore else ###
 		switch
 			when exportMap
 				@contentLines[lineIndex] = "module.exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
 			
-			when exportType is 'default' then switch
+			when exportType is 'default' then return switch
 				when helpers.testIfIsExportMap(label+trailingContent)
 					exportMap = label+trailingContent.replace(/;$/, '')
 					@contentLines[lineIndex] = "module.exports['*default*'] = #{helpers.normalizeExportMap(exportMap)}"
@@ -274,6 +273,7 @@ File::normalizeExports = ()->
 			
 			when exportType?.includes('function')
 				labelName = label.replace(/\(.*?\).*$/, '')
+				### istanbul ignore next ###
 				value = if trailingContent.includes('=>') then "#{label}#{trailingContent}" else "#{exportType} #{label}#{trailingContent}"
 				@contentLines[lineIndex] = "module.exports['#{labelName}'] = #{value}"
 
@@ -286,8 +286,8 @@ File::normalizeExports = ()->
 			when not exportType and not exportMap
 				label = trailingContent.match(/^\S+/)[0]
 				@contentLines[lineIndex] = "module.exports['#{label}'] = #{trailingContent}"
-			else
-				throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
+			# else
+			# 	throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
 
 
 
@@ -363,7 +363,7 @@ File::replaceImports = (childImports)->
 				replaceLine(childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)
 		else
 			@contentLines[targetLine] = @contentLines[targetLine].replace regEx.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)->
-				if regEx.singleBracketEnd.test(trailingContent) then Promise.resolve() else replaceLine(childPath, entireLine, priorContent, trailingContent, '')
+				replaceLine(childPath, entireLine, priorContent, trailingContent, '')
 
 	return
 
@@ -389,7 +389,6 @@ File::prependDuplicateRefs = (content)->
 	Promise
 		.all duplicates.map (file)-> file.compile()
 		.then ()=>
-			@requiresClosure = true
 			assignments = []
 			
 			for file in duplicates
@@ -411,7 +410,7 @@ File::prependDuplicateRefs = (content)->
 
 File::compile = (importerStack=[])-> if @compilePromise then @compilePromise else
 	return (@compiledContent=@content) if not @options.recursive and not @isMain
-
+	### istanbul ignore next ###
 	importerStack.push(@) unless importerStack.includes(@)
 
 	childImportsPromise = Promise.delay().then ()=>
@@ -427,6 +426,7 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 			return @contentLines.join '\n'
 
 		.then (compiledResult)=>
+			# console.log(@requiresReturnedClosure, @requiresClosure) if @requiresClosure and not @isMain
 			switch
 				when @isMain
 					return @prependDuplicateRefs(compiledResult)
@@ -444,6 +444,7 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 							modifiedContent = "return #{compiledResult}"
 						
 						return helpers.wrapInClosure(modifiedContent, false, @importedCount>1)
+					### istanbul ignore next ###
 				
 				when @requiresClosure
 					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1)

@@ -227,6 +227,11 @@ suite "SimplyImport", ()->
 				SimplyImport("var imported = import test/temp/nonExpression.js", null, {isStream:true}).then (result)->
 					eval(result)
 					expect(imported).to.equal 'abc123'
+					
+					fs.outputFileAsync(tempFile('semiExpression.js'), "var thisShallBeReturned = 'abc123',ALIAS; ALIAS = thisShallBeReturned").then ()->
+						SimplyImport("var imported2 = import test/temp/semiExpression.js", null, {isStream:true}).then (result)->
+							eval(result)
+							expect(imported2).to.equal 'abc123'
 
 
 
@@ -403,6 +408,19 @@ suite "SimplyImport", ()->
 												expect(theDefault.DDDDD).to.equal 'ddd'
 												expect(another).to.equal 'anotherValue'
 												expect(kido).to.equal 'kiddy'
+										
+												
+												fs.outputFileAsync(tempFile('importExported.js'), "import * as allExports from exportBasic.js").then ()->
+													SimplyImport("require('test/temp/importExported.js');", opts, {isStream:true}).then (result)->
+														result = result.replace('var allExports', 'global.theExported')
+														eval(result)
+														expect(typeof theExported).to.equal 'object'
+														expect(theExported.AAA).to.equal 'aaa'
+														expect(theExported.DDDDD).to.equal 'ddd'
+														delete theExported
+												
+
+													
 
 
 
@@ -508,6 +526,17 @@ suite "SimplyImport", ()->
 					SimplyImport(requireLines.join('\n'), null, {isStream:true, context:'test/temp'})
 				]).then (results)->
 					expect(results[0].split('\n').slice(0,-2)).to.eql(results[1].split('\n').slice(0,-2))
+
+
+
+		test "CommonJS syntax imports cannot have dynamic expressions", ()->
+			fs.outputFileAsync(tempFile('commonDynamic.js'), "
+				var wontImport = require('some'+'File.js');\n\
+				var willImport = require('someFile.js');
+			").then ()->
+				SimplyImport('import test/temp/commonDynamic.js', null, {isStream:true}).then (result)->
+					expect(result).not.to.include("require('someFile.js')")
+					expect(result).to.include("require('some'+'File.js')")
 
 
 
