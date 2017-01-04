@@ -253,7 +253,7 @@ File::normalizeExports = ()->
 	@content.replace regEx.commonJS.export, (entireLine, priorContent, operator, trailingContent)=>
 		operator = " #{operator}" if operator is '='
 		lineIndex = @contentLines.indexOf(entireLine)
-		@contentLines[lineIndex] = "#{priorContent}exports#{operator}#{trailingContent}"
+		@contentLines[lineIndex] = "#{priorContent}module.exports#{operator}#{trailingContent}"
 
 
 	# ==== ES6/SimplyImport syntax =================================================================================
@@ -262,29 +262,29 @@ File::normalizeExports = ()->
 		### istanbul ignore else ###
 		switch
 			when exportMap
-				@contentLines[lineIndex] = "exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
+				@contentLines[lineIndex] = "module.exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
 			
 			when exportType is 'default' then switch
 				when helpers.testIfIsExportMap(label+trailingContent)
 					exportMap = label+trailingContent.replace(/;$/, '')
-					@contentLines[lineIndex] = "exports['*default*'] = #{helpers.normalizeExportMap(exportMap)}"
+					@contentLines[lineIndex] = "module.exports['*default*'] = #{helpers.normalizeExportMap(exportMap)}"
 				else
-					@contentLines[lineIndex] = "exports['*default*'] = #{label}#{trailingContent}"
+					@contentLines[lineIndex] = "module.exports['*default*'] = #{label}#{trailingContent}"
 			
 			when exportType?.includes('function')
 				labelName = label.replace(/\(.*?\).*$/, '')
 				value = if trailingContent.includes('=>') then "#{label}#{trailingContent}" else "#{exportType} #{label}#{trailingContent}"
-				@contentLines[lineIndex] = "exports['#{labelName}'] = #{value}"
+				@contentLines[lineIndex] = "module.exports['#{labelName}'] = #{value}"
 
 			when exportType is 'class'
-					@contentLines[lineIndex] = "exports['#{label}'] = #{exportType} #{label}#{trailingContent}"
+					@contentLines[lineIndex] = "module.exports['#{label}'] = #{exportType} #{label}#{trailingContent}"
 
 			when exportType
-					@contentLines[lineIndex] = "#{exportType} #{label} = exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
+					@contentLines[lineIndex] = "#{exportType} #{label} = module.exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
 
 			when not exportType and not exportMap
 				label = trailingContent.match(/^\S+/)[0]
-				@contentLines[lineIndex] = "exports['#{label}'] = #{trailingContent}"
+				@contentLines[lineIndex] = "module.exports['#{label}'] = #{trailingContent}"
 			else
 				throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
 

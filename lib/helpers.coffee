@@ -174,7 +174,6 @@ helpers =
 			"(function(exports){\n\
 				var module = {exports:exports};\n\
 				#{content}\n\
-				return exports;\n\
 			}).call(this, {})
 			"
 
@@ -184,11 +183,13 @@ helpers =
 			"do ()=>\n\
 				#{@addSpacingToString content, '\t'}\n\
 				#{if addFakeReturn then '\treturn' else ''}
+				\treturn module.exports
 			"
 		else
 			"(function(){\
 				#{content}\
 			}).call(this)
+				\treturn module.exports;\n\
 			"
 
 
