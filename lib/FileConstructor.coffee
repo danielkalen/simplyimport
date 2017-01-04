@@ -47,7 +47,13 @@ File::process = ()-> if @processPromise then @processPromise else
 		.then(@checkIfIsCoffee)
 		.then(@getContents)
 		.then(@checkIfIsThirdPartyBundle)
-		.then ()=> File.instanceCache[@cacheRef] = @
+		.then ()=>
+			if File.instanceCache[@hash] and not File.instanceCache[@cacheRef]
+				File.instanceCache[@cacheRef] = File.instanceCache[@hash]
+			else
+				File.instanceCache[@hash] = @
+
+			return File.instanceCache[@cacheRef] ||= @
 		
 
 
@@ -111,7 +117,7 @@ File::getSimpleFilePath = ()->
 	if @filePath
 		@filePathSimple = helpers.simplifyPath @filePath
 	else
-		@filePathSimple = '*MAIN FILE*'
+		@filePathSimple = '*MAIN*'
 
 
 File::resolveContext = ()->
@@ -147,7 +153,7 @@ File::checkIfImportsFile = (targetFile)->
 			currentFile = importRefs[importHash]
 			if currentFile
 				if iteratedArrays.includes(currentFile.imports)
-					return currentFile
+					return false
 				else
 					iteratedArrays.push(currentFile.imports)
 					return checkArray(currentFile.imports)
@@ -188,7 +194,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 		else
 			childFile = new File childPath, @options, @importRefs
 			childFile.process()
-				.then ()=>
+				.then (childFile)=>
 					childFile.importedCount++
 					@importRefs[childFile.hash] = childFile
 					@imports[orderRefIndex] = childFile.hash
