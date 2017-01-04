@@ -3,6 +3,7 @@ module.exports =
 	'recursive': true
 	'preserve': false
 	'dirCache': true
+	'toES5': false
 	'preventGlobalLeaks': true
 	'compileCoffeeChildren': false
 	'conditions': []

@@ -1,6 +1,7 @@
 regEx = 
 	stringContents: /".+?"|'.+?'/g
 	singleBracketEnd: /^[^\(]*\)/
+	useStrict: /["']use strict["'];\n\n/
 	
 	fileExt: ///
 		.+ 						# File name

@@ -419,6 +419,12 @@ File::compile = (importer=@)-> if @compilePromise then @compilePromise else
 			compiledResult = helpers.wrapInClosure(compiledResult, @isCoffee) if @requiresClosure and @options.preventGlobalLeaks
 			
 			@compiledContent = compiledResult
+		.then (compiledResult)=>
+			if @options.toES5 and not @isCoffee and @isMain
+				helpers.transpileES6toES5(compiledResult)
+			else
+				compiledResult
+		
 
 
 

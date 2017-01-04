@@ -5,6 +5,7 @@ path = require 'path'
 chalk = require 'chalk'
 acorn = require 'acorn'
 escodegen = require 'escodegen'
+babel = require 'babel-core'
 regEx = require './regex'
 consoleLabels = require './consoleLabels'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
@@ -219,6 +220,11 @@ helpers =
 
 			console.error(consoleLabels.error, preview, syntaxErr)
 			return content
+
+
+	transpileES6toES5: (code)-> if not code then code else
+		transpiled = babel.transform(code, presets:'latest', ast:false).code
+		transpiled = transpiled.replace(regEx.useStrict, '') unless regEx.useStrict.test(code)
 
 
 
