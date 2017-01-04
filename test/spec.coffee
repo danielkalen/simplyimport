@@ -13,11 +13,16 @@ Browserify = require 'browserify'
 Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
 regEx = require '../lib/regex'
 exec = require('child_process').exec
+stackTraceFilter = require('stack-filter')
+stackTraceFilter.filters.push('bluebird')
 bin = path.resolve 'bin'
 SimplyImport = require if process.env.forCoverage then '../forCoverage/simplyimport.js' else '../index.js'
 SimplyImport.defaults.dirCache = false
 
-
+origFail = mocha.Runner::fail
+mocha.Runner::fail = (test, err)->
+	err.stack = stackTraceFilter.filter(err.stack).join('\n')
+	origFail.call(@, test, err)
 
 tempFile = (fileNames...)->
 	path.join 'test','temp',path.join.apply(path, fileNames)
