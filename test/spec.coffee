@@ -684,7 +684,7 @@ suite "SimplyImport", ()->
 
 
 
-		test "Imported files with es6 syntax will have their contents transpiled to es5-compatible code when options.toES5 is on", ()->
+		test "Imported files with es6 syntax will have their contents transpiled to es5-compatible code when options.toES5 is on", ()-> if nodeVersion <= 4 then @skip() else 
 			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->
 				SimplyImport('import test/temp/es6.js', null, isStream:true).then (result)->
 					expect(result).to.include('let abc')
