@@ -10,6 +10,7 @@ regEx = require './regex'
 consoleLabels = require './consoleLabels'
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
+globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
 coreModuleShims = 
 	'': path.resolve(__dirname,'..','node_modules','')
@@ -178,6 +179,30 @@ helpers =
 			"
 
 
+	wrapInGlobalsClosure: (content, file)->
+		requiredGlobals = file.requiredGlobals.filter (item)-> item isnt 'process'
+		return content if not requiredGlobals.length
+		
+		values = requiredGlobals.map (name)-> switch name
+			when '__dirname' then "'#{file.contextRel}'"
+			when '__filename' then "'#{file.filePathRel}'"
+			when 'global' then (if file.isCoffee then "`#{globalDec}`" else globalDec)
+		
+		if file.isCoffee
+			args = requiredGlobals.map (name, index)-> "#{name}=#{values[index]}"
+			argValues = args.join(',')
+			"do (#{argValues})=>\n\
+				#{@addSpacingToString content, '\t'}\n\
+			"
+		else
+			args = requiredGlobals.join(',')
+			values = values.join(',')
+			"(function(#{args}){\n\
+				#{content}\n\
+			}).call(this, #{values})
+			"
+
+
 
 	wrapInExportsClosure: (content, isCoffee, asFunc)->
 		if isCoffee
@@ -207,7 +232,7 @@ helpers =
 						if l[r] then c[r] else `(l[r]=1,c[r]={},c[r]=m[r](c[r]))`\n\
 					#{assignments}\n\
 					#{spacing}_s$m\n\
-				_s$m=_s$m({},{},{})"
+				_s$m=_s$m({},{},{});"
 		else
 			assignments = assignments.join('\n')
 			loader = "\
@@ -218,7 +243,7 @@ helpers =
 					};\n\
 					#{assignments}\n\
 					return _s$m;\
-				};\ _s$m=_s$m({},{},{})
+				};\ _s$m=_s$m({},{},{});
 			"
 
 

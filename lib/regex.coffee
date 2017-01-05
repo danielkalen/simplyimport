@@ -1,12 +1,18 @@
 regEx = 
 	stringContents: /".+?"|'.+?'/g
 	singleBracketEnd: /^[^\(]*\)/
-	exportsVar: /\bexports\b/
-	# requireVar: /\brequire[\(\s]/
-	requireArg: /\brequire[,\)]/
 	useStrict: /["']use strict["'];\n\n/
 	newLine: /\r?\n/
 	startingNewLine: /^\n+/
+	requireArg: /\brequire[,\)]/
+
+	vars:
+		global: /\bglobal\b/
+		exports: /\bexports\b/
+		process: /\bprocess\b/
+		__dirname: /\b\_\_dirname\b/
+		__filename: /\b\_\_filename\b/
+		# require: /\brequire[\(\s]/
 	
 	fileExt: ///
 		.+ 						# File name

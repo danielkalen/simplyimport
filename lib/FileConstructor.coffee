@@ -43,11 +43,12 @@ File::getID = ()->
 File::process = ()-> if @processPromise then @processPromise else
 	@processPromise = Promise.bind(@)
 		.then(@getFilePath)
-		.then(@getSimpleFilePath)
 		.then(@resolveContext)
 		.then(@checkIfIsCoffee)
 		.then(@getContents)
+		.then(@expandFilePath)
 		.then(@checkIfIsThirdPartyBundle)
+		.then(@collectRequiredGlobals)
 		.then ()=>
 			unless @isMain
 				if File.instanceCache[@hash] and not File.instanceCache[@cacheRef]
@@ -115,11 +116,15 @@ File::getFilePath = ()->
 
 
 
-File::getSimpleFilePath = ()->
+File::expandFilePath = ()->
 	if @filePath
 		@filePathSimple = helpers.simplifyPath @filePath
+		@contextRel = @context.replace(@importRefs.main.context, '')
+		@filePathRel = @filePath.replace(@importRefs.main.context, '')
 	else
 		@filePathSimple = '*MAIN*'
+		@contextRel = '/'
+		@filePathRel = '/main.js'
 
 
 File::resolveContext = ()->
@@ -147,6 +152,15 @@ File::checkIfIsThirdPartyBundle = ()->
 	@hasThirdPartyRequire = @isThirdPartyBundle and
 		not regEx.requireArg.test(@content) and
 		regEx.commonJS.validRequire.test(@content)
+
+
+File::collectRequiredGlobals = ()->
+	@requiredGlobals = []
+	@requiredGlobals.push('global') if regEx.vars.global.test(@content) and not @isThirdPartyBundle
+	@requiredGlobals.push('process') if regEx.vars.process.test(@content)
+	@requiredGlobals.push('__dirname') if regEx.vars.__dirname.test(@content)
+	@requiredGlobals.push('__filename') if regEx.vars.__filename.test(@content)
+	return
 
 
 File::checkIfImportsFile = (targetFile)->
@@ -227,6 +241,13 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 File::collectImports = ()-> if @collectedImports then @collectedImports else
 	@collectedImports = Promise.resolve()
 		.then ()=>
+			if @requiredGlobals.includes('process')
+				declaration = if @isCoffee then 'process' else 'var process'
+				assignment = "#{declaration} = require('process');"
+				@content = "#{assignment}\n#{@content}"
+				@contentLines.unshift(assignment)
+		
+		.then ()=>
 			replaceAsync.seq @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
 				@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
 
@@ -243,7 +264,7 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 
 	@collectedImports
 		.then ()=>
-			if regEx.export.test(@content) or regEx.commonJS.export.test(@content) or regEx.exportsVar.test(@content)
+			if regEx.export.test(@content) or regEx.commonJS.export.test(@content) or regEx.vars.exports.test(@content)
 				@hasExports = true unless @hasThirdPartyRequire
 				@normalizeExports()	unless @isThirdPartyBundle
 
@@ -434,7 +455,12 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 			return @contentLines.join '\n'
 
 		.then (compiledResult)=>
-			# console.log(@requiresReturnedClosure, @requiresClosure) if @requiresClosure and not @isMain
+			if @requiredGlobals.length
+				helpers.wrapInGlobalsClosure(compiledResult, @)
+			else
+				compiledResult
+
+		.then (compiledResult)=>
 			switch
 				when @isMain
 					return @prependDuplicateRefs(compiledResult)
