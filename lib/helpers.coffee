@@ -233,7 +233,7 @@ helpers =
 				lastStatement = AST.body[AST.body.length-1]
 
 				switch
-					when AST.body.length is 1 and lastStatement.type is 'ExpressionStatement'
+					when AST.body.length is 1 and lastStatement.type is 'ExpressionStatement' and lastStatement.start is 0
 						return 'ExpressionStatement'
 					
 					else switch lastStatement.type
