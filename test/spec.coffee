@@ -44,7 +44,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite "General", ()->
+	suite "General", ()->		
 		test "Failed imports will be kept in a commented-out form if options.preserve is set to true", ()->
 			fs.outputFileAsync(tempFile('failedImport.js'), '123').then ()->
 				importDec = "import [abc] 'test/temp/failedImport.js'"
@@ -149,6 +149,16 @@ suite "SimplyImport", ()->
 				fileContent = "var ignored = 'this statment will also be ignored import statement2'"
 				SimplyImport(fileContent, null, {isStream:true}).then (result)->
 					expect(result).to.equal(fileContent)
+
+
+
+		test "Import paths can be provided without a file extension", ()->
+			SimplyImport("import test/temp/someFile", null, {isStream:true}).then (result)->
+				expect(result).to.equal "abc123"
+				
+				fs.outputFileAsync(tempFile('extraExtension.min.js'), "def456").then ()->
+					SimplyImport("import test/temp/extraExtension.min", null, {isStream:true}).then (result)->
+						expect(result).to.equal "def456"
 
 
 

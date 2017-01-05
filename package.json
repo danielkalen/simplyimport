@@ -34,7 +34,7 @@
     "makeexec": "chmod +x forCoverage/bin",
     "coverage": "npm run build && forCoverage=true istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts && npm run coverage:badge",
     "coverage:badge": "coffee .config/badge-gen.coffee",
-    "test:debug": "mocha $npm_package_mocha_opts --debug-brk --inspect=19402",
+    "test:debug": "mocha $npm_package_mocha_opts --debug-brk --inspect",
     "test": "mocha $npm_package_mocha_opts"
   },
   "dependencies": {

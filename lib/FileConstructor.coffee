@@ -9,6 +9,7 @@ uglifier = require 'uglify-js'
 regEx = require './regex'
 helpers = require './helpers'
 consoleLabels = require './consoleLabels'
+allowedExtensions = ['js','ts','coffee','sass','scss','css','html','jade','pug']
 
 
 ###*
@@ -75,11 +76,11 @@ File::getContents = ()->
 File::getFilePath = ()->
 	if @isMain
 		return @context
-	
-	else if PATH.extname(@input)
-		return @filePath = @input
-	
 	else
+		extname = PATH.extname(@input).slice(1).toLowerCase()
+		if extname and allowedExtensions.includes(extname)
+			return @filePath = @input
+		
 		inputFileName = PATH.basename(@input)
 		parentDir = PATH.dirname(@input)
 		helpers.getDirListing(parentDir, @options.dirCache).then (parentDirListing)=>
