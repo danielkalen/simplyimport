@@ -144,6 +144,10 @@ File::checkIfIsThirdPartyBundle = ()->
 		@content.includes("typeof require === \"function\"") or 
 		@content.includes("' has not been defined'")
 
+	@hasThirdPartyRequire = @isThirdPartyBundle and
+		not regEx.requireArg.test(@content) and
+		regEx.commonJS.validRequire.test(@content)
+
 
 File::checkIfImportsFile = (targetFile)->
 	iteratedArrays = [@imports]
@@ -228,7 +232,10 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 
 		.then ()=> unless @isThirdPartyBundle
 			replaceAsync.seq @content, regEx.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)=>
-				if regEx.singleBracketEnd.test(trailingContent) then Promise.resolve() else @processImport(childPath, entireLine, priorContent)
+				if not regEx.commonJS.validRequire.test(entireLine) and not @isCoffee
+					Promise.resolve()
+				else
+					@processImport(childPath, entireLine, priorContent)
 				# If the trailing content has a closing bracket w/out an opening then it means the 'childPath'
 				# is some sort of an expression (i.e. "'st'+'ing'" or "'string'+suffix") which is currently
 				# unsupported and means the childPath wasn't fully captured
@@ -237,7 +244,7 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 	@collectedImports
 		.then ()=>
 			if regEx.export.test(@content) or regEx.commonJS.export.test(@content) or regEx.exportsVar.test(@content)
-				@hasExports = true
+				@hasExports = true unless @hasThirdPartyRequire
 				@normalizeExports()	unless @isThirdPartyBundle
 
 		.then ()=>

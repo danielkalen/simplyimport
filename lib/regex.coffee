@@ -2,6 +2,8 @@ regEx =
 	stringContents: /".+?"|'.+?'/g
 	singleBracketEnd: /^[^\(]*\)/
 	exportsVar: /\bexports\b/
+	# requireVar: /\brequire[\(\s]/
+	requireArg: /\brequire[,\)]/
 	useStrict: /["']use strict["'];\n\n/
 	newLine: /\r?\n/
 	startingNewLine: /^\n+/
@@ -119,6 +121,18 @@ regEx =
 			)
 			(.*) 											# trailing content
 		$///gm
+
+		validRequire: ///
+			require 										# require keyword
+			\(												# opening bracket
+			(["'])											# quote mark
+			(?: 											# content between quotes (excluding the quote mark captured before)
+				(?!\1)
+				.
+			)+
+			\1 												# quote mark captured before
+			\) 												# closing bracket
+		///
 
 		# import: /(^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(?\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)?/
 
