@@ -5,11 +5,12 @@ regEx =
 	newLine: /\r?\n/
 	startingNewLine: /^\n+/
 	requireArg: /\brequire[,\)]/
+	globalCheck: /typeof global/
 
 	vars:
 		global: /\bglobal\b/
 		exports: /\bexports\b/
-		process: /\bprocess\b/
+		process: /\bprocess\./
 		__dirname: /\b\_\_dirname\b/
 		__filename: /\b\_\_filename\b/
 		# require: /\brequire[\(\s]/

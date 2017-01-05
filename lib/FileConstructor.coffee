@@ -156,11 +156,14 @@ File::checkIfIsThirdPartyBundle = ()->
 
 File::collectRequiredGlobals = ()->
 	@requiredGlobals = []
-	@requiredGlobals.push('global') if regEx.vars.global.test(@content) and not @isThirdPartyBundle
-	@requiredGlobals.push('process') if regEx.vars.process.test(@content)
-	@requiredGlobals.push('__dirname') if regEx.vars.__dirname.test(@content)
-	@requiredGlobals.push('__filename') if regEx.vars.__filename.test(@content)
-	return
+	if @isThirdPartyBundle
+		return
+	else
+		@requiredGlobals.push('global') if regEx.vars.global.test(@content) and not regEx.globalCheck.test(@content)
+		@requiredGlobals.push('process') if regEx.vars.process.test(@content)
+		@requiredGlobals.push('__dirname') if regEx.vars.__dirname.test(@content)
+		@requiredGlobals.push('__filename') if regEx.vars.__filename.test(@content)
+		return
 
 
 File::checkIfImportsFile = (targetFile)->
@@ -455,7 +458,7 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 			return @contentLines.join '\n'
 
 		.then (compiledResult)=>
-			if @requiredGlobals.length
+			if @requiredGlobals.length and not @isThirdPartyBundle
 				helpers.wrapInGlobalsClosure(compiledResult, @)
 			else
 				compiledResult
