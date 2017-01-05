@@ -61,14 +61,14 @@ File::process = ()-> if @processPromise then @processPromise else
 
 File::getContents = ()->
 	if @isMain
-		@contentLines = @input.split '\n'
+		@contentLines = @input.split(regEx.newLine)
 		@hash = md5(@input)
 		return @content = @input
 	else
 		fs.readFileAsync(@filePath, encoding:'utf8').then (content)=>
 			@content = content
 			@hash = md5(content)
-			@contentLines = content.split '\n'
+			@contentLines = content.split(regEx.newLine)
 			return content
 
 
@@ -153,12 +153,12 @@ File::checkIfImportsFile = (targetFile)->
 		importsArray.includes(targetFile.hash) or
 		importsArray.find (importHash)->
 			currentFile = importRefs[importHash]
-
-			if iteratedArrays.includes(currentFile.imports)
-				return false
-			else
-				iteratedArrays.push(currentFile.imports)
-				return checkArray(currentFile.imports)
+			if currentFile
+				if iteratedArrays.includes(currentFile.imports)
+					return false
+				else
+					iteratedArrays.push(currentFile.imports)
+					return checkArray(currentFile.imports)
 
 	checkArray(@imports)
 
@@ -176,7 +176,7 @@ File::addLineRef = (entireLine, targetRef, offset=0)->
 
 
 File::processImport = (childPath, entireLine, priorContent, spacing, conditions='', defaultMember='', members='')->
-	entireLine = entireLine.replace /^\n+/, ''
+	entireLine = entireLine.replace regEx.startingNewLine, ''
 	orderRefIndex = @orderRefs.push(entireLine)-1
 	childPath = origChildPath = childPath
 		.replace /['"]/g, '' # Remove quotes form pathname

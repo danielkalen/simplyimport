@@ -3,6 +3,8 @@ regEx =
 	singleBracketEnd: /^[^\(]*\)/
 	exportsVar: /\bexports\b/
 	useStrict: /["']use strict["'];\n\n/
+	newLine: /\r?\n/
+	startingNewLine: /^\n+/
 	
 	fileExt: ///
 		.+ 						# File name
