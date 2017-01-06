@@ -141,13 +141,10 @@ File::checkIfIsThirdPartyBundle = ()->
 		@content.includes('.code="MODULE_NOT_FOUND"') or
 		@content.includes('__webpack_require__') or
 		@content.includes('System.register') or 
-		@content.includes("typeof module ===") or
-		@content.includes("typeof module !==") or
-		@content.includes("typeof define === 'function'") or 
-		@content.includes("typeof define === \"function\"") or 
-		@content.includes("typeof require === 'function'") or 
-		@content.includes("typeof require === \"function\"") or 
-		@content.includes("' has not been defined'")
+		@content.includes("' has not been defined'") or
+		regEx.moduleCheck.test(@content) or
+		regEx.defineCheck.test(@content) or
+		regEx.requireCheck.test(@content)
 
 	@hasThirdPartyRequire = @isThirdPartyBundle and
 		not regEx.requireArg.test(@content) and

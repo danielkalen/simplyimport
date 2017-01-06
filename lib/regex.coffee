@@ -6,6 +6,10 @@ regEx =
 	startingNewLine: /^\n+/
 	requireArg: /\brequire[,\)]/
 	globalCheck: /typeof global/
+	moduleCheck: /typeof module\s?[\!=]==|=typeof module/
+	defineCheck: /typeof define\s?[\!=]==|=typeof define/
+	requireCheck: /typeof require\s?[\!=]==|=typeof require/
+	exportsCheck: /typeof exports\s?[\!=]==|=typeof exports/
 
 	vars:
 		global: /\bglobal\b/
