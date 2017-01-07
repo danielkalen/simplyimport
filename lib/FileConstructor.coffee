@@ -157,7 +157,7 @@ File::collectRequiredGlobals = ()->
 		return
 	else
 		@requiredGlobals.push('global') if regEx.vars.global.test(@content) and not regEx.globalCheck.test(@content)
-		@requiredGlobals.push('process') if regEx.vars.process.test(@content)
+		@requiredGlobals.push('process') if regEx.vars.process.test(@content) and not regEx.processRequire.test(@content) and not regEx.processDec.test(@content)
 		@requiredGlobals.push('__dirname') if regEx.vars.__dirname.test(@content)
 		@requiredGlobals.push('__filename') if regEx.vars.__filename.test(@content)
 		return

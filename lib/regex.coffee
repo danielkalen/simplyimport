@@ -5,6 +5,8 @@ regEx =
 	newLine: /\r?\n/
 	startingNewLine: /^\n+/
 	requireArg: /\brequire[,\)]/
+	processRequire: /\brequire[\(\s]['"]process['"]\)?/
+	processDec: /\bprocess\s?=\s?/
 	globalCheck: /typeof global/
 	moduleCheck: /typeof module\s?[\!=]==|=typeof module/
 	defineCheck: /typeof define\s?[\!=]==|=typeof define/
