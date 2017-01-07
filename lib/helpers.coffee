@@ -208,7 +208,7 @@ helpers =
 		if isCoffee
 			fnSignature = if asFunc then '(exports)->' else "do (exports={})=>"
 			"#{fnSignature}\n\
-				\tmodule = {exports}\n\
+				\t`var module = {exports:exports}`\n\
 				#{@addSpacingToString content, '\t'}\n\
 				\treturn module.exports
 			"
