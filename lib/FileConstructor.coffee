@@ -310,7 +310,8 @@ File::normalizeExports = ()->
 					@contentLines[lineIndex] = "module.exports['#{label}'] = #{exportType} #{label}#{trailingContent}"
 
 			when exportType
-					@contentLines[lineIndex] = "#{exportType} #{label} = module.exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
+					declaration = if @isCoffee and exportType isnt 'class' then '' else "#{exportType} "
+					@contentLines[lineIndex] = "#{declaration}#{label} = module.exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
 
 			when not exportType and not exportMap
 				label = trailingContent.match(/^\S+/)[0]
