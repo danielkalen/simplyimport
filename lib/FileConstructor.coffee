@@ -331,15 +331,6 @@ File::replaceImports = (childImports)->
 			if childFile.importedCount > 1
 				childContent = "_s$m(#{childFile.contentReference})"
 			else
-				# ==== Spacing =================================================================================
-				if priorContent and priorContent.replace(/\s/g, '') is ''
-					spacing = priorContent+spacing
-					priorContent = ''
-
-				if spacing and not priorContent
-					childContent = helpers.addSpacingToString(childContent, spacing)
-
-
 				# ==== JS vs. Coffeescript conflicts =================================================================================
 				switch
 					when @isCoffee and not childFile.isCoffee
@@ -358,7 +349,7 @@ File::replaceImports = (childImports)->
 				if @options.uglify
 					childContent = uglifier.minify(childContent, {'fromString':true, 'compressor':{'keep_fargs':true, 'unused':false}}).code
 
-
+			# ==== Handle Parenthesis =================================================================================
 			if trailingContent.startsWith(')')
 				if priorContent
 					spacing += '('
@@ -366,7 +357,7 @@ File::replaceImports = (childImports)->
 					priorContent = '('
 					spacing = ''
 
-			
+			# ==== Extract exports =================================================================================
 			if childFile.hasUsefulExports and importData=@importMemberRefs[importIndex]
 				@requiresClosure = true
 				exportedName = helpers.genUniqueVar()
@@ -383,11 +374,21 @@ File::replaceImports = (childImports)->
 						childContent += "#{varPrefix}#{alias} = #{exportedName}['#{key}'];\n"
 
 
+			# ==== Spacing =================================================================================
+			if priorContent and priorContent.replace(/\s/g, '') is ''
+				spacing = priorContent+spacing
+				priorContent = ''
+
+			if spacing and not priorContent
+				childContent = helpers.addSpacingToString(childContent, spacing)
+
 			if priorContent and childContent
 				childContent = priorContent + spacing + childContent
 
 			return childContent+trailingContent
 		
+
+
 		if regEx.import.test(@contentLines[targetLine])
 			@contentLines[targetLine] = @contentLines[targetLine].replace regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath, trailingContent)->
 				replaceLine(childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)

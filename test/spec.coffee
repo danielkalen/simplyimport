@@ -872,7 +872,7 @@ suite "SimplyImport", ()->
 		test "Duplicate imports will cause the entry to be wrapped in a IIFE", ()->
 			fs.outputFileAsync(tempFile('variable.coffee'), "output = 'someOutput'").then ()->
 				importDec = "import 'test/temp/variable.coffee'"
-				SimplyImport("#{importDec}\n #{importDec}\n", null, {isStream:true, isCoffee:true}).then (result)->
+				SimplyImport("#{importDec}\n#{importDec}\n", null, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).not.to.equal "var output = 'someOutput'\n var output = 'someOutput'\n"
 					result = coffeeCompiler.compile result, 'bare':true
 					result = result.replace /\_s\$m\(\d+\)/g, (entire)-> "invokeFn(#{entire})"
