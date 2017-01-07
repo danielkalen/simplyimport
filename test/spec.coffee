@@ -44,7 +44,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite "General", ()->		
+	suite "General", ()->			
 		test "Failed imports will be kept in a commented-out form if options.preserve is set to true", ()->
 			fs.outputFileAsync(tempFile('failedImport.js'), '123').then ()->
 				importDec = "import [abc] 'test/temp/failedImport.js'"
@@ -595,6 +595,35 @@ suite "SimplyImport", ()->
 							eval(result)
 							expect(typeof units).to.equal 'string'
 							expect(units).to.equal 'localFile'
+
+
+
+		test "Core node globals will be polyfilled", ()->
+			fileContent = "
+				global.env = process.env;
+				global.dir = __dirname;
+				global.file = __filename;
+				global.globalRef = global;
+			"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				expect(result).not.to.equal(fileContent)
+				eval(result)
+				expect(typeof env).to.equal 'object'
+				expect(env).to.eql {}
+				expect(dir).to.equal '/'
+				expect(file).to.equal '/main.js'
+				expect(globalRef).to.equal global
+				delete env
+				delete dir
+				delete file
+				delete globalRef
+				
+				SimplyImport('outer.env = process.env', null, {isStream:true}).then (result)->
+					outer = {}
+					eval(result)
+					expect(outer.env).to.exist
+					expect(typeof outer.env).to.equal 'object'
+					expect(outer.env).to.eql {}
 
 
 
