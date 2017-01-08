@@ -32,7 +32,8 @@
     "compile:bin": "coffee -o ./forCoverage -c -b lib/cli.coffee",
     "prependbin": "echo '#!/usr/bin/env node' | cat - forCoverage/cli.js > forCoverage/bin && rm -rf forCoverage/cli.js",
     "makeexec": "chmod +x forCoverage/bin",
-    "coverage": "npm run build && forCoverage=true istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts && npm run coverage:badge",
+    "coverage": "npm run build && npm run coverage:run && npm run coverage:badge",
+    "coverage:run": "forCoverage=true istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts",
     "coverage:badge": "coffee .config/badge-gen.coffee",
     "test:debug": "mocha $npm_package_mocha_opts --debug-brk --inspect",
     "test": "mocha $npm_package_mocha_opts"
@@ -87,6 +88,7 @@
     "create-output-stream": "0.0.1",
     "foreach-cli": "^1.6.0",
     "istanbul": "^0.4.5",
+    "jquery-selector-cache": "^1.0.2",
     "lcov-parse": "0.0.10",
     "mocha": "^3.1.2",
     "request": "^2.74.0",

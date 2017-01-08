@@ -550,6 +550,18 @@ suite "SimplyImport", ()->
 
 
 
+		test "UMD Bundles that have require statements will not have their exports returned nor will its require statements be attended", ()->
+			fileContent = "this.blankReturn = import 'jquery-selector-cache'"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				expect(result).not.to.equal(fileContent)
+				`var require,module;`
+				eval(result)
+				expect(typeof blankReturn).to.equal 'undefined'
+				delete require
+				delete module
+
+
+
 		test "NPM modules can be imported by their package name reference", ()->
 			fs.outputFileAsync(tempFile('npmImporter.js'), "
 				var units = import 'timeunits'
@@ -624,6 +636,33 @@ suite "SimplyImport", ()->
 					expect(outer.env).to.exist
 					expect(typeof outer.env).to.equal 'object'
 					expect(outer.env).to.eql {}
+
+
+
+
+		test "The global process variable will not be polyfilled if it is declared in the code or if it is explicitly imported", ()->
+			fileContent = "
+				var process = {env:null};
+				this.env = process.env;
+			"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				expect(result).to.equal(fileContent)
+				eval(result)
+				expect(env).to.equal null
+				delete env
+				
+				fileContent = "
+					var theProcess = require('process');
+					this.env = theProcess.env;
+				"
+				SimplyImport(fileContent, null, {isStream:true}).then (result)->
+					expect(result).not.to.equal(fileContent)
+					expect(result).not.to.include('var process = require')
+					eval(result)
+					expect(typeof env).to.equal 'object'
+					expect(env).to.eql {}
+					delete env
+				
 
 
 
@@ -1007,6 +1046,27 @@ suite "SimplyImport", ()->
 
 
 
+		test "CoffeeScript-forbidden keywords can be used in ES6 exports", ()->
+			fs.outputFileAsync(tempFile('exportForbidden.coffee'), "
+				AAA = 'aaa'; BBB = 'bbb'; CCC = 'ccc'; DDD = 'ddd';\n\
+				export var AAA = 'aaa';\n\
+				export let BBB = 'bbb';\n\
+				export const CCC = 'ccc';\n\
+				export class someClass\n\
+				export another = 'anotherValue'
+			").then ()->
+				SimplyImport("import * as @forbiddenExports from test/temp/exportForbidden.coffee", null, {isStream:true, isCoffee:true}).then (result)->
+					eval(result = coffeeCompiler.compile result, 'bare':true)
+					expect(typeof forbiddenExports).to.equal 'object'
+					expect(forbiddenExports.AAA).to.equal 'aaa'
+					expect(forbiddenExports.BBB).to.equal 'bbb'
+					expect(forbiddenExports.CCC).to.equal 'ccc'
+					expect(forbiddenExports.another).to.equal 'anotherValue'
+					expect(typeof forbiddenExports.someClass).to.equal 'function'
+
+
+
+
 		test "Imports can have exports (CommonJS syntax) and they can be imported via ES6 syntax", ()->
 			opts = {preventGlobalLeaks:false}
 			fs.outputFileAsync(tempFile('exportBasic.coffee'), "
@@ -1149,6 +1209,36 @@ suite "SimplyImport", ()->
 							eval(result = coffeeCompiler.compile result, 'bare':true)
 							expect(typeof units).to.equal 'string'
 							expect(units).to.equal 'localFile'
+
+
+
+
+		test "Core node globals will be polyfilled", ()->
+			fileContent = "
+				@env = process.env\n\
+				@dir = __dirname\n\
+				@file = __filename\n\
+				@globalRef = global\n\
+			"
+			SimplyImport(fileContent, null, {isStream:true, isCoffee:true}).then (result)->
+				expect(result).not.to.equal(fileContent)
+				eval(result = coffeeCompiler.compile result, 'bare':true)
+				expect(typeof env).to.equal 'object'
+				expect(env).to.eql {}
+				expect(dir).to.equal '/'
+				expect(file).to.equal '/main.js'
+				expect(globalRef).to.equal global
+				delete env
+				delete dir
+				delete file
+				delete globalRef
+				
+				SimplyImport('outer.env = process.env', null, {isStream:true, isCoffee:true}).then (result)->
+					outer = {}
+					eval(result = coffeeCompiler.compile result, 'bare':true)
+					expect(outer.env).to.exist
+					expect(typeof outer.env).to.equal 'object'
+					expect(outer.env).to.eql {}
 
 
 

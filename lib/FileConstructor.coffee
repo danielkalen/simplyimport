@@ -171,6 +171,7 @@ File::checkIfImportsFile = (targetFile)->
 		importsArray.includes(targetFile.hash) or
 		importsArray.find (importHash)->
 			currentFile = importRefs[importHash]
+			### istanbul ignore else ###
 			if currentFile
 				if iteratedArrays.includes(currentFile.imports)
 					return false
@@ -310,7 +311,7 @@ File::normalizeExports = ()->
 					@contentLines[lineIndex] = "module.exports['#{label}'] = #{exportType} #{label}#{trailingContent}"
 
 			when exportType
-					declaration = if @isCoffee and exportType isnt 'class' then '' else "#{exportType} "
+					declaration = if @isCoffee then '' else "#{exportType} "
 					@contentLines[lineIndex] = "#{declaration}#{label} = module.exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
 
 			when not exportType and not exportMap
