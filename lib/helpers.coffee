@@ -14,28 +14,28 @@ globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
 coreModuleShims = 
 	'': path.resolve(__dirname,'..','node_modules','')
-	'assert':					path.resolve(__dirname,'..','node_modules','assert','assert.js')
-	'zlib':						path.resolve(__dirname,'..','node_modules','@danielkalen','browserify-zlib','src','index.js')
-	'buffer':					path.resolve(__dirname,'..','node_modules','buffer','index.js')
-	'console':					path.resolve(__dirname,'..','node_modules','console-browserify','index.js')
-	'constants':				path.resolve(__dirname,'..','node_modules','constants-browserify','constants.json')
-	'crypto':					path.resolve(__dirname,'..','node_modules','crypto-browserify','index.js')
-	'domain':					path.resolve(__dirname,'..','node_modules','domain-browser','index.js')
-	'events':					path.resolve(__dirname,'..','node_modules','events','events.js')
-	'https':					path.resolve(__dirname,'..','node_modules','https-browserify','index.js')
-	'os':						path.resolve(__dirname,'..','node_modules','os-browserify','browser.js')
-	'path':						path.resolve(__dirname,'..','node_modules','path-browserify','index.js')
-	'process':					path.resolve(__dirname,'..','node_modules','process','browser.js')
-	'punycode':					path.resolve(__dirname,'..','node_modules','punycode','punycode.js')
-	'querystring':				path.resolve(__dirname,'..','node_modules','querystring-es3','index.js')
-	'http':						path.resolve(__dirname,'..','node_modules','stream-http','index.js')
-	'string_decoder':			path.resolve(__dirname,'..','node_modules','string_decoder','index.js')
-	'stream':					path.resolve(__dirname,'..','node_modules','stream-browserify','index.js')
-	'timers':					path.resolve(__dirname,'..','node_modules','timers-browserify','main.js')
-	'tty':						path.resolve(__dirname,'..','node_modules','tty-browserify','index.js')
-	'url':						path.resolve(__dirname,'..','node_modules','url','url.js')
-	'util':						path.resolve(__dirname,'..','node_modules','util','util.js')
-	'vm':						path.resolve(__dirname,'..','node_modules','vm-browserify','index.js')
+	'assert':					resolveModule.sync 'assert/'
+	'zlib':						resolveModule.sync '@danielkalen/browserify-zlib'
+	'buffer':					resolveModule.sync 'buffer/'
+	'console':					resolveModule.sync 'console-browserify'
+	'constants':				resolveModule.sync 'constants-browserify'
+	'crypto':					resolveModule.sync 'crypto-browserify'
+	'domain':					resolveModule.sync 'domain-browser'
+	'events':					resolveModule.sync 'events/'
+	'https':					resolveModule.sync 'https-browserify'
+	'os':						resolveModule.sync 'os-browserify'
+	'path':						resolveModule.sync 'path-browserify'
+	'process':					resolveModule.sync 'process/'
+	'punycode':					resolveModule.sync 'punycode/'
+	'querystring':				resolveModule.sync 'querystring-es3'
+	'http':						resolveModule.sync 'stream-http'
+	'string_decoder':			resolveModule.sync 'string_decoder'
+	'stream':					resolveModule.sync 'stream-browserify'
+	'timers':					resolveModule.sync 'timers-browserify'
+	'tty':						resolveModule.sync 'tty-browserify'
+	'url':						resolveModule.sync 'url/'
+	'util':						resolveModule.sync 'util/'
+	'vm':						resolveModule.sync 'vm-browserify'
 
 
 escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
