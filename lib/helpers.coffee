@@ -12,30 +12,31 @@ stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
 globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
+basedir = 'basedir':path.resolve(__dirname,'..')
 coreModuleShims = 
 	'': path.resolve(__dirname,'..','node_modules','')
-	'assert':					resolveModule.sync 'assert/'
-	'zlib':						resolveModule.sync '@danielkalen/browserify-zlib'
-	'buffer':					resolveModule.sync 'buffer/'
-	'console':					resolveModule.sync 'console-browserify'
-	'constants':				resolveModule.sync 'constants-browserify'
-	'crypto':					resolveModule.sync 'crypto-browserify'
-	'domain':					resolveModule.sync 'domain-browser'
-	'events':					resolveModule.sync 'events/'
-	'https':					resolveModule.sync 'https-browserify'
-	'os':						resolveModule.sync 'os-browserify'
-	'path':						resolveModule.sync 'path-browserify'
-	'process':					resolveModule.sync 'process/'
-	'punycode':					resolveModule.sync 'punycode/'
-	'querystring':				resolveModule.sync 'querystring-es3'
-	'http':						resolveModule.sync 'stream-http'
-	'string_decoder':			resolveModule.sync 'string_decoder'
-	'stream':					resolveModule.sync 'stream-browserify'
-	'timers':					resolveModule.sync 'timers-browserify'
-	'tty':						resolveModule.sync 'tty-browserify'
-	'url':						resolveModule.sync 'url/'
-	'util':						resolveModule.sync 'util/'
-	'vm':						resolveModule.sync 'vm-browserify'
+	'assert':					resolveModule.sync 'assert/', basedir
+	'zlib':						resolveModule.sync '@danielkalen/browserify-zlib', basedir
+	'buffer':					resolveModule.sync 'buffer/', basedir
+	'console':					resolveModule.sync 'console-browserify', basedir
+	'constants':				resolveModule.sync 'constants-browserify', basedir
+	'crypto':					resolveModule.sync 'crypto-browserify', basedir
+	'domain':					resolveModule.sync 'domain-browser', basedir
+	'events':					resolveModule.sync 'events/', basedir
+	'https':					resolveModule.sync 'https-browserify', basedir
+	'os':						resolveModule.sync 'os-browserify', basedir
+	'path':						resolveModule.sync 'path-browserify', basedir
+	'process':					resolveModule.sync 'process/', basedir
+	'punycode':					resolveModule.sync 'punycode/', basedir
+	'querystring':				resolveModule.sync 'querystring-es3', basedir
+	'http':						resolveModule.sync 'stream-http', basedir
+	'string_decoder':			resolveModule.sync 'string_decoder', basedir
+	'stream':					resolveModule.sync 'stream-browserify', basedir
+	'timers':					resolveModule.sync 'timers-browserify', basedir
+	'tty':						resolveModule.sync 'tty-browserify', basedir
+	'url':						resolveModule.sync 'url/', basedir
+	'util':						resolveModule.sync 'util/', basedir
+	'vm':						resolveModule.sync 'vm-browserify', basedir
 
 
 escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
