@@ -165,7 +165,7 @@ suite "SimplyImport", ()->
 
 
 
-		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()-> if nodeVersion <= 4 then @skip() else 
+		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()->
 			opts = {preventGlobalLeaks:false, transform:['babelify', {presets:'es2015-script', sourceMaps:false}]}
 			fs.outputFileAsync(tempFile('exportBasic.js'), "
 				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
@@ -655,6 +655,16 @@ suite "SimplyImport", ()->
 				SimplyImport('import test/temp/es6.js', {transform:['coffeeify', ['babelify', {presets:'es2015-script', sourceMaps:false}]]}, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).not.to.include('let abc')
 					expect(result).to.include('var abc')
+
+
+
+		test "Invalid transforms will throw an error", ()->
+			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->
+				SimplyImport('import test/temp/es6.js', {transform:['coffeeify', []]}, {isStream:true, isCoffee:true})
+					.then ()-> expect(true).to.be.false # Shouldn't execute
+					.catch (err)->
+						expect(err).to.be.an.error;
+						if err.constructor is chai.AssertionError then throw err
 
 
 

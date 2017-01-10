@@ -81,7 +81,7 @@ SimplyImport.scanImports = (input, opts={})->
 
 				
 
-
+### istanbul ignore next ###
 extendOptions = (suppliedOptions)->
 	options = extend({}, defaultOptions, suppliedOptions)
 	options.conditions = [].concat(options.conditions) if options.conditions and not Array.isArray(options.conditions)
