@@ -8,7 +8,7 @@ yargs = require 'yargs'
 	.version(()-> require('../package.json').version)
 args = yargs.argv
 SimplyImport = require './simplyimport'
-regEx = require './regex'
+helpers = require './cliHelpers'
 path = require 'path'
 fs = require 'fs-extra'
 
@@ -18,17 +18,29 @@ outputPath = args.o or args.output or args._[1]
 help = args.h or args.help
 outputIsFile = try fs.statSync(outputPath).isFile()
 passedOptions = 
-	'uglify': args.u or args.uglify
+	'transform': helpers.normalizeTransformOpts args.t or args.transform
+	'globalTransform': helpers.normalizeTransformOpts args.g or args.globalTransform
 	'preserve': args.p or args.preserve
 	'recursive': args.r or args.recursive
 	'conditions': args.c or args.conditions or []
 	'compileCoffeeChildren': args.C or args['compile-coffee-children']
 
-exitWithHelpMessage = ()->
-	process.stdout.write(yargs.help());
-	process.exit(0)
 
-exitWithHelpMessage() if help
+
+helpers.exitWithHelpMessage() if help
+
+
+## ==========================================================================
+## Attempt to fetch the 'simplyimport' field from the CWD package.json
+## ========================================================================== 
+try
+	packageJson = fs.readFileSync(path.resolve('package.json'), encoding:'utf8')
+	passedOptions.fileSpecific = JSON.parse(packageJson).simplyimport;
+
+
+
+
+
 
 
 
@@ -70,7 +82,7 @@ else # Stream i/o
 	process.stdin.on 'end', ()-> SimplyImport(input, passedOptions, isStream:true).then(writeResult)
 
 	setTimeout ()->
-		exitWithHelpMessage() if not input
+		helpers.exitWithHelpMessage() if not input
 	, 250
 	
 		

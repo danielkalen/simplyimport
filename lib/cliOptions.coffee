@@ -14,12 +14,6 @@ module.exports =
 		describe: 'Conditions list that import statements which have conditions should match against. \'*\' will match all conditions. Syntax: -c condA [condB...]'
 		type: 'array'
 
-	'u':
-		alias: 'uglify'
-		describe: 'Uglify/minify the compiled file (default:false)'
-		default: undefined
-		type: 'boolean'
-
 	'r':
 		alias: 'recursive'
 		describe: 'Follow/attend import statements inside imported files, (--no-r to disable) (default:true)'
@@ -33,10 +27,16 @@ module.exports =
 		type: 'boolean'
 
 	't':
-		alias: 'to-es5'
-		describe: 'Transpile all ES6 code present in imported files to be ES5 compatible (default:false)'
+		alias: 'transform'
+		describe: 'Path or module name of the browserify-style transform to apply to the bundled file'
 		default: undefined
-		type: 'boolean'
+		type: 'string'
+
+	'g':
+		alias: 'globalTransform'
+		describe: 'Path or module name of the browserify-style transform to apply each imported file'
+		default: undefined
+		type: 'string'
 
 	'C':
 		alias: 'compile-coffee-children'

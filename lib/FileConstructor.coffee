@@ -1,11 +1,13 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
 replaceAsync = require 'string-replace-async'
+streamify = require 'streamify-string'
+concatStream = require 'concat-stream'
 md5 = require 'md5'
 PATH = require 'path'
 chalk = require 'chalk'
+globMatch = require 'micromatch'
 coffeeCompiler = require 'coffee-script'
-uglifier = require 'uglify-js'
 regEx = require './regex'
 helpers = require './helpers'
 consoleLabels = require './consoleLabels'
@@ -18,7 +20,7 @@ allowedExtensions = ['js','ts','coffee','sass','scss','css','html','jade','pug']
  * @param {Object} state	          	(optional) initial state map to indicate if 'isStream', 'isCoffee', and 'context'
  * @param {Object} importHistory	 	(optional) the import history collected so far since the main faile import
 ###
-File = (input, @options, @importRefs, {@isMain, @isCoffee, @context}={})->
+File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPath})->
 	@input = input
 	@importedCount = 0
 	@imports = []
@@ -76,6 +78,7 @@ File::getContents = ()->
 
 File::getFilePath = ()->
 	if @isMain
+		@filePath = @suppliedPath
 		return @context
 	else
 		extname = PATH.extname(@input).slice(1).toLowerCase()
@@ -117,14 +120,25 @@ File::getFilePath = ()->
 
 
 File::expandFilePath = ()->
-	if @filePath
-		@filePathSimple = helpers.simplifyPath @filePath
-		@contextRel = @context.replace(@importRefs.main.context, '')
-		@filePathRel = @filePath.replace(@importRefs.main.context, '')
-	else
+	if @isMain
 		@filePathSimple = '*MAIN*'
 		@contextRel = '/'
 		@filePathRel = '/main.js'
+	else
+		@filePathSimple = helpers.simplifyPath @filePath
+		@contextRel = @context.replace(@importRefs.main.context, '')
+		@filePathRel = @filePath.replace(@importRefs.main.context, '')
+	
+	@specificOptions = switch
+		when @options.fileSpecific[@suppliedPath] then @options.fileSpecific[@suppliedPath]
+		else do ()=>
+			matchingGlob = null
+			
+			for glob of @options.fileSpecific
+				matchingGlob = glob if globMatch.contains(@filePath, glob) or globMatch.contains(@suppliedPath, glob)
+
+			return @options.fileSpecific[matchingGlob] or {}
+
 
 
 File::resolveContext = ()->
@@ -213,7 +227,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 			Promise.resolve()
 		
 		else
-			childFile = new File childPath, @options, @importRefs
+			childFile = new File childPath, @options, @importRefs, 'suppliedPath':origChildPath
 			childFile.process()
 				.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
 					childFile.importedCount++
@@ -240,6 +254,9 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 
 
 File::collectImports = ()-> if @collectedImports then @collectedImports else
+	if @specificOptions.scan is false
+		return @collectedImports = Promise.resolve()
+	
 	@collectedImports = Promise.resolve()
 		.then ()=>
 			if @requiredGlobals.includes('process')
@@ -344,12 +361,6 @@ File::replaceImports = (childImports)->
 						else
 							throw new Error "#{consoleLabels.error} You're attempting to import a Coffee file into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children"
 
-
-				
-				# ==== Minificaiton =================================================================================								
-				if @options.uglify
-					childContent = uglifier.minify(childContent, {'fromString':true, 'compressor':{'keep_fargs':true, 'unused':false}}).code
-
 			# ==== Handle Parenthesis =================================================================================
 			if trailingContent.startsWith(')')
 				if priorContent
@@ -439,6 +450,19 @@ File::prependDuplicateRefs = (content)->
 
 
 
+File::applyTransforms = (content, transforms)->
+	Promise.resolve(transforms)
+		.map (transform)-> helpers.resolveTransformer(transform)
+		.reduce((content, transformer)=>
+			new Promise (resolve)=>
+				transformStream = transformer.fn(@filePath, transformer.opts)
+				finishStream = concatStream (bufResult)-> resolve(bufResult.toString())
+				streamify(content).pipe(transformStream).pipe(finishStream)
+				@filePath = @filePath.replace(/\.coffee$/,'')+'.js' if @isCoffee and transformer.name is 'coffeeify'
+		, content)
+
+
+
 
 File::compile = (importerStack=[])-> if @compilePromise then @compilePromise else
 	return (@compiledContent=@content) if not @options.recursive and not @isMain
@@ -487,10 +511,20 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1)
 
 				else compiledResult
+
+		.then (compiledResult)=>
+			if @isMain and @options.transform.length
+				@applyTransforms(compiledResult, @options.transform)
+
+			else if not @isMain and @options.globalTransform.length
+				@applyTransforms(compiledResult, @options.globalTransform)			
+			
+			else
+				compiledResult
 		
 		.then (compiledResult)=>
-			if @options.toES5 and not @isCoffee and @isMain
-				helpers.transpileES6toES5(compiledResult)
+			if @specificOptions.transform
+				@applyTransforms(compiledResult, @specificOptions.transform)
 			else
 				compiledResult
 		

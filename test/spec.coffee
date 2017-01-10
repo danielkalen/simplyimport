@@ -39,154 +39,14 @@ suite "SimplyImport", ()->
 			fs.outputFileAsync(path.join('test','temp','someFile.js'), 'abc123')
 			fs.outputFileAsync(path.join('test','temp','someFile2.js'), 'def456')
 		]
-
-
-
-
-
-	suite "General", ()->			
-		test "Failed imports will be kept in a commented-out form if options.preserve is set to true", ()->
-			fs.outputFileAsync(tempFile('failedImport.js'), '123').then ()->
-				importDec = "import [abc] 'test/temp/failedImport.js'"
-			
-				SimplyImport(importDec, {preserve:true}, {isStream:true}).then (result)->
-					expect(result).to.equal "// #{importDec}"
-			
-					SimplyImport(importDec, null, {isStream:true}).then (result)->
-						expect(result).to.equal "{}"
-			
-						fs.outputFileAsync(tempFile('failedImport.coffee'), '123').then ()->
-							importDec = "import [abc] 'test/temp/failedImport.coffee'"
-						
-							SimplyImport(importDec, {preserve:true}, {isStream:true, isCoffee:true}).then (result)->
-								expect(result).to.equal "\# #{importDec}"
-
-
-
-		test "Importing a nonexistent file will cause the import process to be halted/rejected", ()->
-			origLog = console.error
-			console.error = chai.spy()
-			
-			SimplyImport("import 'test/temp/nonexistent'", null, {isStream:true})
-				.then ()-> expect(true).to.be.false # Shouldn't execute
-				.catch (err)->
-					expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
-					
-					fs.ensureDirAsync(tempFile('dirNoIndex')).then ()->
-						SimplyImport("import 'test/temp/dirNoIndex'", null, {isStream:true})
-							.then ()-> expect(true).to.be.false # Shouldn't execute
-							.catch (err)->
-								expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
-								expect(console.error).to.have.been.called.exactly(2)
-								console.error = origLog
-
-
-
-		test "Providing SimplyImport with an invalid input path will cause an error to be thrown", ()->
-			SimplyImport('test/temp/nonexistent.js')
-				.then ()-> expect(true).to.be.false # Shouldn't execute
-				.catch (err)-> expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
-
-
-
-		test "If output path is a directory, the result will be written to the a file with the same name as the input file appended with .compiled at the end", ()->
-			Promise.all([
-				fs.outputFileAsync(tempFile('childFile.js'), 'abc123')
-				fs.outputFileAsync(tempFile('theFile.js'), "import 'childFile.js'")
 		
-			]).then ()-> new Promise (resolve)->
-				exec "#{bin} -i #{tempFile('theFile.js')} -o #{tempFile('output')} -s -p", (err, stdout, stderr)->
-					throw err if err
-					result = null
-					expect ()-> result = fs.readFileSync tempFile('output', 'theFile.compiled.js'), {encoding:'utf8'}
-						.not.to.throw()
-					
-					expect(result).to.equal 'abc123'
-					resolve()
-
-
-
-		test "If output path is a directory, an input path must be provided", (done)->
-			exec "echo 'whatever' | #{bin} -o test/", (err, stdout, stderr)->
-				expect(err).to.be.an 'error'
-				done()
-
-
-
-		test "Imports within imports should not be resolved if options.recursive is set to false", ()->
-			fs.outputFileAsync(tempFile('nestedA.js'), "A\nimport 'nestedB.js'").then ()->
-				fs.outputFileAsync(tempFile('nestedB.js'), "B").then ()->
-					
-					SimplyImport("import 'test/temp/nestedA.js'", {recursive:false}, {isStream:true}).then (result)->
-						expect(result).to.equal "A\nimport 'nestedB.js'"
-
-
-
-		test "if options.dirCache is true then cached dir listings will be used in file path resolving", ()->
-			opts = {isStream:true, pathOnly:true, context:path.join(__dirname,'../')}
-			SimplyImport.defaults.dirCache = true
-			
-			SimplyImport.scanImports("import test/temp/someFile", opts).then (result)->
-				expect(result[0]).to.equal "test/temp/someFile.js"
-				
-				fs.outputFileAsync(tempFile('dirWithIndex', 'index.js'), 'abc123').then ()->
-					SimplyImport("import test/temp/dirWithIndex", opts)
-						.then (result)-> expect(true).to.be.false # Shouldn't execute
-						.catch (err)->
-							expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
-							SimplyImport.defaults.dirCache = false
-			
-							SimplyImport.scanImports("import test/temp/dirWithIndex", opts).then (result)->
-								expect(result[0]).to.equal "test/temp/dirWithIndex/index.js"
-
-
-
-		test "Quoted import/require statements will be ignored", ()->
-			fileContent = "var ignored = 'this require(\'statement\') will be ignored'"
-			SimplyImport(fileContent, null, {isStream:true}).then (result)->
-				expect(result).to.equal(fileContent)
-				
-				fileContent = "var ignored = 'this statment will also be ignored import statement2'"
-				SimplyImport(fileContent, null, {isStream:true}).then (result)->
-					expect(result).to.equal(fileContent)
-
-
-
-		test "Import paths can be provided without a file extension", ()->
-			SimplyImport("import test/temp/someFile", null, {isStream:true}).then (result)->
-				expect(result).to.equal "abc123"
-				
-				fs.outputFileAsync(tempFile('extraExtension.min.js'), "def456").then ()->
-					SimplyImport("import test/temp/extraExtension.min", null, {isStream:true}).then (result)->
-						expect(result).to.equal "def456"
-
-
-
-		suite "Commented imports won't be imported", ()->
-			test "JS Syntax", ()->
-				importDec = "// import 'test/desc/withquotes.js'"
-				SimplyImport(importDec, null, {isStream:true}).then (result)->
-					expect(result).to.equal importDec
-			
-			test "CoffeeScript Syntax", ()->
-				importDec = "# import 'test/desc/withquotes.js'"
-				SimplyImport(importDec, null, {isStream:true, isCoffee:true}).then (result)->
-					expect(result).to.equal importDec
-			
-			test "DocBlock Syntax", ()->
-				importDec = "* import 'test/desc/withquotes.js'"
-				SimplyImport(importDec, null, {isStream:true}).then (result)->
-					expect(result).to.equal importDec
-
-
-			
 
 
 
 
 
 	suite "VanillaJS", ()->
-		test "Imports will be minified if options.uglify is set", ()->
+		test.skip "Imports will be minified if options.uglify is set", ()->
 			fs.outputFileAsync(tempFile('uglify-subject.js'), "
 				if (a) {
 					var abc = true;
@@ -319,7 +179,8 @@ suite "SimplyImport", ()->
 
 
 		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()-> if nodeVersion <= 4 then @skip() else 
-			opts = {preventGlobalLeaks:false, toES5:true}
+			opts = {preventGlobalLeaks:false}
+			# opts = {preventGlobalLeaks:false, transform:['babelify', {presets:'latest', sourceMaps:false}]}
 			fs.outputFileAsync(tempFile('exportBasic.js'), "
 				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
 				export {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
@@ -791,24 +652,75 @@ suite "SimplyImport", ()->
 
 
 
-		test "Imported files with es6 syntax will have their contents transpiled to es5-compatible code when options.toES5 is on", ()-> if nodeVersion <= 4 then @skip() else 
+		test "Transforms (browserify-style) can be applied to the bundled package", ()->
 			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->
 				SimplyImport('import test/temp/es6.js', null, isStream:true).then (result)->
 					expect(result).to.include('let abc')
 					expect(result).not.to.include('var abc')
 					
-					SimplyImport('import test/temp/es6.js', {toES5:true}, isStream:true).then (result)->
+					SimplyImport('import test/temp/es6.js', {transform:['babelify', {presets:'latest', sourceMaps:false}]}, isStream:true).then (result)->
 						expect(result).not.to.include('let abc')
 						expect(result).to.include('var abc')
 
 
 
-		test "Transpiling to ES5 should not strip 'use strict' statements", ()-> if nodeVersion <= 4 then @skip() else 
-			fs.outputFileAsync(tempFile('es6strict.js'), "'use strict';\n\nlet abc = 123;").then ()->
-				SimplyImport('import test/temp/es6strict.js', {toES5:true}, isStream:true).then (result)->
+		test "Multiple transforms can be applied in a chain by providing an array of transforms", ()->
+			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->					
+				SimplyImport('import test/temp/es6.js', {transform:['coffeeify', ['babelify', {presets:'latest', sourceMaps:false}]]}, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).not.to.include('let abc')
 					expect(result).to.include('var abc')
-					expect(result).to.include('use strict')
+
+
+
+		test "Global transforms can be applied to all imported files except for the main file", ()->
+			Promise.all([
+				fs.outputFileAsync(tempFile('fileA.js'), "let abc = 123;")
+				fs.outputFileAsync(tempFile('fileB.js'), "let def = 456;")
+				fs.outputFileAsync(tempFile('importer.js'), "import fileA.js\nimport fileB.js\nlet ghi = 789;")
+			]).then ()->
+				SimplyImport(tempFile('importer.js'), {globalTransform:[require('./uppercaseTransform'), path.join 'test','spacerTransform.coffee']}).then (result)->
+					resultLines = result.split('\n')
+					expect(resultLines[0]).to.equal('L E T   A B C   =   1 2 3 ;')
+					expect(resultLines[1]).to.equal('L E T   D E F   =   4 5 6 ;')
+					expect(resultLines[2]).to.equal('let ghi = 789;')
+
+
+
+		test "File specific options can be passed options.fileSpecific or through the 'simplyimport' field in package.json", ()->
+			Promise.all([
+				fs.outputFileAsync(tempFile('fileA.js'), "let abc = 123;")
+				fs.outputFileAsync(tempFile('fileB.js'), "let DeF = 456;\nrequire('fileC.js')")
+				fs.outputFileAsync(tempFile('fileC.js'), "let ghi = 789;")
+				fs.outputFileAsync(tempFile('importer.js'), "import fileA.js\nimport fileB.js")
+			]).then ()->
+				opts = 
+					globalTransform: require('./uppercaseTransform')
+					fileSpecific:
+						'*fileA.js':
+							transform: path.resolve('test','spacerTransform')
+						
+						"fileB.js":
+							transform: path.resolve('test','lowercaseTransform.coffee')
+							scan: false
+				
+				SimplyImport(tempFile('importer.js'), opts).then (result)->
+					resultLines = result.split('\n')
+					expect(resultLines[0]).to.equal('L E T   A B C   =   1 2 3 ;')
+					expect(resultLines[1]).to.equal('let def = 456;')
+					expect(resultLines[2]).to.equal('require(\'filec.js\')')
+
+					
+					fs.outputFileAsync(tempFile('module','package.json'), JSON.stringify(simplyimport:opts.fileSpecific)).then ()->
+						new Promise (done)->
+							cliOpts = {cwd:path.resolve('test','temp','module')}
+							cliTransform = path.resolve('test','uppercaseTransform')
+							cliInput = path.resolve tempFile('importer.js')
+							
+							exec "#{bin} -i #{cliInput} -g #{cliTransform}", cliOpts, (err, resultFromCLI, stderr)->
+								throw err if err
+								throw new Error(stderr) if stderr
+								expect(resultFromCLI).to.equal(result)
+								done()
 
 
 
@@ -1392,6 +1304,144 @@ suite "SimplyImport", ()->
 				expect(result.length).to.equal 2
 				expect(result[0]).to.equal 'test/temp/someFile.js'
 				expect(result[1]).to.equal 'test/temp/someFile2.js'
+
+
+
+
+
+	suite "General", ()->			
+		test "Failed imports will be kept in a commented-out form if options.preserve is set to true", ()->
+			fs.outputFileAsync(tempFile('failedImport.js'), '123').then ()->
+				importDec = "import [abc] 'test/temp/failedImport.js'"
+			
+				SimplyImport(importDec, {preserve:true}, {isStream:true}).then (result)->
+					expect(result).to.equal "// #{importDec}"
+			
+					SimplyImport(importDec, null, {isStream:true}).then (result)->
+						expect(result).to.equal "{}"
+			
+						fs.outputFileAsync(tempFile('failedImport.coffee'), '123').then ()->
+							importDec = "import [abc] 'test/temp/failedImport.coffee'"
+						
+							SimplyImport(importDec, {preserve:true}, {isStream:true, isCoffee:true}).then (result)->
+								expect(result).to.equal "\# #{importDec}"
+
+
+
+		test "Importing a nonexistent file will cause the import process to be halted/rejected", ()->
+			origLog = console.error
+			console.error = chai.spy()
+			
+			SimplyImport("import 'test/temp/nonexistent'", null, {isStream:true})
+				.then ()-> expect(true).to.be.false # Shouldn't execute
+				.catch (err)->
+					expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
+					
+					fs.ensureDirAsync(tempFile('dirNoIndex')).then ()->
+						SimplyImport("import 'test/temp/dirNoIndex'", null, {isStream:true})
+							.then ()-> expect(true).to.be.false # Shouldn't execute
+							.catch (err)->
+								expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
+								expect(console.error).to.have.been.called.exactly(2)
+								console.error = origLog
+
+
+
+		test "Providing SimplyImport with an invalid input path will cause an error to be thrown", ()->
+			SimplyImport('test/temp/nonexistent.js')
+				.then ()-> expect(true).to.be.false # Shouldn't execute
+				.catch (err)-> expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
+
+
+
+		test "If output path is a directory, the result will be written to the a file with the same name as the input file appended with .compiled at the end", ()->
+			Promise.all([
+				fs.outputFileAsync(tempFile('childFile.js'), 'abc123')
+				fs.outputFileAsync(tempFile('theFile.js'), "import 'childFile.js'")
+		
+			]).then ()-> new Promise (resolve)->
+				exec "#{bin} -i #{tempFile('theFile.js')} -o #{tempFile('output')} -s -p", (err, stdout, stderr)->
+					throw err if err
+					result = null
+					expect ()-> result = fs.readFileSync tempFile('output', 'theFile.compiled.js'), {encoding:'utf8'}
+						.not.to.throw()
+					
+					expect(result).to.equal 'abc123'
+					resolve()
+
+
+
+		test "If output path is a directory, an input path must be provided", (done)->
+			exec "echo 'whatever' | #{bin} -o test/", (err, stdout, stderr)->
+				expect(err).to.be.an 'error'
+				done()
+
+
+
+		test "Imports within imports should not be resolved if options.recursive is set to false", ()->
+			fs.outputFileAsync(tempFile('nestedA.js'), "A\nimport 'nestedB.js'").then ()->
+				fs.outputFileAsync(tempFile('nestedB.js'), "B").then ()->
+					
+					SimplyImport("import 'test/temp/nestedA.js'", {recursive:false}, {isStream:true}).then (result)->
+						expect(result).to.equal "A\nimport 'nestedB.js'"
+
+
+
+		test "if options.dirCache is true then cached dir listings will be used in file path resolving", ()->
+			opts = {isStream:true, pathOnly:true, context:path.join(__dirname,'../')}
+			SimplyImport.defaults.dirCache = true
+			
+			SimplyImport.scanImports("import test/temp/someFile", opts).then (result)->
+				expect(result[0]).to.equal "test/temp/someFile.js"
+				
+				fs.outputFileAsync(tempFile('dirWithIndex', 'index.js'), 'abc123').then ()->
+					SimplyImport("import test/temp/dirWithIndex", opts)
+						.then (result)-> expect(true).to.be.false # Shouldn't execute
+						.catch (err)->
+							expect(err).to.be.an.error; if err.constructor is chai.AssertionError then throw err
+							SimplyImport.defaults.dirCache = false
+			
+							SimplyImport.scanImports("import test/temp/dirWithIndex", opts).then (result)->
+								expect(result[0]).to.equal "test/temp/dirWithIndex/index.js"
+
+
+
+		test "Quoted import/require statements will be ignored", ()->
+			fileContent = "var ignored = 'this require(\'statement\') will be ignored'"
+			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+				expect(result).to.equal(fileContent)
+				
+				fileContent = "var ignored = 'this statment will also be ignored import statement2'"
+				SimplyImport(fileContent, null, {isStream:true}).then (result)->
+					expect(result).to.equal(fileContent)
+
+
+
+		test "Import paths can be provided without a file extension", ()->
+			SimplyImport("import test/temp/someFile", null, {isStream:true}).then (result)->
+				expect(result).to.equal "abc123"
+				
+				fs.outputFileAsync(tempFile('extraExtension.min.js'), "def456").then ()->
+					SimplyImport("import test/temp/extraExtension.min", null, {isStream:true}).then (result)->
+						expect(result).to.equal "def456"
+
+
+
+		suite "Commented imports won't be imported", ()->
+			test "JS Syntax", ()->
+				importDec = "// import 'test/desc/withquotes.js'"
+				SimplyImport(importDec, null, {isStream:true}).then (result)->
+					expect(result).to.equal importDec
+			
+			test "CoffeeScript Syntax", ()->
+				importDec = "# import 'test/desc/withquotes.js'"
+				SimplyImport(importDec, null, {isStream:true, isCoffee:true}).then (result)->
+					expect(result).to.equal importDec
+			
+			test "DocBlock Syntax", ()->
+				importDec = "* import 'test/desc/withquotes.js'"
+				SimplyImport(importDec, null, {isStream:true}).then (result)->
+					expect(result).to.equal importDec
 
 
 

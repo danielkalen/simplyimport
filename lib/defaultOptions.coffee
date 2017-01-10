@@ -1,9 +1,10 @@
 module.exports = 
-	'uglify': false
 	'recursive': true
 	'preserve': false
 	'dirCache': true
-	'toES5': false
 	'preventGlobalLeaks': true
 	'compileCoffeeChildren': false
 	'conditions': []
+	'transform': []
+	'globalTransform': []
+	'fileSpecific': {}

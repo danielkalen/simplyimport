@@ -125,7 +125,6 @@ helpers =
 			return output
 
 
-
 	normalizeExportMap: (mappingString)->
 		output = mappingString
 			.replace /^\{\s*/, ''
@@ -294,19 +293,40 @@ helpers =
 
 
 
-	transpileES6toES5: (code)->
-		transpiled = babel.transform(code, presets:'latest', ast:false).code
-		transpiled = transpiled.replace(regEx.useStrict, '') unless regEx.useStrict.test(code)
-		return transpiled
-
-
-
 	resolveModulePath: (moduleName, basedir)->
 		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir, modules:coreModuleShims})
 		moduleLoad
 			.then (modulePath)=> Promise.resolve(modulePath)
 			.catch (err)=> Promise.resolve()
 			.then (modulePath)=> Promise.resolve(modulePath)
+
+
+	resolveTransformer: (transformer)-> Promise.resolve().then ()->
+		if typeof transformer is 'function'
+			return 'fn':transformer, 'opts':{}
+
+		else if typeof transformer is 'object' and helpers.isValidTransformerArray(transformer)
+			return 'fn':helpers.safeRequire(transformer[0]), 'opts':transformer[1], 'name':transformer[0]
+
+		else if typeof transformer is 'string'
+			return 'fn':helpers.safeRequire(transformer), 'opts':{}, 'name':transformer
+
+		else
+			Promise.reject("Invalid transformer provided (must be a function or a string representing the file/module path of the transform function). Received:'#{String(transformer)}'")
+
+
+	safeRequire: (targetPath)->
+		if targetPath.includes('.') or targetPath.includes('/')
+			require(path.resolve(targetPath))
+		else
+			require(targetPath)
+
+
+	isValidTransformerArray: (transformer)->
+		Array.isArray(transformer) and
+		transformer.length is 2 and
+		typeof transformer[0] is 'string' and
+		typeof transformer[1] is 'object'
 
 
 	isCoreModule: (moduleName)->

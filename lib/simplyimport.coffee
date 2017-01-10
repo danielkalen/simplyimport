@@ -2,6 +2,7 @@ require('array-includes').shim()
 require('object.entries').shim()
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
+isPlainObject = require 'is-plain-obj'
 uniq = require 'uniq'
 PATH = require 'path'
 extend = require 'extend'
@@ -21,14 +22,15 @@ RegExp::test = do ()-> # RegExp::test function patch to reset index after each t
 
 SimplyImport = (input, options, state={})->
 	File.instanceCache = {}
-	options = extend({}, defaultOptions, options)
-	options.conditions = [].concat(options.conditions) if not Array.isArray(options.conditions)
+	options = extendOptions(options)
 	state.isMain = true
 	state.context ?= if state.isStream then process.cwd() else helpers.getNormalizedDirname(input)
 	if state.isStream
+		state.suppliedPath = PATH.resolve('main.'+ if state.isCoffee then 'coffee' else 'js')
 		fileContent = Promise.resolve(input)
 	else
-		fileContent = fs.readFileAsync(PATH.resolve(input), encoding:'utf8')
+		state.suppliedPath = input = PATH.resolve(input)
+		fileContent = fs.readFileAsync(input, encoding:'utf8')
 		state.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'
 
 	fileContent.then (contents)->
@@ -80,6 +82,23 @@ SimplyImport.scanImports = (input, opts={})->
 				
 
 
+extendOptions = (suppliedOptions)->
+	options = extend({}, defaultOptions, suppliedOptions)
+	options.conditions = [].concat(options.conditions) if options.conditions and not Array.isArray(options.conditions)
+	options.transform = normalizeTransformOpts(options.transform) if options.transform
+	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
+	for p,specificOpts of options.fileSpecific
+		specificOpts.transform = normalizeTransformOpts(specificOpts.transform) if specificOpts.transform
+	
+	return options
+
+
+normalizeTransformOpts = (transform)->
+	transform = [].concat(transform) if transform and not Array.isArray(transform)
+	if transform.length is 2 and typeof transform[0] is 'string' and isPlainObject(transform[1])
+		transform = [transform]
+
+	return transform
 
 
 

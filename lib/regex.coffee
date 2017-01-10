@@ -1,5 +1,8 @@
 regEx = 
 	stringContents: /".+?"|'.+?'/g
+	bracketContents: /\[\s*(.+?)\s*\]/
+	hasSquareBrackets: /\[.+?\]/
+	firstWord: /^(\S+)/
 	singleBracketEnd: /^[^\(]*\)/
 	useStrict: /["']use strict["'];\n\n/
 	newLine: /\r?\n/
