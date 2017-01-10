@@ -46,19 +46,6 @@ suite "SimplyImport", ()->
 
 
 	suite "VanillaJS", ()->
-		test.skip "Imports will be minified if options.uglify is set", ()->
-			fs.outputFileAsync(tempFile('uglify-subject.js'), "
-				if (a) {
-					var abc = true;
-				} else {
-					var abc = false;
-				}
-			").then ()->
-				SimplyImport("import 'test/temp/uglify-subject.js'", {uglify:true}, {isStream:true}).then (result)->
-					expect(result).to.equal "if(a)var abc=!0;else var abc=!1;"
-
-
-
 		test "Unquoted imports that have whitespace after them should not make any difference", ()->
 			SimplyImport("import test/temp/someFile.js\t", null, {isStream:true}).then (result)->
 				expect(result).to.equal "abc123\t"
@@ -179,8 +166,7 @@ suite "SimplyImport", ()->
 
 
 		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()-> if nodeVersion <= 4 then @skip() else 
-			opts = {preventGlobalLeaks:false}
-			# opts = {preventGlobalLeaks:false, transform:['babelify', {presets:'latest', sourceMaps:false}]}
+			opts = {preventGlobalLeaks:false, transform:['babelify', {presets:'es2015-script', sourceMaps:false}]}
 			fs.outputFileAsync(tempFile('exportBasic.js'), "
 				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
 				export {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
@@ -658,7 +644,7 @@ suite "SimplyImport", ()->
 					expect(result).to.include('let abc')
 					expect(result).not.to.include('var abc')
 					
-					SimplyImport('import test/temp/es6.js', {transform:['babelify', {presets:'latest', sourceMaps:false}]}, isStream:true).then (result)->
+					SimplyImport('import test/temp/es6.js', {transform:['babelify', {presets:'es2015-script', sourceMaps:false}]}, isStream:true).then (result)->
 						expect(result).not.to.include('let abc')
 						expect(result).to.include('var abc')
 
@@ -666,7 +652,7 @@ suite "SimplyImport", ()->
 
 		test "Multiple transforms can be applied in a chain by providing an array of transforms", ()->
 			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->					
-				SimplyImport('import test/temp/es6.js', {transform:['coffeeify', ['babelify', {presets:'latest', sourceMaps:false}]]}, {isStream:true, isCoffee:true}).then (result)->
+				SimplyImport('import test/temp/es6.js', {transform:['coffeeify', ['babelify', {presets:'es2015-script', sourceMaps:false}]]}, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).not.to.include('let abc')
 					expect(result).to.include('var abc')
 
