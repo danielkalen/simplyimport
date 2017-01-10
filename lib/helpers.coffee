@@ -5,7 +5,6 @@ path = require 'path'
 chalk = require 'chalk'
 acorn = require 'acorn'
 escodegen = require 'escodegen'
-babel = require 'babel-core'
 regEx = require './regex'
 consoleLabels = require './consoleLabels'
 stackTraceFilter = require('stack-filter')
