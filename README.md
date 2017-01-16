@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/danielkalen/simplyimport.svg?branch=master)](https://travis-ci.org/danielkalen/simplyimport)
 [![Coverage](.config/badges/coverage-node.png?raw=true)](https://github.com/danielkalen/simplyimport)
 [![Code Climate](https://codeclimate.com/repos/57c332508cc944028900237a/badges/6b3dda1443fd085a1d3c/gpa.svg)](https://codeclimate.com/repos/57c332508cc944028900237a/feed)
+[![NPM](https://img.shields.io/npm/v/simplyimport.svg)](https://npmjs.com/package/simplyimport)
 
 **Features Summary**
 - Takes a file or its contents, scans for imports, and replaces the import statements inline with the imported file's content.
@@ -12,13 +13,12 @@
 - Supports ES6 and CommonJS exports.
 - Supports conditional imports.
 - Supports duplicate imports (i.e. a single file that's imported in multiple places).
+- Supports [browserify-style](https://github.com/substack/browserify-handbook#transforms) [plugins & transforms](https://github.com/substack/node-browserify/wiki/list-of-transforms) that can be applied to the final bundle file, each imported file, or to specific individual files.
 - Can import UMD and third-party-bundled modules (without replacing its require statements).
 - Adds closures/different scopes only for duplicate imports and files that have exports.
 - **Adds zero overhead** to processed files (with the exception of a few bytes for duplicate imports).
-- Most built-in node modules are polyfilled (non IO-related ones).
-- Outputs ES3-compatible code (even if imports have ES6+ code).
-- Node global variables (`__filename`/`__dirname`/`global`) are polyfilled *(WIP)*.
-- Supports browserify-style plugins & transforms *(WIP)*.
+- Most built-in node modules are shimmed (non IO-related ones).
+- Node global variables (`__filename`/`__dirname`/`global`|`process`) are shimmed.
 
 
 ## Installation
@@ -95,7 +95,7 @@ module.exports.eee = 'eee'
 ```
 
 
-### CLI API
+# CLI API
 ```
 simplyimport -i <input> -o <output> -[c|u|r|p|s|t|C]
 ```
@@ -105,17 +105,17 @@ simplyimport -i <input> -o <output> -[c|u|r|p|s|t|C]
 -i, --input                    Path of the file to compile (stdin will be used if omitted)
 -o, --output                   Path of file/dir to write the compiled file to (stdout will be used if omitted)
 -c, --conditions               Conditions list that import statements which have conditions should match against. '*' will match all conditions. Syntax: -c condA [condB...]
--u, --uglify                   Uglify/minify the compiled file (default:false)
 -r, --recursive                Follow/attend import statements inside imported files, (--no-r to disable) (default:true)
 -p, --preserve                 Invalid import statements should be kept in the file in a comment format (default:false)
--t, --to-es5                   Transpile all ES6 code present in imported files to be ES5 compatible (default:false)
+-t, --transform                Path or module name of the browserify-style transform to apply to the bundled file
+-g, --globalTransform          Path or module name of the browserify-style transform to apply each imported file
 -C, --compile-coffee-children  If a JS file is importing coffeescript files, the imported files will be compiled to JS first (default:false)
 -h                             Show help
 --version                      Show version number
 ```
 
 
-### Node.JS API
+# Node.JS API
 #### `SimplyImport(filePath|content, [options], [state])`
 Takes the provided path/content, scans and replaces all import/require statements, and returns a promise which will be resolved with the result as a string.
 
@@ -123,19 +123,25 @@ Arguments:
   - `filePath|content` - a relative/absolute file path or the file's content. If the file's content is passed state.isStream must be set to true for proper parsing.
 
   - `options` (optional) - an object containing some/all of the following default options:
-    - `uglify - false` uglify/minify the processed content before returning it.
-    - `recursive - true` Follow/attend import statements inside imported files.
-    - `preserve - false` Invalid imports (i.e. unmatched conditions) should be kept in the file in a comment format.
-    - `dirCache - true` Cache directory listings when resolving imports that don't provide a file extension.
-    - `toES5 - false` Transpile all ES6 code present in imported files to be ES5 compatible
-    - `preventGlobalLeaks - true` Wrap the processed content in a closure to prevent variable leaks into the outer scope whenever necessary (e.g. when there are duplicate imports)
-    - `compileCoffeeChildren - false` If a JS file is importing coffeescript files, the imported files will be compiled to JS first
-    - `conditions - []` Array that import statements which have conditions should match against. '*' will match all conditions.
+    - `uglify [false]` uglify/minify the processed content before returning it.
+    - `recursive [true]` Follow/attend import statements inside imported files.
+    - `preserve [false]` Invalid imports (i.e. unmatched conditions) should be kept in the file in a comment format.
+    - `dirCache [true]` Cache directory listings when resolving imports that don't provide a file extension.
+    - `toES5 [false]` Transpile all ES6 code present in imported files to be ES5 compatible
+    - `preventGlobalLeaks [true]` Wrap the processed content in a closure to prevent variable leaks into the outer scope whenever necessary (e.g. when there are duplicate imports)
+    - `compileCoffeeChildren [false]` If a JS file is importing coffeescript files, the imported files will be compiled to JS first
+    - `conditions [array]` Array that import statements which have conditions should match against. '*' will match all conditions.
+    - `transform [array]` String or array of transforms to apply to the final bundled file's content in order (after processing all imports). A transform can either be the name of an npm transform package (e.g. `coffeeify`), a relative file path (e.g. `./transforms/minify.js`), or a [transform function](https://github.com/substack/browserify-handbook#writing-your-own). Module-specific options can be passed using browserify-style array syntax like so: `['coffeeify', {bare:true, header:true}]`.
+    - `globalTransform [array]` Same as `options.transform`, but instead will be applied to all imported files instead of to the final bundled file.
+    - `fileSpecific [object]` An object map in the form of `<glob|filepath|module>:<options>` in which each file matching the provided glob or path will have the supplied options be applied only to that file *in addition* to any global transforms supplied. Availble options:
+      - `transform [array]` Same as `options.transform`.
+      - `scan [true]` Whether or not the matching file should be scanned for imports/exports.
+      Example: `"*.coffee": {transform:['coffeeify', {header:true}]}` 
 
   - `state` (optional) - an object containing some/all of the following default properties:
-    - `isStream - false` Indicates the provided input is the file's content.
-    - `isCoffee - false` Indicates the path/content is CoffeeScript (only required when `state.isStream` is true).
-    - `context - filePath/process.cwd()` The base dir in which relative paths/NPM modules will be resolved form. If a file path is provided the context is taken from the path and if direct content is passed `process.cwd()` will be used.
+    - `isStream [false]` Indicates the provided input is the file's content.
+    - `isCoffee [false]` Indicates the path/content is CoffeeScript (only required when `state.isStream` is true).
+    - `context [filePath/process.cwd()]` The base dir in which relative paths/NPM modules will be resolved form. If a file path is provided the context is taken from the path and if direct content is passed `process.cwd()` will be used.
 
 
 #### `SimplyImport.scanImports(filePath|content, [options])`
@@ -146,11 +152,11 @@ Arguments:
 
 
   - `options` (optional) - an object containing some/all of the following default properties:
-    - `isStream - false` Indicates the provided input is the file's content.
-    - `isCoffee - false` Indicates the path/content is CoffeeScript (only required when `options.isStream` is true).
-    - `withContext - false` Return filepaths with their context (i.e. absolute paths).
-    - `context - filePath/process.cwd()` The base dir in which relative paths/NPM modules will be resolved form. If a file path is provided the context is taken from the path and if direct content is passed `process.cwd()` will be used.
-    - `pathOnly - false` Return just the imported file's path for each entry in the result array.
+    - `isStream [false]` Indicates the provided input is the file's content.
+    - `isCoffee [false]` Indicates the path/content is CoffeeScript (only required when `options.isStream` is true).
+    - `withContext [false]` Return filepaths with their context (i.e. absolute paths).
+    - `context [filePath/process.cwd()]` The base dir in which relative paths/NPM modules will be resolved form. If a file path is provided the context is taken from the path and if direct content is passed `process.cwd()` will be used.
+    - `pathOnly [false]` Return just the imported file's path for each entry in the result array.
 
 ```javascript
 /*--- main.js ---*/
@@ -187,9 +193,39 @@ SimplyImport.scanImports('./main.js').then(function(imports){
 ```
 
 
+# Compability shims
+The following NodeJS-native modules will be shimmed when imported either via the `import` or `requite` statement:
+  - assert
+  - zlib
+  - buffer
+  - console
+  - constants
+  - crypto
+  - domain
+  - events
+  - https
+  - os
+  - path
+  - process
+  - punycode
+  - querystring
+  - http
+  - string_decoder
+  - stream
+  - timers
+  - tty
+  - url
+  - util
+  - vm
+
+The following NodeJS globals will be shimmed/defined:
+  - process
+  - global (alias to `window`)
+  - __filename (file path of the currently executing file relative to the current working dir)
+  - __dirname (directory path of the currently executing file relative to the current working dir)
 
 
-## Case-specific notes
+# Case-specific notes
 ### Returning the last statement of exprot-less imports
 If an import statement is assigned to a variable its content will be modified to return the last expression if it doesn't have any exports.
 ```javascript
