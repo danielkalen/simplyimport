@@ -225,6 +225,21 @@ The following NodeJS globals will be shimmed/defined:
   - __dirname (directory path of the currently executing file relative to the current working dir)
 
 
+# Package.json field
+File-specific options can be provided via `package.json`'s `"simplyimport"` field. When running SimplyImport from the CLI, the current working dir will be scanned for a `package.json` file and if found its `"simplyimport"` field will be used for file-specific options. Example:
+```javascript
+{
+  //...
+  "simplyimport": {
+    "*.coffee": {
+      "transform": ["coffeeify", {"header":true}]
+    },
+    "src/js/*.js": [["babelify", {"preset":"latest"}], "uglifyify"]
+  }
+}
+```
+
+
 # Case-specific notes
 ### Returning the last statement of exprot-less imports
 If an import statement is assigned to a variable its content will be modified to return the last expression if it doesn't have any exports.
