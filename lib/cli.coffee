@@ -57,7 +57,7 @@ if outputPath and not outputIsFile
 		outputPath += '/' if outputPath.slice(-1)[0] isnt '/'
 		outputPath += path.basename(inputPath, extension)+'.compiled'+extension
 	else
-		throw 'Output file path (not just a directory path) must be provided if the input is from stdin'
+		throw new Error 'Output file path (not just a directory path) must be provided if the input is from stdin'
 	
 
 
