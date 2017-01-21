@@ -181,7 +181,7 @@ File::checkIfImportsFile = (targetFile)->
 	iteratedArrays = [@imports]
 	importRefs = @importRefs
 	
-	checkArray = (importsArray)=>
+	checkArray = (importsArray)->
 		importsArray.includes(targetFile.hash) or
 		importsArray.find (importHash)->
 			currentFile = importRefs[importHash]
