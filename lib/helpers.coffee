@@ -295,9 +295,9 @@ helpers =
 	resolveModulePath: (moduleName, basedir)->
 		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir, modules:coreModuleShims})
 		moduleLoad
-			.then (modulePath)=> Promise.resolve(modulePath)
-			.catch (err)=> Promise.resolve()
-			.then (modulePath)=> Promise.resolve(modulePath)
+			.then (modulePath)-> Promise.resolve(modulePath)
+			.catch (err)-> Promise.resolve()
+			.then (modulePath)-> Promise.resolve(modulePath)
 
 
 	resolveTransformer: (transformer)-> Promise.resolve().then ()->
