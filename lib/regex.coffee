@@ -11,10 +11,10 @@ regEx =
 	processRequire: /\brequire[\(\s]['"]process['"]\)?/
 	processDec: /\bprocess\s?=\s?/
 	globalCheck: /typeof global/
-	moduleCheck: /typeof module\s?[\!=]==|=typeof module/
-	defineCheck: /typeof define\s?[\!=]==|=typeof define/
-	requireCheck: /typeof require\s?[\!=]==|=typeof require/
-	exportsCheck: /typeof exports\s?[\!=]==|=typeof exports/
+	moduleCheck: /typeof module\s?[\!=]==|=typeof module|if module\?/
+	defineCheck: /typeof define\s?[\!=]==|=typeof define|if define\?/
+	requireCheck: /typeof require\s?[\!=]==|=typeof require|if require\?/
+	exportsCheck: /typeof exports\s?[\!=]==|=typeof exports|if exports\?/
 
 	vars:
 		global: /\bglobal\b/
