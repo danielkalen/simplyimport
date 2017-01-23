@@ -165,17 +165,16 @@ helpers =
 
 	wrapInClosure: (content, isCoffee, asFunc)->
 		if isCoffee
-			fnSignature = if asFunc then '()->' else 'do ()=>'
-			"#{fnSignature}\n\
-				#{@addSpacingToString content, '\t'}\n\
-			"
+			fnSignatureStart = if asFunc then '()->' else 'do ()=>'
+			fnSignatureEnd = ''
 		else
 			fnSignatureStart = if asFunc then 'function(){' else '(function(){'
 			fnSignatureEnd = if asFunc then '}' else '}).call(this)'
-			"#{fnSignatureStart}\n\
-				#{content}\n\
-			#{fnSignatureEnd}
-			"
+
+		"#{fnSignatureStart}\n\
+			#{@addSpacingToString content, '\t'}\n\
+		#{fnSignatureEnd}
+		"
 
 
 	wrapInGlobalsClosure: (content, file)->
@@ -197,7 +196,7 @@ helpers =
 			args = requiredGlobals.join(',')
 			values = values.join(',')
 			"(function(#{args}){\n\
-				#{content}\n\
+				#{@addSpacingToString content, '\t'}\n\
 			}).call(this, #{values})
 			"
 
@@ -216,7 +215,7 @@ helpers =
 			fnSignatureEnd = if asFunc then '}' else '}).call(this, {})'
 			"#{fnSignatureStart}\n\
 				\tvar module = {exports:exports};\n\
-				#{content}\n\
+				#{@addSpacingToString content, '\t'}\n\
 				\treturn module.exports;\n\
 			#{fnSignatureEnd}
 			"
