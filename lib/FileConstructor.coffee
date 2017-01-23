@@ -359,7 +359,8 @@ File::replaceImports = (childImports)->
 						if @options.compileCoffeeChildren
 							childContent = coffeeCompiler.compile childContent, 'bare':true
 						else
-							throw new Error "#{consoleLabels.error} You're attempting to import a Coffee file into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children"
+							selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)+1
+							throw new Error "#{chalk.dim(selfReference)}: You're attempting to import a Coffee file into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children"
 
 			# ==== Handle Parenthesis =================================================================================
 			if trailingContent.startsWith(')')

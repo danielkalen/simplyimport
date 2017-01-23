@@ -61,6 +61,7 @@ SimplyImport.scanImports = (input, opts={})->
 		subjectFile = new File(contents, importOptions, {}, opts)
 		subjectFile.process().then ()->
 			subjectFile.collectImports().then ()->
+				lineRefs = subjectFile.lineRefs.filter (validRef)-> validRef?
 
 				subjectFile.imports
 					.filter (validImport)-> validImport
@@ -73,7 +74,7 @@ SimplyImport.scanImports = (input, opts={})->
 							return childPath
 						else
 							importStats = {}
-							entireLine = subjectFile.contentLines[subjectFile.lineRefs[childIndex]]
+							entireLine = subjectFile.contentLines[lineRefs[childIndex]]
 							entireLine.replace regEx.import, (entireLine, priorContent='', spacing='', conditions)->
 								importStats = {entireLine, priorContent, spacing, conditions, path:childPath}
 							
