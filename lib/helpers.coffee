@@ -3,6 +3,7 @@ resolveModule = Promise.promisify require('browser-resolve')
 fs = Promise.promisifyAll require 'fs-extra'
 path = require 'path'
 chalk = require 'chalk'
+coffeeAST = require('decaffeinate-parser').parse
 acorn = require 'acorn'
 escodegen = require 'escodegen'
 regEx = require './regex'
@@ -86,6 +87,14 @@ helpers =
 			return not objContents.includes(':')
 
 		return false
+
+
+	testIfCoffeeIsExpression: (string)->
+		try
+			AST = coffeeAST(string).body
+			return AST.statements.length is 1
+		catch
+			return false
 
 
 
