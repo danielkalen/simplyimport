@@ -1149,6 +1149,34 @@ suite "SimplyImport", ()->
 					expect(outer.env).to.eql {}
 
 
+		test "When wrapping coffee content in a closure, a fat arrow will be used only if there is a usage of the 'this' or '@' keyword", ()->
+			Promise.all([
+				fs.outputFileAsync tempFile('thisKeywordYesA.coffee'), "inner = 123\nthis.exported = inner;"
+				fs.outputFileAsync tempFile('thisKeywordYesB.coffee'), "inner = 456\n@exported = inner;"
+				fs.outputFileAsync tempFile('thisKeywordNo.coffee'), "inner = 678\nmod.exported = inner;"
+				fs.outputFileAsync tempFile('thisImporter.coffee'), "importA = import './thisKeywordYesA'\nimportB = import './thisKeywordYesB'\nimportC = import './thisKeywordNo'"
+			]).then ()->
+				SimplyImport(tempFile 'thisImporter.coffee').then (result)->
+					expect(result).to.contain "importA = do ()=>"
+					expect(result).to.contain "importB = do ()=>"
+					expect(result).to.contain "importC = do ()->"
+
+
+		test "Import statements with prior content should only be wrapped in an IIFE if it has more than 1 statement or if it has invalid syntax", ()->
+			Promise.all([
+				fs.outputFileAsync tempFile('iifeYesA.coffee'), "inner = 123; exported = inner;"
+				fs.outputFileAsync tempFile('iifeYesB.coffee'), "inner = 123\nexported = inner;"
+				fs.outputFileAsync tempFile('iifeError.coffee'), "var inner = 456"
+				fs.outputFileAsync tempFile('iifeNo.coffee'), "inner = 456"
+				fs.outputFileAsync tempFile('iifeImporter.coffee'), "importA = import './iifeYesA'\nimportB = import './iifeYesB'\nimportC = import './iifeError'\nimportD = import './iifeNo'"
+			]).then ()->
+				SimplyImport(tempFile 'iifeImporter.coffee').then (result)->
+					expect(result).to.contain "importA = do ()->"
+					expect(result).to.contain "importB = do ()->"
+					expect(result).to.contain "importC = do ()->"
+					expect(result).to.contain "importD = inner = 456"
+
+
 
 
 
