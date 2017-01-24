@@ -7,6 +7,7 @@ regEx =
 	useStrict: /["']use strict["'];\n\n/
 	newLine: /\r?\n/
 	startingNewLine: /^\n+/
+	initialWhitespace: /^[ \t]+/
 	thisKeyword: /\bthis\b|\@/
 	requireArg: /\brequire[,\)]/
 	processRequire: /\brequire[\(\s]['"]process['"]\)?/

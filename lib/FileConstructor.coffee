@@ -396,6 +396,9 @@ File::replaceImports = (childImports)->
 				childContent = helpers.addSpacingToString(childContent, spacing)
 
 			if priorContent and childContent
+				if priorContentSpacing = priorContent.match(regEx.initialWhitespace)?[0]
+					childContent = helpers.addSpacingToString(childContent, priorContentSpacing, 1)
+				
 				childContent = priorContent + spacing + childContent
 
 			return childContent+trailingContent

@@ -150,11 +150,13 @@ helpers =
 		"_sim_#{Math.floor((1+Math.random()) * 100000).toString(16)}"
 
 
-	addSpacingToString: (string, spacing)->
-		string
-			.split '\n'
-			.map (line)-> spacing+line
-			.join '\n'
+	addSpacingToString: (string, spacing, offset)->
+		lines = string.split '\n'
+		linesToSpace = if offset then lines.slice(offset) else lines
+		spacedOutLines = linesToSpace.map (line)-> spacing+line
+		offsettedOutLines = if offset then lines.slice(0, offset) else []
+		
+		offsettedOutLines.concat(spacedOutLines).join('\n')
 
 
 
