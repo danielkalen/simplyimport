@@ -165,7 +165,8 @@ helpers =
 
 	wrapInClosure: (content, isCoffee, asFunc)->
 		if isCoffee
-			fnSignatureStart = if asFunc then '()->' else 'do ()=>'
+			arrow = if regEx.thisKeyword.test(content) then '=>' else '->'
+			fnSignatureStart = if asFunc then "()#{arrow}" else "do ()#{arrow}"
 			fnSignatureEnd = ''
 		else
 			fnSignatureStart = if asFunc then 'function(){' else '(function(){'
