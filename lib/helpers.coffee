@@ -94,7 +94,7 @@ helpers =
 			AST = coffeeAST(string).body
 			return AST.statements.length is 1
 		catch
-			return false
+			return string.split(regEx.newLine).length is 1
 
 
 

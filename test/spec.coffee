@@ -1162,19 +1162,21 @@ suite "SimplyImport", ()->
 					expect(result).to.contain "importC = do ()->"
 
 
-		test "Import statements with prior content should only be wrapped in an IIFE if it has more than 1 statement or if it has invalid syntax", ()->
+		test "Import statements with prior content should only be wrapped in an IIFE if it has more than 1 statement or if it has invalid syntax + more than 1 line", ()->
 			Promise.all([
 				fs.outputFileAsync tempFile('iifeYesA.coffee'), "inner = 123; exported = inner;"
 				fs.outputFileAsync tempFile('iifeYesB.coffee'), "inner = 123\nexported = inner;"
-				fs.outputFileAsync tempFile('iifeError.coffee'), "var inner = 456"
+				fs.outputFileAsync tempFile('iifeErrorA.coffee'), "var inner = 456\nvar outer = 123"
+				fs.outputFileAsync tempFile('iifeErrorB.coffee'), "var inner = 456"
 				fs.outputFileAsync tempFile('iifeNo.coffee'), "inner = 456"
-				fs.outputFileAsync tempFile('iifeImporter.coffee'), "importA = import './iifeYesA'\nimportB = import './iifeYesB'\nimportC = import './iifeError'\nimportD = import './iifeNo'"
+				fs.outputFileAsync tempFile('iifeImporter.coffee'), "importA = import './iifeYesA'\nimportB = import './iifeYesB'\nimportC = import './iifeErrorA'\nimportD = import './iifeErrorB'\nimportE = import './iifeNo'"
 			]).then ()->
 				SimplyImport(tempFile 'iifeImporter.coffee').then (result)->
 					expect(result).to.contain "importA = do ()->"
 					expect(result).to.contain "importB = do ()->"
 					expect(result).to.contain "importC = do ()->"
-					expect(result).to.contain "importD = inner = 456"
+					expect(result).to.contain "importD = var inner = 456"
+					expect(result).to.contain "importE = inner = 456"
 
 
 
