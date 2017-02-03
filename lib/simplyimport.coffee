@@ -46,6 +46,7 @@ SimplyImport = (input, options, state={})->
 SimplyImport.scanImports = (input, opts={})->
 	File.instanceCache = {}
 	importOptions = extend({}, defaultOptions, {recursive:false})
+	importOptions.conditions = ['*'] if not importOptions.conditions.length
 	opts = extend {}, opts, {isMain:true}
 	opts.context ?= if opts.isStream then process.cwd() else helpers.getNormalizedDirname(input)
 	opts.context = PATH.resolve(opts.context) if not ['/','\\'].includes(opts.context[0])
