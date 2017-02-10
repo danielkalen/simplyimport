@@ -28,6 +28,7 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPa
 	@importMemberRefs = []
 	@lineRefs = []
 	@orderRefs = []
+	@ignoreRanges = []
 	@contentReference = @getID()
 	@cacheRef = if @isMain then '*MAIN*' else input
 	@importRefs.main = @ if @isMain
@@ -51,6 +52,7 @@ File::process = ()-> if @processPromise then @processPromise else
 		.then(@expandFilePath)
 		.then(@checkIfIsThirdPartyBundle)
 		.then(@collectRequiredGlobals)
+		.then(@collectIgnoreRanges)
 		.then ()=>
 			unless @isMain
 				if File.instanceCache[@hash] and not File.instanceCache[@cacheRef]
@@ -177,6 +179,25 @@ File::collectRequiredGlobals = ()->
 		return
 
 
+File::collectIgnoreRanges = ()->
+	if @specificOptions.scan is false
+		return
+	else
+		currentRange = null
+		@content.replace regEx.ignoreStatement, (m, charIndex)=>
+			if currentRange
+				currentRange.end = charIndex
+				@ignoreRanges.push(currentRange)
+				currentRange = null
+			else
+				currentRange = start:charIndex
+			return
+		
+		if currentRange
+			currentRange.end = @content.length
+			@ignoreRanges.push(currentRange)
+
+
 File::checkIfImportsFile = (targetFile)->
 	iteratedArrays = [@imports]
 	importRefs = @importRefs
@@ -267,14 +288,21 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 		
 		.then ()=>
 			replaceAsync.seq @content, regEx.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
-				@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
+				if helpers.testIfIsIgnored @ignoreRanges, Array::slice.call(arguments, -2)[0]
+					Promise.resolve()
+				else
+					@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
+
 
 		.then ()=> unless @isThirdPartyBundle
 			replaceAsync.seq @content, regEx.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)=>
 				if not regEx.commonJS.validRequire.test(entireLine) and not @isCoffee
 					Promise.resolve()
 				else
-					@processImport(childPath, entireLine, priorContent)
+					if helpers.testIfIsIgnored @ignoreRanges, Array::slice.call(arguments, -2)[0]
+						Promise.resolve()
+					else
+						@processImport(childPath, entireLine, priorContent)
 				# If the trailing content has a closing bracket w/out an opening then it means the 'childPath'
 				# is some sort of an expression (i.e. "'st'+'ing'" or "'string'+suffix") which is currently
 				# unsupported and means the childPath wasn't fully captured

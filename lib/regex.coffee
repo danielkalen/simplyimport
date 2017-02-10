@@ -5,6 +5,7 @@ regEx =
 	firstWord: /^(\S+)/
 	singleBracketEnd: /^[^\(]*\)/
 	useStrict: /["']use strict["'];\n\n/
+	ignoreStatement: /simplyimport:ignore/g
 	newLine: /\r?\n/
 	startingNewLine: /^\n+/
 	initialWhitespace: /^[ \t]+/

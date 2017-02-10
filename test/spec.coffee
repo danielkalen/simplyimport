@@ -1452,6 +1452,43 @@ suite "SimplyImport", ()->
 						expect(result).to.equal "def456"
 
 
+		test "Certain imports can be ignored by having them be surrounded by opening and closing 'simplyimport:ignore' comments", ()->
+			Promise.all([
+				fs.outputFileAsync tempFile('fileA.js'), '"theFileA"'
+				fs.outputFileAsync tempFile('fileB.js'), '"theFileB"'
+				fs.outputFileAsync tempFile('importer.js'), "
+					A = import './fileA'\n\
+					B = require('./fileB')\n\
+					
+					// simplyimport:ignore\n\
+					C = import './fileA'\n\
+					D = require('./fileB')\n\
+					// simplyimport:ignore\n\
+					
+					E = import './fileA'\n\
+					
+					// simplyimport:ignore\n\
+					F = require('./fileB')\n\
+					// simplyimport:ignore\n\
+					
+					G = require('./fileB')\n\
+					
+					// simplyimport:ignore\n\
+					H = import './fileA'\n\
+					I = require('./fileB')\n\
+				"
+			]).then ()->
+				SimplyImport(tempFile('importer.js')).then (result)->
+					expect(result).not.to.contain	'A = import'
+					expect(result).not.to.contain	'B = require'
+					expect(result).to.contain		'C = import'
+					expect(result).to.contain		'D = require'
+					expect(result).not.to.contain	'E = import'
+					expect(result).to.contain		'F = require'
+					expect(result).not.to.contain	'G = require'
+					expect(result).to.contain		'H = import'
+					expect(result).to.contain		'I = require'
+
 
 		suite "Commented imports won't be imported", ()->
 			test "JS Syntax", ()->

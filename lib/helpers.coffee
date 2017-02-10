@@ -97,6 +97,13 @@ helpers =
 			return string.split(regEx.newLine).length is 1
 
 
+	testIfIsIgnored: (ignoreRanges, targetIndex)->
+		for range in ignoreRanges
+			return true if range.start < targetIndex < range.end
+
+		return false
+
+
 
 	commentOut: (line, isCoffee)->
 		comment = if isCoffee then '#' else '//'
