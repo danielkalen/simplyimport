@@ -488,7 +488,7 @@ File::applyTransforms = (content, transforms)->
 		.map (transform)-> helpers.resolveTransformer(transform)
 		.reduce((content, transformer)=>
 			new Promise (resolve)=>
-				transformStream = transformer.fn(@filePath, transformer.opts)
+				transformStream = transformer.fn(PATH.basename(@filePath), transformer.opts)
 				finishStream = concatStream (bufResult)-> resolve(bufResult.toString())
 				streamify(content).pipe(transformStream).pipe(finishStream)
 				@filePath = @filePath.replace(/\.coffee$/,'')+'.js' if @isCoffee and transformer.name is 'coffeeify'
