@@ -16,7 +16,8 @@
   ],
   "main": "index.js",
   "bin": {
-    "simplyimport": "./bin"
+    "simplyimport": "./bin",
+    "simplyimport-debug": "./bin-debug"
   },
   "author": "danielkalen",
   "repository": {
