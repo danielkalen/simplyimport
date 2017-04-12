@@ -1,6 +1,7 @@
 Promise = require 'bluebird'
 # Promise.config longStackTraces:true
 fs = Promise.promisifyAll require 'fs-extra'
+helpers = require './helpers'
 path = require 'path'
 chalk = require 'chalk'
 mocha = require 'mocha'
@@ -1488,6 +1489,11 @@ suite "SimplyImport", ()->
 					expect(result).not.to.contain	'G = require'
 					expect(result).to.contain		'H = import'
 					expect(result).to.contain		'I = require'
+
+
+
+		test.skip "Importing module packages should also respect their browserify.transform field and simplyimport.transform field", ()->
+
 
 
 		suite "Commented imports won't be imported", ()->
