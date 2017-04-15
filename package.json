@@ -28,6 +28,7 @@
   "mocha_opts": "-u tdd --compilers coffee:coffee-script/register --slow 1000 --timeout 5000",
   "scripts": {
     "prepublish": "npm run test",
+    "postinstall": "coffee scripts/installSampleModules.coffee",
     "build": "npm run compile && npm run prependbin && npm run makeexec",
     "compile": "npm run compile:module && npm run compile:bin",
     "compile:module": "foreach -g 'lib/*' -x 'cat {{path}} | coffee -c -s -b > forCoverage/{{name}}.js'",
@@ -87,12 +88,12 @@
     "yargs": "^3.29.0"
   },
   "devDependencies": {
+    "axios": "^0.16.1",
     "babel-preset-es2015-script": "^1.1.0",
     "babelify": "^7.3.0",
     "browserify": "^13.1.1",
     "chai": "^3.5.0",
     "chai-spies": "^0.7.1",
-    "coffeeify": "^2.1.0",
     "create-output-stream": "0.0.1",
     "foreach-cli": "^1.6.0",
     "fs-jetpack": "^0.13.3",
@@ -104,6 +105,7 @@
     "smart-extend": "^1.3.2",
     "streamify-string": "^1.0.1",
     "svg2png": "^3.0.1",
+    "tar.gz": "^1.0.5",
     "through2": "^2.0.3",
     "timeunits": "^1.0.2"
   }
