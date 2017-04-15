@@ -675,7 +675,7 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync(tempFile('fileB.js'), "let def = 456;")
 				fs.outputFileAsync(tempFile('importer.js'), "import fileA.js\nimport fileB.js\nlet ghi = 789;")
 			]).then ()->
-				SimplyImport(tempFile('importer.js'), {globalTransform:[require('./uppercaseTransform'), path.join 'test','spacerTransform.coffee']}).then (result)->
+				SimplyImport(tempFile('importer.js'), {globalTransform:[require('./helpers/uppercaseTransform'), path.join 'test','helpers','spacerTransform.coffee']}).then (result)->
 					resultLines = result.split('\n')
 					expect(resultLines[0]).to.equal('L E T   A B C   =   1 2 3 ;')
 					expect(resultLines[1]).to.equal('L E T   D E F   =   4 5 6 ;')
@@ -691,13 +691,13 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync(tempFile('importer.js'), "import fileA.js\nimport fileB.js")
 			]).then ()->
 				opts = 
-					globalTransform: require('./uppercaseTransform')
+					globalTransform: require('./helpers/uppercaseTransform')
 					fileSpecific:
 						'*fileA.js':
-							transform: path.resolve('test','spacerTransform')
+							transform: path.resolve('test','helpers','spacerTransform')
 						
 						"fileB.js":
-							transform: path.resolve('test','lowercaseTransform.coffee')
+							transform: path.resolve('test','helpers','lowercaseTransform.coffee')
 							scan: false
 				
 				SimplyImport(tempFile('importer.js'), opts).then (result)->
@@ -710,7 +710,7 @@ suite "SimplyImport", ()->
 					fs.outputFileAsync(tempFile('module','package.json'), JSON.stringify(simplyimport:opts.fileSpecific)).then ()->
 						new Promise (done)->
 							cliOpts = {cwd:path.resolve('test','temp','module')}
-							cliTransform = path.resolve('test','uppercaseTransform')
+							cliTransform = path.resolve('test','helpers','uppercaseTransform')
 							cliInput = path.resolve tempFile('importer.js')
 							
 							exec "#{bin} -i #{cliInput} -g #{cliTransform}", cliOpts, (err, resultFromCLI, stderr)->
