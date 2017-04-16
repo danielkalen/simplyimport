@@ -8,8 +8,8 @@ mocha = require 'mocha'
 chai = require 'chai'
 chaiSpies = require 'chai-spies'
 chai.use chaiSpies
+vm = require('vm')
 expect = chai.expect
-should = chai.should()
 coffeeCompiler = require 'coffee-script'
 Streamify = require 'streamify-string'
 Browserify = require 'browserify'
@@ -30,7 +30,22 @@ mocha.Runner::fail = (test, err)->
 	origFail.call(@, test, err)
 
 tempFile = (fileNames...)->
-	path.join 'test','temp',path.join.apply(path, fileNames)
+	path.join 'test','temp',path.join(fileNames...)
+
+debugFile = (fileNames...)->
+	path.join 'test','debug',path.join(fileNames...)
+
+
+importAndRunAsScript = (content, filename='script.js')->
+	SimplyImport(content, null, isStream:true).then (compiledResult)->
+		Promise.resolve()
+			.then ()-> (new vm.Script(compiledResult, {filename:filename})).runInThisContext()
+			.return(compiledResult)
+			.catch (err)->
+				debugPath = debugFile(filename)
+				err.message += "\nSaved compiled result to '#{debugPath}'"
+				fs.outputFileSync(debugPath, compiledResult)
+				throw err
 			
 
 suite "SimplyImport", ()->
@@ -148,7 +163,7 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync(tempFile('variable.js'), "output = 'someOutput'")
 				fs.outputFileAsync(tempFile('importingB.js'), "import variable.js")
 				fs.outputFileAsync(tempFile('importingA.js'), "import variable.js")
-			]).then ()->				
+			]).then ()->
 				SimplyImport("import 'test/temp/importingA.js'\nimport 'test/temp/importingB.js'\nimport 'test/temp/variable.js'", null, {isStream:true}).then (result)->
 					origResult = result
 					result = do ()->
@@ -168,33 +183,37 @@ suite "SimplyImport", ()->
 
 		test "Imports can have exports (ES6 syntax) and they can be imported via ES6 syntax", ()->
 			opts = {preventGlobalLeaks:false, transform:['babelify', {presets:'es2015-script', sourceMaps:false}]}
-			fs.outputFileAsync(tempFile('exportBasic.js'), "
-				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
-				export {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
-				export default function(){return 33};\n\
-				export function namedFn (){return 33};\n\
-				export var namedFn2 = ()=> 33;\n\
-				export class someClass {};\n\
-				export var another = 'anotherValue'\n\
-				export let kid ='kiddy';
-			").then ()->
-				SimplyImport("import myDefault, { AAA,BBB, ccc as CCC,DDDDD as ddd,kid,  kiddy, another} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
-					eval(result)
-					expect(AAA).to.equal 'aaa'
-					expect(BBB).to.equal 'bbb'
-					expect(ddd).to.equal 'ddd'
-					expect(kid).to.equal 'kiddy'
-					expect(kiddy).to.equal undefined
-					expect(another).to.equal 'anotherValue'
-					expect(myDefault()).to.equal 33
-					delete AAA
-					delete BBB
-					delete ddd
-					delete kid
-					delete kiddy
-					delete another
-					delete myDefault
-					
+
+			Promise.resolve()
+				.then ()->
+					fs.outputFileAsync tempFile('exportBasic.js'), "
+						var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
+						export {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
+						export default function(){return 33};\n\
+						export function namedFn (){return 33};\n\
+						export var namedFn2 = ()=> 33;\n\
+						export class someClass {};\n\
+						export var another = 'anotherValue'\n\
+						export let kid ='kiddy';"
+				.then ()->
+					SimplyImport("import myDefault, { AAA,BBB, ccc as CCC,DDDDD as ddd,kid,  kiddy, another} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(AAA).to.equal 'aaa'
+						expect(BBB).to.equal 'bbb'
+						expect(ddd).to.equal 'ddd'
+						expect(kid).to.equal 'kiddy'
+						expect(kiddy).to.equal undefined
+						expect(another).to.equal 'anotherValue'
+						expect(myDefault()).to.equal 33
+						delete AAA
+						delete BBB
+						delete ddd
+						delete kid
+						delete kiddy
+						delete another
+						delete myDefault
+				
+				.then ()->
 					SimplyImport("import test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
 						expect(()-> AAA).to.throw()
@@ -203,113 +222,125 @@ suite "SimplyImport", ()->
 						expect(()-> kid).to.throw()
 						expect(()-> kiddy).to.throw()
 						expect(()-> another).to.throw()
+				
+				.then ()->
+					SimplyImport("import {BBB} from test/temp/exportBasic.js\nimport {kid} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(BBB).to.equal 'bbb'
+						expect(kid).to.equal 'kiddy'
+						delete BBB
+						delete kid
 					
-						SimplyImport("import {BBB} from test/temp/exportBasic.js\nimport {kid} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+				.then ()->
+					SimplyImport("import defFn from test/temp/exportBasic.js\nimport defFnAlias from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(defFn()).to.equal 33
+						expect(defFnAlias()).to.equal 33
+						delete defFn
+						delete defFnAlias
+					
+				.then ()->
+					SimplyImport("import * as allExports from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(typeof allExports).to.equal 'object'
+						expect(allExports.AAA).to.equal 'aaa'
+						expect(allExports.DDDDD).to.equal 'ddd'
+						expect(allExports.namedFn()).to.equal 33
+						expect(allExports.namedFn2()).to.equal 33
+						expect(typeof allExports.someClass).to.equal 'function'
+						expect(allExports['*default*']()).to.equal 33
+						delete allExports
+
+				.then ()->
+					Promise.all([
+						SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
+						SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
+					]).then (results)->
+						eval(results[0])
+						eval(results[1])
+						expect(allA).to.exist
+						expect(allB).to.exist
+						expect(allA.AAA).to.equal(allB.AAA)
+						expect(allA.BBB).to.equal(allB.BBB)
+						expect(allA.ddd).to.equal(allB.ddd)
+						expect(allA.kid).to.equal(allB.kid)
+						expect(allA.kiddy).to.equal(allB.kiddy)
+						expect(allA.another).to.equal(allB.another)
+						expect(allA.namedFn()).to.equal(allB.namedFn())
+						expect(allA.namedFn2()).to.equal(allB.namedFn2())
+						expect(allA['*default*']()).to.equal(allB['*default*']())
+
+				.then ()->
+					fs.outputFileAsync tempFile('exportAdvanced.js'), "
+						var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
+						export default {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
+						export var another = 'anotherValue'\n\
+						export let kid ='kiddy';"
+										
+				.then ()->
+					SimplyImport("import theDefault,{kid as kido,another} from test/temp/exportAdvanced.js", opts, {isStream:true}).then (result)->
+						try
 							eval(result)
-							expect(BBB).to.equal 'bbb'
-							expect(kid).to.equal 'kiddy'
-							delete BBB
-							delete kid
-					
-							SimplyImport("import defFn from test/temp/exportBasic.js\nimport defFnAlias from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
-								eval(result)
-								expect(defFn()).to.equal 33
-								expect(defFnAlias()).to.equal 33
-								delete defFn
-								delete defFnAlias
-					
-								SimplyImport("import * as allExports from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
-									eval(result)
-									expect(typeof allExports).to.equal 'object'
-									expect(allExports.AAA).to.equal 'aaa'
-									expect(allExports.DDDDD).to.equal 'ddd'
-									expect(allExports.namedFn()).to.equal 33
-									expect(allExports.namedFn2()).to.equal 33
-									expect(typeof allExports.someClass).to.equal 'function'
-									expect(allExports['*default*']()).to.equal 33
-									delete allExports
+						catch err
+							console.error(result)
+							throw err
+						
+						expect(theDefault.AAA).to.equal 'aaa'
+						expect(theDefault.BBB).to.equal 'bbb'
+						expect(theDefault.ccc).to.equal 'ccc'
+						expect(theDefault.DDDDD).to.equal 'ddd'
+						expect(another).to.equal 'anotherValue'
+						expect(kido).to.equal 'kiddy'
+				
+				.then ()->
+					fs.outputFileAsync(tempFile('importExported.js'), "import * as allExports from exportBasic.js")
 
-									Promise.all([
-										SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
-										SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
-									]).then (results)->
-										eval(results[0])
-										eval(results[1])
-										expect(allA).to.exist
-										expect(allB).to.exist
-										expect(allA.AAA).to.equal(allB.AAA)
-										expect(allA.BBB).to.equal(allB.BBB)
-										expect(allA.ddd).to.equal(allB.ddd)
-										expect(allA.kid).to.equal(allB.kid)
-										expect(allA.kiddy).to.equal(allB.kiddy)
-										expect(allA.another).to.equal(allB.another)
-										expect(allA.namedFn()).to.equal(allB.namedFn())
-										expect(allA.namedFn2()).to.equal(allB.namedFn2())
-										expect(allA['*default*']()).to.equal(allB['*default*']())
-										
-										fs.outputFileAsync(tempFile('exportAdvanced.js'), "
-											var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
-											export default {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
-											export var another = 'anotherValue'\n\
-											export let kid ='kiddy';
-										").then ()->
-											SimplyImport("import theDefault,{kid as kido,another} from test/temp/exportAdvanced.js", opts, {isStream:true}).then (result)->
-												try
-													eval(result)
-												catch err
-													console.error(result)
-													throw err
-												
-												expect(theDefault.AAA).to.equal 'aaa'
-												expect(theDefault.BBB).to.equal 'bbb'
-												expect(theDefault.ccc).to.equal 'ccc'
-												expect(theDefault.DDDDD).to.equal 'ddd'
-												expect(another).to.equal 'anotherValue'
-												expect(kido).to.equal 'kiddy'
-										
-												
-												fs.outputFileAsync(tempFile('importExported.js'), "import * as allExports from exportBasic.js").then ()->
-													SimplyImport("require('test/temp/importExported.js');", opts, {isStream:true}).then (result)->
-														result = result.replace('var allExports', 'global.theExported')
-														eval(result)
-														expect(typeof theExported).to.equal 'object'
-														expect(theExported.AAA).to.equal 'aaa'
-														expect(theExported.DDDDD).to.equal 'ddd'
-														delete theExported
-												
+				.then ()->
+					SimplyImport("require('test/temp/importExported.js');", opts, {isStream:true}).then (result)->
+						result = result.replace('var allExports', 'global.theExported')
+						eval(result)
+						expect(typeof theExported).to.equal 'object'
+						expect(theExported.AAA).to.equal 'aaa'
+						expect(theExported.DDDDD).to.equal 'ddd'
+						delete theExported
+				
 
-													
+											
 
 
 
 		test "Imports can have exports (CommonJS syntax) and they can be imported via ES6 syntax", ()->
 			opts = {preventGlobalLeaks:false}
-			fs.outputFileAsync(tempFile('exportBasic.js'), "
-				var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
-				exports = module.exports = function(){return 33};\n\
-				module.exports.AAA = AAA\n\
-				module.exports[BBB.toUpperCase()] = BBB;\n\
-				var moduleExports = exports;\n\
-				moduleExports[\"kid\"] = 'kiddy'\n\
-				var EEE = 'eee'; exports['CCC'] = CCC\n\
-				module.exports.DDDDD = DDD;\n\
-				exports.another = 'anotherValue';\n\
-			").then ()->
-				SimplyImport("import { AAA,BBB, ccc as CCC,DDDDD as ddd,kid,  kiddy, another} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
-					eval(result)
-					expect(AAA).to.equal 'aaa'
-					expect(BBB).to.equal 'bbb'
-					expect(ddd).to.equal 'ddd'
-					expect(kid).to.equal 'kiddy'
-					expect(kiddy).to.equal undefined
-					expect(another).to.equal 'anotherValue'
-					delete AAA
-					delete BBB
-					delete ddd
-					delete kid
-					delete kiddy
-					delete another
+			Promise.resolve()
+				.then ()->
+					fs.outputFileAsync tempFile('exportBasic.js'), "
+						var AAA = 'aaa', BBB = 'bbb', CCC = 'ccc', DDD = 'ddd';\n\
+						exports = module.exports = function(){return 33};\n\
+						module.exports.AAA = AAA\n\
+						module.exports[BBB.toUpperCase()] = BBB;\n\
+						var moduleExports = exports;\n\
+						moduleExports[\"kid\"] = 'kiddy'\n\
+						var EEE = 'eee'; exports['CCC'] = CCC\n\
+						module.exports.DDDDD = DDD;\n\
+						exports.another = 'anotherValue';\n"
+				
+				.then ()->
+					SimplyImport("import { AAA,BBB, ccc as CCC,DDDDD as ddd,kid,  kiddy, another} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(AAA).to.equal 'aaa'
+						expect(BBB).to.equal 'bbb'
+						expect(ddd).to.equal 'ddd'
+						expect(kid).to.equal 'kiddy'
+						expect(kiddy).to.equal undefined
+						expect(another).to.equal 'anotherValue'
+						delete AAA
+						delete BBB
+						delete ddd
+						delete kid
+						delete kiddy
+						delete another
 					
+				.then ()->
 					SimplyImport("import test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
 						expect(()-> AAA).to.throw()
@@ -319,41 +350,45 @@ suite "SimplyImport", ()->
 						expect(()-> kiddy).to.throw()
 						expect(()-> another).to.throw()
 					
-						SimplyImport("import {BBB} from test/temp/exportBasic.js\nimport {kid} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
-							eval(result)
-							expect(BBB).to.equal 'bbb'
-							expect(kid).to.equal 'kiddy'
-							delete BBB
-							delete kid
+				.then ()->
+					SimplyImport("import {BBB} from test/temp/exportBasic.js\nimport {kid} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(BBB).to.equal 'bbb'
+						expect(kid).to.equal 'kiddy'
+						delete BBB
+						delete kid
 										
-							SimplyImport("import * as allExports from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
-								eval(result)
-								expect(typeof allExports).to.equal 'function'
-								expect(allExports()).to.equal 33
-								expect(allExports.AAA).to.equal 'aaa'
-								expect(allExports.DDDDD).to.equal 'ddd'
-								delete allExports
+				.then ()->
+					SimplyImport("import * as allExports from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(typeof allExports).to.equal 'function'
+						expect(allExports()).to.equal 33
+						expect(allExports.AAA).to.equal 'aaa'
+						expect(allExports.DDDDD).to.equal 'ddd'
+						delete allExports
 										
-								SimplyImport("var fetchedAAA = (import test/temp/exportBasic.js).AAA", opts, {isStream:true}).then (result)->
-									eval(result)
-									expect(fetchedAAA).to.equal 'aaa'
-									delete fetchedAAA
+				.then ()->
+					SimplyImport("var fetchedAAA = (import test/temp/exportBasic.js).AAA", opts, {isStream:true}).then (result)->
+						eval(result)
+						expect(fetchedAAA).to.equal 'aaa'
+						delete fetchedAAA
 
-									Promise.all([
-										SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
-										SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
-									]).then (results)->
-										eval(results[0])
-										eval(results[1])
-										expect(allA).to.exist
-										expect(allB).to.exist
-										expect(allA.AAA).to.equal(allB.AAA)
-										expect(allA.BBB).to.equal(allB.BBB)
-										expect(allA.ddd).to.equal(allB.ddd)
-										expect(allA.kid).to.equal(allB.kid)
-										expect(allA.kiddy).to.equal(allB.kiddy)
-										expect(allA.another).to.equal(allB.another)
-										expect(allA()).to.equal(allB())
+				.then ()->
+					Promise.all([
+						SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
+						SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
+					]).then (results)->
+						eval(results[0])
+						eval(results[1])
+						expect(allA).to.exist
+						expect(allB).to.exist
+						expect(allA.AAA).to.equal(allB.AAA)
+						expect(allA.BBB).to.equal(allB.BBB)
+						expect(allA.ddd).to.equal(allB.ddd)
+						expect(allA.kid).to.equal(allB.kid)
+						expect(allA.kiddy).to.equal(allB.kiddy)
+						expect(allA.another).to.equal(allB.another)
+						expect(allA()).to.equal(allB())
 
 
 
@@ -556,12 +591,9 @@ suite "SimplyImport", ()->
 				global.vmB = import 'vm';\n\
 				global.zlibB = import 'zlib';\n\
 			"
-			SimplyImport(fileContent, null, {isStream:true}).then (result)->
+			global.XMLHttpRequest = ()-> {open:()->}
+			importAndRunAsScript(fileContent, 'core-NPM-module-polyfills.js').then (result)->
 				expect(result).not.to.equal(fileContent)
-				# fs.outputFileSync('./crypo.js', result);
-
-				global.XMLHttpRequest = ()-> {open:()->}
-				eval(result)
 				expect(typeof assertB.deepEqual).to.equal 'function'
 				expect(typeof consoleB.log).to.equal 'function'
 				expect(typeof constantsB).to.equal 'object'
