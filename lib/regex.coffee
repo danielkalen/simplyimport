@@ -57,7 +57,7 @@ regEx =
 	import: ///^
 		(?:
 			(.*)				# prior content
-			([\ \t\r]+)			# prior space (excluding new line)
+			([\ \t\r=]+)		# prior space (excluding new line)
 			\W?					# no letters
 				|				# or if above aren't present
 			\W?					# no letters
@@ -124,7 +124,7 @@ regEx =
 		$///gm
 
 		import: ///^
-			(.+[\ \t\r\(]|.+\;|)							# prior content
+			(.+[\ \t\r\(=]|.+\;|)							# prior content
 			require 										# require reference
 			(
 				\s+ | \( 									# trailing char after 'require' (either bracket or space)
