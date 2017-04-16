@@ -44,8 +44,9 @@ importAndRunAsScript = (content, filename='script.js')->
 			.catch (err)->
 				debugPath = debugFile(filename)
 				err.message += "\nSaved compiled result to '#{debugPath}'"
-				fs.outputFileSync(debugPath, compiledResult)
-				throw err
+				fs.outputFileAsync(debugPath, compiledResult).timeout(500)
+					.catch ()-> err
+					.then ()-> throw err
 			
 
 suite "SimplyImport", ()->
@@ -256,8 +257,17 @@ suite "SimplyImport", ()->
 						SimplyImport("import * as allA from test/temp/exportBasic.js", opts, {isStream:true})
 						SimplyImport("var allB = import test/temp/exportBasic.js", opts, {isStream:true})
 					]).then (results)->
-						eval(results[0])
-						eval(results[1])
+						try
+							eval(results[0])
+						catch err
+							console.log(results[0])
+							throw err
+						
+						try
+							eval(results[1])
+						catch err
+							console.log(results[1])
+							throw err
 						expect(allA).to.exist
 						expect(allB).to.exist
 						expect(allA.AAA).to.equal(allB.AAA)
