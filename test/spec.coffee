@@ -1714,6 +1714,15 @@ suite "SimplyImport", ()->
 
 
 
+		test "Non-javascript files can be imported", ()->
+			Promise.resolve()
+				.then ()-> fs.outputFileAsync tempFile('sample.html'), '<div>innerText</div>'
+				.then ()->
+					SimplyImport("var html = require('#{tempFile('sample.html')}')", null, isStream:true).then (result)->
+						expect(result).to.contain('var html = <div>innerText</div>')
+
+
+
 		suite "Commented imports won't be imported", ()->
 			test "JS Syntax", ()->
 				importDec = "// import 'test/desc/withquotes.js'"
