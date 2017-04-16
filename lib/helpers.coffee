@@ -42,7 +42,7 @@ coreModuleShims =
 
 escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
 
-moduleResolveError = (err)-> err?.message?.startsWith('Cannot find module')
+moduleResolveError = (err)-> err.message.startsWith('Cannot find module')
 
 
 
@@ -52,6 +52,10 @@ helpers =
 
 	simplifyPath: (inputPath)->
 		inputPath.replace process.cwd()+'/', ''
+
+	changeExtension: (filePath, extension)->
+		filePath = filePath.replace(/\.\w+?$/,'')
+		return "#{filePath}.#{extension}"
 
 	testForComments: (line, isCoffee)->
 		hasSingleLineComment = line.includes(if isCoffee then '#' else '//')
@@ -315,23 +319,27 @@ helpers =
 
 			.catch moduleResolveError, (err)-> Promise.resolve()
 
-	resolveTransformer: (transformer)-> Promise.resolve().then ()->
-		if typeof transformer is 'function'
-			return 'fn':transformer, 'opts':{}
 
-		else if typeof transformer is 'object' and helpers.isValidTransformerArray(transformer)
-			return 'fn':helpers.safeRequire(transformer[0]), 'opts':transformer[1], 'name':transformer[0]
+	resolveTransformer: (transformer, basedir)-> Promise.resolve().then ()-> switch
+		when typeof transformer is 'function'
+			{'fn':transformer, 'opts':{}}
 
-		else if typeof transformer is 'string'
-			return 'fn':helpers.safeRequire(transformer), 'opts':{}, 'name':transformer
+		when typeof transformer is 'object' and helpers.isValidTransformerArray(transformer)
+			{'fn':helpers.safeRequire(transformer[0], basedir), 'opts':transformer[1], 'name':transformer[0]}
 
-		else
-			Promise.reject("Invalid transformer provided (must be a function or a string representing the file/module path of the transform function). Received:'#{String(transformer)}'")
+		when typeof transformer is 'string'
+			{'fn':helpers.safeRequire(transformer, basedir), 'opts':{}, 'name':transformer}
+
+		else throw new Error "Invalid transformer provided (must be a function or a string representing the file/module path of the transform function). Received:'#{String(transformer)}'"
 
 
-	safeRequire: (targetPath)->
-		if targetPath.includes('.') or targetPath.includes('/')
+	safeRequire: (targetPath, basedir)->
+		if basedir
+			require(path.join(basedir, targetPath))
+		
+		else if targetPath.includes('.') or targetPath.includes('/')
 			require(path.resolve(targetPath))
+		
 		else
 			require(targetPath)
 
@@ -340,7 +348,8 @@ helpers =
 		Array.isArray(transformer) and
 		transformer.length is 2 and
 		typeof transformer[0] is 'string' and
-		typeof transformer[1] is 'object'
+		typeof transformer[1] is 'object' and
+		transformer[1] not instanceof Array
 
 
 	isCoreModule: (moduleName)->

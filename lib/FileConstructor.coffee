@@ -32,6 +32,9 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPa
 	@contentReference = @getID()
 	@cacheRef = if @isMain then '*MAIN*' else input
 	@importRefs.main = @ if @isMain
+	if @pkgFile
+		@pkgTransform = @pkgFile.browserify?.transform
+		@pkgTransform = [@pkgTransform] if @pkgTransform and helpers.isValidTransformerArray(@pkgTransform)
 
 	return File.instanceCache[@cacheRef] or @
 
@@ -244,38 +247,39 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 		else
 			childPath = PATH.resolve(@context, childPath)
 
-		if helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
-			Promise.resolve()
+		switch
+			when helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
+				Promise.resolve()
 		
-		else if not helpers.testConditions(@options.conditions, conditions)
-			@badImports.push(childPath)
-			@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
-			Promise.resolve()
+			when not helpers.testConditions(@options.conditions, conditions)
+				@badImports.push(childPath)
+				@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
+				Promise.resolve()
 		
-		else
-			childFile.process()
-				.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
-					childFile.importedCount++
-					@importRefs[childFile.hash] = childFile
-					@imports[orderRefIndex] = childFile.hash
-					@orderRefs[orderRefIndex] = childFile.hash
-					@addLineRef(entireLine, orderRefIndex)
-
-					if defaultMember or members
-						@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
-						childFile.hasUsefulExports = true
-					
-					if priorContent
-						childFile.requiresReturnedClosure = /\S/.test(priorContent)
+			else
 				childFile = new File childPath, @options, @importRefs, {'suppliedPath':origChildPath, pkgFile}
+				childFile.process()
+					.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
+						childFile.importedCount++
+						@importRefs[childFile.hash] = childFile
+						@imports[orderRefIndex] = childFile.hash
+						@orderRefs[orderRefIndex] = childFile.hash
+						@addLineRef(entireLine, orderRefIndex)
 
-					Promise.resolve()
+						if defaultMember or members
+							@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
+							childFile.hasUsefulExports = true
+						
+						if priorContent
+							childFile.requiresReturnedClosure = /\S/.test(priorContent)
 
-				.catch (err)=>
-					if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
-						selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)+1
-						console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple} #{chalk.dim(selfReference)}"
-						Promise.reject(err)
+						Promise.resolve()
+
+					.catch (err)=>
+						if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
+							selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)+1
+							console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple} #{chalk.dim(selfReference)}"
+							Promise.reject(err)
 
 
 
@@ -487,17 +491,30 @@ File::prependDuplicateRefs = (content)->
 
 
 
-File::applyTransforms = (content, transforms)->
+File::applyTransforms = (content, transforms, useFullPath)->
 	Promise.resolve(transforms)
-		.map (transform)-> helpers.resolveTransformer(transform)
+		.map (transform)-> helpers.resolveTransformer(transform, useFullPath)
 		.reduce((content, transformer)=>
 			new Promise (resolve)=>
-				transformStream = transformer.fn(PATH.basename(@filePath), transformer.opts)
+				filePath = if useFullPath then @filePath else PATH.basename(@filePath)
+				transformStream = transformer.fn(filePath, transformer.opts)
 				finishStream = concatStream (bufResult)-> resolve(bufResult.toString())
 				streamify(content).pipe(transformStream).pipe(finishStream)
-				@filePath = @filePath.replace(/\.coffee$/,'')+'.js' if @isCoffee and transformer.name is 'coffeeify'
+				if @isCoffee and transformer.name is 'coffeeify'
+					@isCoffee = false
+					@filePath = helpers.changeExtension(@filePath, 'js')
+					@filePathSimple = helpers.changeExtension(@filePathSimple, 'js')
 		, content)
 
+
+File::applyPkgTransforms = (content)->
+	Promise.resolve(@pkgTransform)
+		.filter (transform)->
+			name = if typeof transform is 'string' then transform else transform[0]
+			return name.toLowerCase() isnt 'simplyimportify'
+
+		.then (transforms)=>
+			@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
 
 
 
@@ -521,6 +538,12 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 		.then (compiledResult)=>
 			if @requiredGlobals.length and not @isThirdPartyBundle
 				helpers.wrapInGlobalsClosure(compiledResult, @)
+			else
+				compiledResult
+
+		.then (compiledResult)=>
+			if not @isMain and @pkgTransform?.length
+				@applyPkgTransforms(compiledResult)
 			else
 				compiledResult
 
