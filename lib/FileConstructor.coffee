@@ -575,7 +575,11 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 						else
 							return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
 					else
-						modifiedContent = helpers.modToReturnLastStatement(compiledResult||='{}', @filePathSimple)
+						modifiedContent = helpers.modToReturnLastStatement(compiledResult, @filePathSimple)
+						
+						if modifiedContent is false
+							return compiledResult
+					
 						if modifiedContent is 'ExpressionStatement'
 							return compiledResult unless @importedCount>1
 							modifiedContent = "return #{compiledResult}"

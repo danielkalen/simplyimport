@@ -281,8 +281,8 @@ helpers =
 
 	modToReturnLastStatement: (content, filePath)-> switch
 		when not filePath.endsWith('js')
-			content = "return #{content}" if filePath.endsWith('json')
-			return content
+			return "return #{content}" if filePath.endsWith('json')
+			return false
 
 		when err = require('syntax-error')(content, filePath)
 			console.error(consoleLabels.warn, err)
