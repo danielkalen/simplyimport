@@ -124,7 +124,7 @@ regEx =
 		$///gm
 
 		import: ///^
-			(.+[\ \t\r]|.+\;|)								# prior content
+			(.+[\ \t\r\(]|.+\;|)							# prior content
 			require 										# require reference
 			(
 				\s+ | \( 									# trailing char after 'require' (either bracket or space)
