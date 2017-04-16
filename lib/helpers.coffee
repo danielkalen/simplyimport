@@ -6,6 +6,7 @@ chalk = require 'chalk'
 coffeeAST = require('decaffeinate-parser').parse
 acorn = require 'acorn'
 escodegen = require 'escodegen'
+findPkgJson = require 'read-pkg-up'
 regEx = require './regex'
 consoleLabels = require './consoleLabels'
 stackTraceFilter = require('stack-filter')
@@ -314,8 +315,15 @@ helpers =
 	resolveModulePath: (moduleName, basedir)->
 		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir, modules:coreModuleShims})
 		moduleLoad
-			.then (modulePath)-> Promise.resolve(modulePath)
-			.then (modulePath)-> Promise.resolve(modulePath)
+			.then (modulePath)->
+				return unless modulePath
+				findPkgJson(normalize:false, cwd:modulePath).then (result)->
+					result.pkg.srcPath = result.path
+					result.pkg.dirPath = path.dirname(result.path)
+					return {
+						pkg: result.pkg
+						file: modulePath
+					}
 
 			.catch moduleResolveError, (err)-> Promise.resolve()
 

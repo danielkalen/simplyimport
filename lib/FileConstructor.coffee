@@ -20,7 +20,7 @@ allowedExtensions = ['js','ts','coffee','sass','scss','css','html','jade','pug']
  * @param {Object} state	          	(optional) initial state map to indicate if 'isStream', 'isCoffee', and 'context'
  * @param {Object} importHistory	 	(optional) the import history collected so far since the main faile import
 ###
-File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPath})->
+File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPath, @pkgFile})->
 	@input = input
 	@importedCount = 0
 	@imports = []
@@ -237,8 +237,12 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 		.replace /['"]/g, '' # Remove quotes form pathname
 		.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
 
-	helpers.resolveModulePath(childPath, @context).then (modulePath)=>
-		childPath = modulePath or PATH.resolve(@context, childPath)
+	helpers.resolveModulePath(childPath, @context).then (module)=>
+		if module
+			childPath = module.file
+			pkgFile = module.pkg
+		else
+			childPath = PATH.resolve(@context, childPath)
 
 		if helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
 			Promise.resolve()
@@ -249,7 +253,6 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 			Promise.resolve()
 		
 		else
-			childFile = new File childPath, @options, @importRefs, 'suppliedPath':origChildPath
 			childFile.process()
 				.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
 					childFile.importedCount++
@@ -264,6 +267,7 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 					
 					if priorContent
 						childFile.requiresReturnedClosure = /\S/.test(priorContent)
+				childFile = new File childPath, @options, @importRefs, {'suppliedPath':origChildPath, pkgFile}
 
 					Promise.resolve()
 
