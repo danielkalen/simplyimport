@@ -578,6 +578,7 @@ suite "SimplyImport", ()->
 
 
 		test "Supported core NPM modules will be imported as polyfills", ()-> if badES6Support then @skip() else
+			testTitle = @_runnable.title
 			fileContent = "
 				global.assertB = import 'assert';\n\
 				global.consoleB = import 'console';\n\
@@ -602,29 +603,33 @@ suite "SimplyImport", ()->
 				global.zlibB = import 'zlib';\n\
 			"
 			global.XMLHttpRequest = ()-> {open:()->}
-			importAndRunAsScript(fileContent, 'core-NPM-module-polyfills.js').then (result)->
-				expect(result).not.to.equal(fileContent)
-				expect(typeof assertB.deepEqual).to.equal 'function'
-				expect(typeof consoleB.log).to.equal 'function'
-				expect(typeof constantsB).to.equal 'object'
-				expect(typeof cryptoB.pbkdf2).to.equal 'function'
-				expect(typeof domainB.create).to.equal 'function'
-				expect(typeof eventsB).to.equal 'function'
-				expect(typeof httpB.get).to.equal 'function'
-				expect(typeof httpsB.get).to.equal 'function'
-				expect(typeof osB.hostname).to.equal 'function'
-				expect(typeof pathB.resolve).to.equal 'function'
-				expect(typeof processB.cwd).to.equal 'function'
-				expect(typeof punycodeB.decode).to.equal 'function'
-				expect(typeof querystringB.encode).to.equal 'function'
-				expect(typeof string_decoderB.StringDecoder).to.equal 'function'
-				expect(typeof bufferB.Buffer).to.equal 'function'
-				expect(typeof timersB.setTimeout).to.equal 'function'
-				expect(typeof ttyB.isatty).to.equal 'function'
-				expect(typeof urlB.parse).to.equal 'function'
-				expect(typeof utilB.inspect).to.equal 'function'
-				expect(typeof vmB.Script).to.equal 'function'
-				expect(typeof zlibB.createGzip).to.equal 'function'
+			importAndRunAsScript(fileContent, 'core-NPM-module-polyfills.js').timeout(5000)
+				.then (result)->
+					expect(result).not.to.equal(fileContent)
+					expect(typeof assertB.deepEqual).to.equal 'function'
+					expect(typeof consoleB.log).to.equal 'function'
+					expect(typeof constantsB).to.equal 'object'
+					expect(typeof cryptoB.pbkdf2).to.equal 'function'
+					expect(typeof domainB.create).to.equal 'function'
+					expect(typeof eventsB).to.equal 'function'
+					expect(typeof httpB.get).to.equal 'function'
+					expect(typeof httpsB.get).to.equal 'function'
+					expect(typeof osB.hostname).to.equal 'function'
+					expect(typeof pathB.resolve).to.equal 'function'
+					expect(typeof processB.cwd).to.equal 'function'
+					expect(typeof punycodeB.decode).to.equal 'function'
+					expect(typeof querystringB.encode).to.equal 'function'
+					expect(typeof string_decoderB.StringDecoder).to.equal 'function'
+					expect(typeof bufferB.Buffer).to.equal 'function'
+					expect(typeof timersB.setTimeout).to.equal 'function'
+					expect(typeof ttyB.isatty).to.equal 'function'
+					expect(typeof urlB.parse).to.equal 'function'
+					expect(typeof utilB.inspect).to.equal 'function'
+					expect(typeof vmB.Script).to.equal 'function'
+					expect(typeof zlibB.createGzip).to.equal 'function'
+
+				.catch Promise.TimeoutError , ()->
+					console.error chalk.bgYellow.white('WARNING')+" The test '#{testTitle}' has timed out due to an unknown error..."
 
 
 
