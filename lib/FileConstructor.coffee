@@ -402,6 +402,8 @@ File::replaceImports = (childImports)->
 							selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)+1
 							throw new Error "#{chalk.dim(selfReference)}: You're attempting to import a Coffee file into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children"
 
+
+
 			# ==== Handle Parenthesis =================================================================================
 			if trailingContent.startsWith(')')
 				if priorContent
@@ -529,7 +531,7 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 	childImportsPromise = Promise.delay().then ()=>
 		Promise.all @imports.map (hash)=>
 			childFile = @importRefs[hash]
-			childFile.compile(importerStack) unless importerStack.includes(childFile)
+			childFile.compile(importerStack) unless importerStack.includes(childFile) and childFile.imports.length
 
 		
 	@compilePromise = childImportsPromise
