@@ -652,7 +652,10 @@ suite "SimplyImport", ()->
 
 
 		test "Multiple transforms can be applied in a chain by providing an array of transforms", ()->
-			fs.outputFileAsync(tempFile('es6.js'), "let abc = 123;").then ()->					
+			Promise.all([
+				fs.outputFileAsync tempFile('es6.js'), "let abc = 123;"
+				fs.copyAsync path.join('test','helpers','node_modules','coffeeify'), 'node_modules/coffeeify'
+			]).then ()->					
 				SimplyImport('import test/temp/es6.js', {transform:['coffeeify', ['babelify', {presets:'es2015-script', sourceMaps:false}]]}, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).not.to.include('let abc')
 					expect(result).to.include('var abc')
@@ -1492,7 +1495,81 @@ suite "SimplyImport", ()->
 
 
 
-		test.skip "Importing module packages should also respect their browserify.transform field and simplyimport.transform field", ()->
+		test "Importing module packages should also respect their browserify.transform field", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.createModule
+						dest: tempFile('samplemodule')
+						body: 'var abc=123;\nvar def = require("imported-module")'
+						replaceBody: true
+
+				.tap (sampleModulePath)->
+					helpers.createModule(
+						dest: path.resolve sampleModulePath,'node_modules','imported-module'
+						json:
+							'name': 'imported-module'
+							'main': 'app.coffee'
+							'browserify': 'transform': ['coffeeify', {'sourceMap':false}]
+						modules: [
+							path.resolve('test','helpers','node_modules','coffeeify')
+						]
+						body: '(a,b)-> a*b'
+						replaceBody: true
+					).then (subModule)-> fs.moveAsync(path.join(subModule,'index.js'), path.join(subModule,'app.coffee'))
+				
+				.then (sampleModulePath)-> SimplyImport(path.resolve(sampleModulePath,'index.js'))
+				.then (result)->
+					expect(result).to.contain('var abc=123')
+					expect(result).to.contain('var def = ')
+					expect(result).not.to.contain('(a,b)->')
+					
+					eval(result)
+					expect(abc).to.equal(123)
+					expect(typeof def).to.equal('function')
+					expect(def(8,12)).to.equal(96)
+				.then ()-> fs.removeAsync tempFile('samplemodule')
+
+
+
+		test "The simplyimportify transformer and invalid transforms will be skipped if exists on a module's browserify.transform field", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.createModule
+						dest: tempFile('samplemodule')
+						body: 'var abc=123;\nimport "imported-module"'
+						replaceBody: true
+
+				.tap (sampleModulePath)->
+					helpers.createModule(
+						dest: path.resolve sampleModulePath,'node_modules','imported-module'
+						json:
+							'name': 'imported-module'
+							'main': 'app.coffee'
+							'browserify': 'transform': [
+								'simplyimportify'
+								['coffeeify', {'sourceMap':false}]
+							]
+						modules: [
+							path.resolve('test','helpers','node_modules','coffeeify')
+						]
+						files:
+							'fn.coffee': '(a,b)-> (a*b)*b'
+						body: 'def = import "./fn"'
+						replaceBody: true
+					).then (subModule)-> fs.moveAsync(path.join(subModule,'index.js'), path.join(subModule,'app.coffee')).catch ()->
+				
+				.then (sampleModulePath)-> SimplyImport(path.resolve(sampleModulePath,'index.js'))
+				.then (result)->
+					expect(result).to.contain('var abc=123')
+					expect(result).to.contain('var def')
+					expect(result).to.contain('def = function')
+					expect(result).not.to.contain('(a,b)->')
+					
+					eval(result)
+					expect(abc).to.equal(123)
+					expect(typeof def).to.equal('function')
+					expect(def(8,12)).to.equal(8*12*12)
+				.then ()-> fs.removeAsync tempFile('samplemodule')
 
 
 
