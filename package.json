@@ -36,7 +36,7 @@
     "prependbin": "echo '#!/usr/bin/env node' | cat - forCoverage/cli.js > forCoverage/bin && rm -rf forCoverage/cli.js",
     "makeexec": "chmod +x forCoverage/bin",
     "coverage": "npm run build && npm run coverage:run && npm run coverage:badge",
-    "coverage:run": "forCoverage=true istanbul cover --dir test/coverage/node node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts",
+    "coverage:run": "forCoverage=true istanbul cover --dir coverage/ node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts",
     "coverage:badge": "coffee .config/badge-gen.coffee",
     "test:debug": "mocha $npm_package_mocha_opts --debug-brk --inspect",
     "test": "mocha $npm_package_mocha_opts"
