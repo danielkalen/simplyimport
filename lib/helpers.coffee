@@ -188,15 +188,18 @@ helpers =
 
 
 	wrapInClosure: (content, isCoffee, asFunc)->
+	wrapInClosure: (content, isCoffee, asFunc, debugRef)->
 		if isCoffee
+			debugRef = " ##{debugRef}" if debugRef
 			arrow = if regEx.thisKeyword.test(content) then '=>' else '->'
 			fnSignatureStart = if asFunc then "()#{arrow}" else "do ()#{arrow}"
 			fnSignatureEnd = ''
 		else
+			debugRef = " //#{debugRef}" if debugRef
 			fnSignatureStart = if asFunc then 'function(){' else '(function(){'
 			fnSignatureEnd = if asFunc then '}' else '}).call(this)'
 
-		"#{fnSignatureStart}\n\
+		"#{fnSignatureStart}#{debugRef}\n\
 			#{@addSpacingToString content, '\t'}\n\
 		#{fnSignatureEnd}
 		"
@@ -227,18 +230,20 @@ helpers =
 
 
 
-	wrapInExportsClosure: (content, isCoffee, asFunc)->
+	wrapInExportsClosure: (content, isCoffee, asFunc, debugRef)->
 		if isCoffee
+			debugRef = " ##{debugRef}" if debugRef
 			fnSignature = if asFunc then '(exports)->' else "do (exports={})=>"
-			"#{fnSignature}\n\
+			"#{fnSignature}#{debugRef}\n\
 				\t`var module = {exports:exports}`\n\
 				#{@addSpacingToString content, '\t'}\n\
 				\treturn module.exports
 			"
 		else
+			debugRef = " //#{debugRef}" if debugRef
 			fnSignatureStart = if asFunc then 'function(exports){' else '(function(exports){'
 			fnSignatureEnd = if asFunc then '}' else '}).call(this, {})'
-			"#{fnSignatureStart}\n\
+			"#{fnSignatureStart}#{debugRef}\n\
 				\tvar module = {exports:exports};\n\
 				#{@addSpacingToString content, '\t'}\n\
 				\treturn module.exports;\n\

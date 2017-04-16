@@ -133,6 +133,9 @@ File::expandFilePath = ()->
 		@filePathSimple = helpers.simplifyPath @filePath
 		@contextRel = @context.replace(@importRefs.main.context, '')
 		@filePathRel = @filePath.replace(@importRefs.main.context, '')
+
+	### istanbul ignore next ###
+	@debugRef = if @options.includePathComments then ' '+@filePathSimple else ''
 	
 	@specificOptions = switch
 		when @options.fileSpecific[@suppliedPath] then @options.fileSpecific[@suppliedPath]
@@ -485,7 +488,7 @@ File::prependDuplicateRefs = (content)->
 
 			loader = helpers.wrapInLoaderClosure(assignments, '\t', @isCoffee)
 			result = "#{loader}\n#{content}"
-			result = if @options.preventGlobalLeaks then helpers.wrapInClosure(result, @isCoffee) else result
+			result = if @options.preventGlobalLeaks then helpers.wrapInClosure(result, @isCoffee, false, '') else result
 			return result
 
 
@@ -553,25 +556,25 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 					return @prependDuplicateRefs(compiledResult)
 				
 				when @hasExports
-					return helpers.wrapInExportsClosure(compiledResult, @isCoffee, @importedCount>1)
+					return helpers.wrapInExportsClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
 				
 				when @requiresReturnedClosure or @importedCount>1
 					if @isCoffee
 						if @importedCount is 1 and helpers.testIfCoffeeIsExpression(compiledResult)
 							return compiledResult
 						else
-							return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1)
+							return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
 					else
 						modifiedContent = helpers.modToReturnLastStatement(compiledResult||='{}', @filePathSimple)
 						if modifiedContent is 'ExpressionStatement'
 							return compiledResult unless @importedCount>1
 							modifiedContent = "return #{compiledResult}"
 						
-						return helpers.wrapInClosure(modifiedContent, false, @importedCount>1)
+						return helpers.wrapInClosure(modifiedContent, false, @importedCount>1, @debugRef)
 					### istanbul ignore next ###
 				
 				when @requiresClosure
-					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1)
+					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
 
 				else compiledResult
 

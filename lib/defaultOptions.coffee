@@ -3,6 +3,7 @@ module.exports =
 	'preserve': false
 	'dirCache': true
 	'preventGlobalLeaks': true
+	'includePathComments': true
 	'compileCoffeeChildren': false
 	'conditions': []
 	'transform': []
