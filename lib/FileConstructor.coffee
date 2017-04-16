@@ -34,7 +34,9 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPa
 	@importRefs.main = @ if @isMain
 	if @pkgFile
 		@pkgTransform = @pkgFile.browserify?.transform
-		@pkgTransform = [@pkgTransform] if @pkgTransform and helpers.isValidTransformerArray(@pkgTransform)
+		if @pkgTransform
+			@pkgTransform = [@pkgTransform] if helpers.isValidTransformerArray(@pkgTransform)
+			delete @pkgFile.browserify.transform # So that this file's imports won't apply the transforms to themselves as well
 
 	return File.instanceCache[@cacheRef] or @
 
@@ -243,46 +245,46 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 		.replace /['"]/g, '' # Remove quotes form pathname
 		.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
 
-	helpers.resolveModulePath(childPath, @context).then (module)=>
-		if module
+	Promise.bind(@)
+		.then ()-> helpers.resolveModulePath(childPath, @context, @filePath, @pkgFile)
+		.then (module)->
 			childPath = module.file
-			pkgFile = module.pkg
-		else
-			childPath = PATH.resolve(@context, childPath)
+			pkgFile = module.pkg or @pkgFile
 
-		switch
-			when helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
-				Promise.resolve()
 		
-			when not helpers.testConditions(@options.conditions, conditions)
-				@badImports.push(childPath)
-				@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
-				Promise.resolve()
-		
-			else
-				childFile = new File childPath, @options, @importRefs, {'suppliedPath':origChildPath, pkgFile}
-				childFile.process()
-					.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
-						childFile.importedCount++
-						@importRefs[childFile.hash] = childFile
-						@imports[orderRefIndex] = childFile.hash
-						@orderRefs[orderRefIndex] = childFile.hash
-						@addLineRef(entireLine, orderRefIndex)
+			switch
+				when helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
+					Promise.resolve()
+			
+				when not helpers.testConditions(@options.conditions, conditions)
+					@badImports.push(childPath)
+					@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
+					Promise.resolve()
+			
+				else
+					childFile = new File childPath, @options, @importRefs, {'suppliedPath':origChildPath, pkgFile}
+					childFile.process()
+						.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
+							childFile.importedCount++ unless module.isEmpty
+							@importRefs[childFile.hash] = childFile
+							@imports[orderRefIndex] = childFile.hash
+							@orderRefs[orderRefIndex] = childFile.hash
+							@addLineRef(entireLine, orderRefIndex)
 
-						if defaultMember or members
-							@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
-							childFile.hasUsefulExports = true
-						
-						if priorContent
-							childFile.requiresReturnedClosure = /\S/.test(priorContent)
+							if defaultMember or members
+								@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
+								childFile.hasUsefulExports = true
+							
+							if priorContent and not module.isEmpty
+								childFile.requiresReturnedClosure = /\S/.test(priorContent)
 
-						Promise.resolve()
+							Promise.resolve()
 
-					.catch (err)=>
-						if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
-							selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)+1
-							console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple} #{chalk.dim(selfReference)}"
-							Promise.reject(err)
+						.catch (err)=>
+							if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
+								selfReference = @filePathSimple+':'+@contentLines.indexOf(entireLine)+1
+								console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple} #{chalk.dim(selfReference)}"
+								Promise.reject(err)
 
 
 

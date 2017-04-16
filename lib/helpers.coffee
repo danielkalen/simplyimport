@@ -11,6 +11,7 @@ regEx = require './regex'
 consoleLabels = require './consoleLabels'
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
+EMPTY_FILE = path.resolve(__dirname,'..','node_modules','browser-resolve','empty.js')
 globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
 basedir = 'basedir':path.resolve(__dirname,'..')
@@ -108,6 +109,10 @@ helpers =
 			return true if range.start < targetIndex < range.end
 
 		return false
+
+
+	testIfIsLocalModule: (moduleName)->
+		return moduleName.startsWith('/') or moduleName.includes('./')
 
 
 
@@ -308,20 +313,60 @@ helpers =
 
 
 
-	resolveModulePath: (moduleName, basedir)->
-		moduleLoad = if moduleName.startsWith('/') or moduleName.includes('./') then Promise.resolve() else resolveModule(moduleName, {basedir, modules:coreModuleShims})
-		moduleLoad
-			.then (modulePath)->
-				return unless modulePath
-				findPkgJson(normalize:false, cwd:modulePath).then (result)->
-					result.pkg.srcPath = result.path
-					result.pkg.dirPath = path.dirname(result.path)
-					return {
-						pkg: result.pkg
-						file: modulePath
-					}
+	resolveModulePath: (moduleName, basedir, basefile, pkgFile)-> Promise.resolve().then ()->
+		fullPath = path.resolve(basedir, moduleName)
+		output = 'file':fullPath
+		
+		if helpers.testIfIsLocalModule(moduleName)
+			if pkgFile and typeof pkgFile.browser is 'object'
+				replacedPath = pkgFile.browser[fullPath] or pkgFile.browser[fullPath+'.js'] or pkgFile.browser[fullPath+'.coffee']
+				
+				if replacedPath?
+					output.file = if typeof replacedPath isnt 'string' then EMPTY_FILE else replacedPath
 
-			.catch moduleResolveError, (err)-> Promise.resolve()
+			return output
+
+		else		
+			resolveModule(moduleName, {basedir, filename:basefile, modules:coreModuleShims})
+				.then (moduleFullPath)->
+					findPkgJson(normalize:false, cwd:moduleFullPath).then (result)->
+						output.file = moduleFullPath
+						output.pkg = result.pkg
+						
+						if moduleFullPath is EMPTY_FILE
+							output.isEmpty = true
+							delete output.pkg
+						else
+							helpers.resolvePackagePaths(result.pkg, result.path)
+						
+						return output
+
+				.catch moduleResolveError, (err)-> return output
+
+
+	resolvePackagePaths: (pkgFile, pkgPath)->
+		pkgFile.srcPath = pkgPath
+		pkgFile.dirPath = path.dirname(pkgPath)
+		pkgFile.main = 'index.js' if not pkgFile.main
+		pkgFile.main = path.resolve(pkgFile.dirPath, pkgFile.main)
+		
+		if pkgFile.browser then switch typeof pkgFile.browser
+			when 'string'
+				pkgFile.browser = pkgFile.main = path.resolve(pkgFile.dirPath, pkgFile.browser)
+
+			when 'object'
+				browserField = pkgFile.browser
+				
+				for key,value of browserField
+					if typeof value is 'string'
+						browserField[key] = value = path.resolve(pkgFile.dirPath, value)
+
+					if helpers.testIfIsLocalModule(key)
+						newKey = path.resolve(pkgFile.dirPath, key)
+						browserField[newKey] = value
+						delete browserField[key]
+
+		return
 
 
 	resolveTransformer: (transformer, basedir)-> Promise.resolve().then ()-> switch
