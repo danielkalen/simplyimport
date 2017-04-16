@@ -659,7 +659,7 @@ suite "SimplyImport", ()->
 
 
 		test "Self imports are supported", ()->
-			fs.outputFileAsync(tempFile('selfImporter.js'), "module.exports = {name:'thySelf'};\nprocess.nextTick(()=> exports.selfRef = import 'selfImporter.js'\n)").then ()->
+			fs.outputFileAsync(tempFile('selfImporter.js'), "module.exports = {name:'thySelf'};\nprocess.nextTick(()=> exports.selfRef = import 'selfImporter.js')").then ()->
 				SimplyImport('var data = import test/temp/selfImporter.js', {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 					eval(result)
 					process.nextTick ()->
@@ -768,6 +768,30 @@ suite "SimplyImport", ()->
 								throw new Error(stderr) if stderr
 								expect(resultFromCLI).to.equal(result)
 								done()
+
+
+		test "File paths will be included as comments in the first line of module export functions unless options.includePathComments is off", ()->
+			Promise.resolve()
+				.then ()->
+					Promise.all [
+						fs.outputFileAsync tempFile('fileA.js'), 'module.exports = "fileA"'
+						fs.outputFileAsync tempFile('fileB.js'), 'module.exports = "fileB"'
+						fs.outputFileAsync tempFile('importer.js'), '
+							var A1 = import "./fileA";\n\
+							var A2 = require("./fileA");\n\
+							var A3 = require("./fileB");
+						'
+					]
+
+				.then ()->
+					SimplyImport(tempFile('importer.js')).then (result)->
+						expect(result).to.contain('// test/temp/fileA.js')
+						expect(result).to.contain('// test/temp/fileB.js')
+				
+				.then ()->
+					SimplyImport(tempFile('importer.js'), includePathComments:false).then (result)->
+						expect(result).not.to.contain('// test/temp/fileA.js')
+						expect(result).not.to.contain('// test/temp/fileB.js')
 
 
 
@@ -1228,6 +1252,30 @@ suite "SimplyImport", ()->
 					expect(result).to.contain "importC = do ()->"
 					expect(result).to.contain "importD = var inner = 456"
 					expect(result).to.contain "importE = inner = 456"
+
+
+		test "File paths will be included as comments in the first line of module export functions unless options.includePathComments is off", ()->
+			Promise.resolve()
+				.then ()->
+					Promise.all [
+						fs.outputFileAsync tempFile('fileA.coffee'), 'module.exports = "fileA"'
+						fs.outputFileAsync tempFile('fileB.coffee'), 'module.exports = "fileB"'
+						fs.outputFileAsync tempFile('importer.coffee'), '
+							A1 = import "./fileA";\n\
+							A2 = require "./fileA";\n\
+							A3 = require "./fileB";
+						'
+					]
+
+				.then ()->
+					SimplyImport(tempFile('importer.coffee')).then (result)->
+						expect(result).to.contain('# test/temp/fileA.coffee')
+						expect(result).to.contain('# test/temp/fileB.coffee')
+				
+				.then ()->
+					SimplyImport(tempFile('importer.coffee'), includePathComments:false).then (result)->
+						expect(result).not.to.contain('# test/temp/fileA.coffee')
+						expect(result).not.to.contain('# test/temp/fileB.coffee')
 
 
 
