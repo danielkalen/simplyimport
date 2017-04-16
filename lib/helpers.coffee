@@ -271,44 +271,32 @@ helpers =
 			content = "return #{content}" if filePath.endsWith('json')
 			return content
 
+		when err = require('syntax-error')(content, filePath)
+			console.error(consoleLabels.warn, err)
+			return content
+
 		else
-			try
-				AST = acorn.parse(content, {allowReserved:true, allowReturnOutsideFunction:true})
-				lastStatement = AST.body[AST.body.length-1]
+			AST = acorn.parse(content, {allowReserved:true, allowReturnOutsideFunction:true})
+			lastStatement = AST.body[AST.body.length-1]
 
-				switch
-					when AST.body.length is 1 and lastStatement.type is 'ExpressionStatement' and lastStatement.start is 0
-						return 'ExpressionStatement'
+			switch
+				when AST.body.length is 1 and lastStatement.type is 'ExpressionStatement' and lastStatement.start is 0
+					return 'ExpressionStatement'
+				
+				else switch lastStatement.type
+					when 'ReturnStatement'
+						return content
 					
-					else switch lastStatement.type
-						when 'ReturnStatement'
-							return content
-						
-						when 'ExpressionStatement'
-							AST.body[AST.body.length-1] = escodegen.ReturnStatement(lastStatement.expression)
-							return escodegen.generate(AST)
-						
-						when 'VariableDeclaration'
-							lastDeclarationID = lastStatement.declarations.slice(-1)[0].id
-							AST.body.push escodegen.ReturnStatement(lastDeclarationID)
-							return escodegen.generate(AST)
+					when 'ExpressionStatement'
+						AST.body[AST.body.length-1] = escodegen.ReturnStatement(lastStatement.expression)
+						return escodegen.generate(AST)
+					
+					when 'VariableDeclaration'
+						lastDeclarationID = lastStatement.declarations.slice(-1)[0].id
+						AST.body.push escodegen.ReturnStatement(lastDeclarationID)
+						return escodegen.generate(AST)
 
-						else return content
-			
-			catch syntaxErr
-				OFFSET = 20
-				### istanbul ignore next ###
-				OFFSET = 0 if content.length < OFFSET*2 or syntaxErr.pos-OFFSET < 0
-				MAX_CHARS = 100
-				preview = syntaxErr.preview = content.substr syntaxErr.pos-OFFSET, MAX_CHARS
-				preview = preview.substr(0,OFFSET) + chalk.red.bold(preview[OFFSET]) + preview.substr(OFFSET+1)
-				preview = '\n'+chalk.dim(preview)
-				syntaxErr.targetFile = filePath
-				syntaxErr.stack = stackTraceFilter.filter(syntaxErr.stack).join('\n')
-
-				console.error(consoleLabels.error, syntaxErr, preview)
-				return content
-
+					else return content
 
 
 
