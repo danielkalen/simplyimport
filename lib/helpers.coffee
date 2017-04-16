@@ -187,7 +187,6 @@ helpers =
 				"#{spacing}`#{helpers.escapeBackticks(content)}`"
 
 
-	wrapInClosure: (content, isCoffee, asFunc)->
 	wrapInClosure: (content, isCoffee, asFunc, debugRef)->
 		if isCoffee
 			debugRef = " ##{debugRef}" if debugRef
@@ -223,7 +222,7 @@ helpers =
 		else
 			args = requiredGlobals.join(',')
 			values = values.join(',')
-			"(function(#{args}){\n\
+			";(function(#{args}){\n\
 				#{@addSpacingToString content, '\t'}\n\
 			}).call(this, #{values})
 			"
