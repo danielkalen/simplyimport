@@ -1,5 +1,5 @@
-Promise = require 'bluebird'
-# Promise.config longStackTraces:true
+global.Promise = require 'bluebird'
+Promise.config longStackTraces:true if process.env.CI
 fs = Promise.promisifyAll require 'fs-extra'
 helpers = require './helpers'
 path = require 'path'
@@ -558,7 +558,7 @@ suite "SimplyImport", ()->
 			"
 			SimplyImport(fileContent, null, {isStream:true}).then (result)->
 				expect(result).not.to.equal(fileContent)
-				# fs.outputFileAsync('./crypo.js', result);
+				# fs.outputFileSync('./crypo.js', result);
 
 				global.XMLHttpRequest = ()-> {open:()->}
 				eval(result)
