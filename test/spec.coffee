@@ -1425,7 +1425,7 @@ suite "SimplyImport", ()->
 				"import 'test/temp/doesntExist.js'"
 				"import 'test/temp/someFile2.js'"
 			]
-			SimplyImport.scanImports(imports.join('\n'), {isStream:true, pathOnly:true}).then (result)->
+			SimplyImport.scanImports(imports.join('\n'), {isStream:true, isCoffee:true, pathOnly:true}).then (result)->
 				expect(result.length).to.equal 2
 				expect(result[0]).to.equal 'test/temp/someFile.js'
 				expect(result[1]).to.equal 'test/temp/someFile2.js'
@@ -1687,12 +1687,14 @@ suite "SimplyImport", ()->
 						json:
 							'name': 'imported-module'
 							'browser':
-								'ignored-module': false
+								'./inner-ignored.js': false
+								'./inner-ignored2.js': false
 								'./index.js': './index-browser.js'
 						
 						files:
-							'index.js': 'var importedmodule="node";\nvar ignored2=import "ignored-module"'
-							'index-browser.js': 'var importedmodule="browser";\nvar ignored2=import "ignored-module"'
+							'index.js': 'var importedmodule="node";\nvar innerignored=import "inner-ignored"'
+							'index-browser.js': 'var importedmodule="browser";\nvar innerignored=import "inner-ignored"\nvar innerignored2=import "./inner-ignored.js"'
+							'inner-ignored.js': 'module.exports = "NOT IGNORED"'
 
 				.tap (sampleModulePath)->
 					helpers.createModule
@@ -1706,7 +1708,8 @@ suite "SimplyImport", ()->
 					expect(samplemodule).to.equal 'browser'
 					expect(importedmodule).to.equal 'browser'
 					expect(ignored).to.eql {}
-					expect(ignored2).to.eql {}
+					expect(innerignored).to.eql {}
+					expect(innerignored2).to.eql {}
 				.then ()-> fs.removeAsync tempFile('samplemodule')
 
 

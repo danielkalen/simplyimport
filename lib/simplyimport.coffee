@@ -36,6 +36,7 @@ SimplyImport = (input, options, state={})->
 				state.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'
 		
 		.then ()->
+			### istanbul ignore next ###
 			unless state.isStream
 				findPkgJson(normalize:false, cwd:state.suppliedPath)
 					.then (result)->
@@ -74,6 +75,7 @@ SimplyImport.scanImports = (input, opts={})->
 				opts.isCoffee ?= PATH.extname(input).toLowerCase().slice(1) is 'coffee'	
 		
 		.then ()->
+			### istanbul ignore next ###
 			unless opts.isStream
 				findPkgJson(normalize:false, cwd:opts.suppliedPath)
 					.then (result)->

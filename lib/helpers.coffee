@@ -319,10 +319,16 @@ helpers =
 		
 		if helpers.testIfIsLocalModule(moduleName)
 			if pkgFile and typeof pkgFile.browser is 'object'
-				replacedPath = pkgFile.browser[fullPath] or pkgFile.browser[fullPath+'.js'] or pkgFile.browser[fullPath+'.coffee']
+				replacedPath = pkgFile.browser[fullPath]
+				replacedPath ?= pkgFile.browser[fullPath+'.js']
+				replacedPath ?= pkgFile.browser[fullPath+'.coffee']
 				
 				if replacedPath?
-					output.file = if typeof replacedPath isnt 'string' then EMPTY_FILE else replacedPath
+					if typeof replacedPath isnt 'string'
+						output.file = EMPTY_FILE
+						output.isEmpty = true
+					else
+						output.file = replacedPath
 
 			return output
 
@@ -341,7 +347,8 @@ helpers =
 						
 						return output
 
-				.catch moduleResolveError, (err)-> return output
+				.catch moduleResolveError, (err)-> #return output
+					helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile)
 
 
 	resolvePackagePaths: (pkgFile, pkgPath)->
