@@ -30,15 +30,21 @@ File = (input, @options, @importRefs, {@isMain, @isCoffee, @context, @suppliedPa
 	@orderRefs = []
 	@ignoreRanges = []
 	@contentReference = @getID()
-	@cacheRef = if @isMain then '*MAIN*' else input
-	@importRefs.main = @ if @isMain
+	if @isMain
+		@instanceCache = {}
+		@cacheRef = '*MAIN*'
+		@importRefs.main = @
+	else
+		@instanceCache = @importRefs.main.instanceCache
+		@cacheRef = input
+	
 	if @pkgFile
 		@pkgTransform = @pkgFile.browserify?.transform
 		if @pkgTransform
 			@pkgTransform = [@pkgTransform] if helpers.isValidTransformerArray(@pkgTransform)
 			delete @pkgFile.browserify.transform # So that this file's imports won't apply the transforms to themselves as well
 
-	return File.instanceCache[@cacheRef] or @
+	return @instanceCache[@cacheRef] or @
 
 
 File::getID = ()->
@@ -60,12 +66,12 @@ File::process = ()-> if @processPromise then @processPromise else
 		.then(@collectIgnoreRanges)
 		.then ()=>
 			unless @isMain
-				if File.instanceCache[@hash] and not File.instanceCache[@cacheRef]
-					File.instanceCache[@cacheRef] = File.instanceCache[@hash]
+				if @instanceCache[@hash] and not @instanceCache[@cacheRef]
+					@instanceCache[@cacheRef] = @instanceCache[@hash]
 				else
-					File.instanceCache[@hash] = @
+					@instanceCache[@hash] = @
 
-			return File.instanceCache[@cacheRef] ||= @
+			return @instanceCache[@cacheRef] ||= @
 		
 
 
@@ -603,6 +609,4 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 
 
 
-
-File.instanceCache = {}
 module.exports = File
