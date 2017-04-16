@@ -1,6 +1,6 @@
 # SimplyImport
 [![Build Status](https://travis-ci.org/danielkalen/simplyimport.svg?branch=master)](https://travis-ci.org/danielkalen/simplyimport)
-[![Coverage](.config/badges/coverage-node.png?raw=true)](https://github.com/danielkalen/simplyimport)
+[![Coverage](.config/badges/coverage.png?raw=true)](https://github.com/danielkalen/simplyimport)
 [![Code Climate](https://codeclimate.com/repos/57c332508cc944028900237a/badges/6b3dda1443fd085a1d3c/gpa.svg)](https://codeclimate.com/repos/57c332508cc944028900237a/feed)
 [![NPM](https://img.shields.io/npm/v/simplyimport.svg)](https://npmjs.com/package/simplyimport)
 [![NPM](https://img.shields.io/npm/dm/simplyimport.svg)](https://npmjs.com/package/simplyimport)
