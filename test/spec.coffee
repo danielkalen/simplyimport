@@ -1573,6 +1573,49 @@ suite "SimplyImport", ()->
 
 
 
+		test "Mappings in a module's package.json browser field will be respected", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.createModule
+						dest: tempFile('samplemodule')
+						files:
+							'index.js': 'var samplemodule="node";\nvar ignored=import "ignored-module"\nimport "imported-module"'
+							'index-browser.js': 'var samplemodule="browser";\nvar ignored=import "ignored-module"\nimport "imported-module"'
+						json:
+							'browser':
+								'ignored-module': false
+								'./index.js': './index-browser.js'
+
+				.tap (sampleModulePath)->
+					helpers.createModule
+						dest: path.resolve sampleModulePath,'node_modules','imported-module'
+						json:
+							'name': 'imported-module'
+							'browser':
+								'ignored-module': false
+								'./index.js': './index-browser.js'
+						
+						files:
+							'index.js': 'var importedmodule="node";\nvar ignored2=import "ignored-module"'
+							'index-browser.js': 'var importedmodule="browser";\nvar ignored2=import "ignored-module"'
+
+				.tap (sampleModulePath)->
+					helpers.createModule
+						dest: path.resolve sampleModulePath,'node_modules','ignored-module'
+						json: 'name': 'ignored-module'						
+
+				
+				.then (sampleModulePath)-> SimplyImport(path.resolve(sampleModulePath,'index.js'))
+				.then (result)->
+					eval(result)
+					expect(samplemodule).to.equal 'browser'
+					expect(importedmodule).to.equal 'browser'
+					expect(ignored).to.eql {}
+					expect(ignored2).to.eql {}
+				.then ()-> fs.removeAsync tempFile('samplemodule')
+
+
+
 		suite "Commented imports won't be imported", ()->
 			test "JS Syntax", ()->
 				importDec = "// import 'test/desc/withquotes.js'"
