@@ -405,7 +405,7 @@ File::replaceImports = (childImports)->
 			# ==== Handle Parenthesis =================================================================================
 			if trailingContent.startsWith(')')
 				if priorContent
-					spacing += '('
+					spacing += '(' unless priorContent.includes('(')
 				else
 					priorContent = '('
 					spacing = ''
