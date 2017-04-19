@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "description": "Inline imports/exports for JS/Coffee featuring ES6 & CommonJS syntax support, transforms, conditional & duplicate imports, etc.",
   "keywords": [
     "import",
