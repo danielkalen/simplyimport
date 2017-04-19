@@ -331,7 +331,7 @@ File::collectImports = ()-> if @collectedImports then @collectedImports else
 	@collectedImports
 		.then ()=>
 			if regEx.export.test(@content) or regEx.commonJS.export.test(@content) or regEx.vars.exports.test(@content)
-				@hasExports = true unless @hasThirdPartyRequire
+				@hasExports = true unless @hasThirdPartyRequire or @isMain
 				@normalizeExports()	unless @isThirdPartyBundle
 
 		.then ()=>
@@ -394,7 +394,7 @@ File::replaceImports = (childImports)->
 		targetLine = @lineRefs[importIndex]
 
 		replaceLine = (childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)=>
-			if childFile.importedCount > 1
+			if childFile.importedCount > 1 or childFile.hasExports
 				childContent = "_s$m(#{childFile.contentReference})"
 			else
 				# ==== JS vs. Coffeescript conflicts =================================================================================
@@ -480,7 +480,7 @@ File::replaceBadImports = ()->
 
 
 File::prependDuplicateRefs = (content)->
-	duplicates = (file for hash,file of @importRefs when file.importedCount > 1)
+	duplicates = (file for hash,file of @importRefs when file.importedCount > 1 or file.hasExports)
 	return content if not duplicates.length
 
 	Promise
@@ -566,7 +566,7 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 					return @prependDuplicateRefs(compiledResult)
 				
 				when @hasExports
-					return helpers.wrapInExportsClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
+					return helpers.wrapInExportsClosure(compiledResult, @isCoffee, true, @debugRef)
 				
 				when @requiresReturnedClosure or @importedCount>1
 					if @isCoffee

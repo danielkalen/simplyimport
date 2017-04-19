@@ -459,7 +459,7 @@ suite "SimplyImport", ()->
 			fs.outputFileAsync(tempFile('npmImporter.js'), "
 				var units = import 'timeunits'
 			").then ()->
-				SimplyImport("import test/temp/npmImporter.js", null, {isStream:true}).then (result)->
+				SimplyImport("import test/temp/npmImporter.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 					eval(result)
 					expect(typeof units).to.equal 'object'
 					expect(units.hour).to.equal 3600000
@@ -487,7 +487,7 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync tempFile('npmImporter.js'), "var units = import 'timeunits'"
 				fs.outputFileAsync tempFile('timeunits.js'), "module.exports = 'localFile'"
 			]).then ()->
-				SimplyImport("import test/temp/npmImporter.js", null, {isStream:true}).then (result)->
+				SimplyImport("import test/temp/npmImporter.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 					eval(result)
 					expect(typeof units).to.equal 'object'
 					expect(units.hour).to.equal 3600000
@@ -496,7 +496,7 @@ suite "SimplyImport", ()->
 						fs.outputFileAsync tempFile('npmFailedImporter.js'), "var units = import 'timeunits2'"
 						fs.outputFileAsync tempFile('timeunits2.js'), "module.exports = 'localFile'"
 					]).then ()->
-						SimplyImport("import test/temp/npmFailedImporter.js", null, {isStream:true}).then (result)->
+						SimplyImport("import test/temp/npmFailedImporter.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 							eval(result)
 							expect(typeof units).to.equal 'string'
 							expect(units).to.equal 'localFile'
@@ -676,7 +676,7 @@ suite "SimplyImport", ()->
 					fs.outputFileAsync tempFile('browserifyImporter.js'), "var units = import 'browserified.js'"
 					fs.outputFileAsync tempFile('browserified.js'), browserified
 				]).then ()->
-					SimplyImport("import test/temp/browserifyImporter.js", null, {isStream:true}).then (result)->
+					SimplyImport("import test/temp/browserifyImporter.js", {preventGlobalLeaks:false}, {isStream:true}).then (result)->
 						# console.log result
 						eval(result)
 						expect(result).to.include("require('timeunits');")
@@ -1167,7 +1167,7 @@ suite "SimplyImport", ()->
 			fs.outputFileAsync(tempFile('npmImporter.coffee'), "
 				units = import 'timeunits'
 			").then ()->
-				SimplyImport("import test/temp/npmImporter.coffee", null, {isStream:true, isCoffee:true}).then (result)->
+				SimplyImport("import test/temp/npmImporter.coffee", {preventGlobalLeaks:false}, {isStream:true, isCoffee:true}).then (result)->
 					eval(result = coffeeCompiler.compile result, 'bare':true)
 					expect(typeof units).to.equal 'object'
 					expect(units.hour).to.equal 3600000
@@ -1179,7 +1179,7 @@ suite "SimplyImport", ()->
 				fs.outputFileAsync tempFile('npmImporter.coffee'), "units = import 'timeunits'"
 				fs.outputFileAsync tempFile('timeunits.coffee'), "module.exports = 'localFile'"
 			]).then ()->
-				SimplyImport("import test/temp/npmImporter.coffee", null, {isStream:true, isCoffee:true}).then (result)->
+				SimplyImport("import test/temp/npmImporter.coffee", {preventGlobalLeaks:false}, {isStream:true, isCoffee:true}).then (result)->
 					eval(result = coffeeCompiler.compile result, 'bare':true)
 					expect(typeof units).to.equal 'object'
 					expect(units.hour).to.equal 3600000
@@ -1188,7 +1188,7 @@ suite "SimplyImport", ()->
 						fs.outputFileAsync tempFile('npmFailedImporter.coffee'), "units = import 'timeunits2'"
 						fs.outputFileAsync tempFile('timeunits2.coffee'), "module.exports = 'localFile'"
 					]).then ()->
-						SimplyImport("import test/temp/npmFailedImporter.coffee", null, {isStream:true, isCoffee:true}).then (result)->
+						SimplyImport("import test/temp/npmFailedImporter.coffee", {preventGlobalLeaks:false}, {isStream:true, isCoffee:true}).then (result)->
 							eval(result = coffeeCompiler.compile result, 'bare':true)
 							expect(typeof units).to.equal 'string'
 							expect(units).to.equal 'localFile'
