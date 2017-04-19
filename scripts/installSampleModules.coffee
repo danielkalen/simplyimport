@@ -1,12 +1,14 @@
-global.Promise = require 'bluebird'
-axios = require 'axios'
-path = require 'path'
-spawn = require('child_process').spawn
-tar = require 'tar.gz'
-fs = require 'fs-jetpack'
-modules = 
-	'coffeeify': 'https://registry.npmjs.org/coffeeify/-/coffeeify-2.1.0.tgz'
-
+try
+	global.Promise = require 'bluebird'
+	axios = require 'axios'
+	path = require 'path'
+	spawn = require('child_process').spawn
+	tar = require 'tar.gz'
+	fs = require 'fs-jetpack'
+	modules = 
+		'coffeeify': 'https://registry.npmjs.org/coffeeify/-/coffeeify-2.1.0.tgz'
+catch
+	process.exit(0) # Indicates this package was not installed as a dev dependency so these modules are not necessary
 
 Promise.resolve()
 	.then ()->
