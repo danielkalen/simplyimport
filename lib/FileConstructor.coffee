@@ -423,18 +423,30 @@ File::replaceImports = (childImports)->
 			# ==== Extract exports =================================================================================
 			if childFile.hasUsefulExports and importData=@importMemberRefs[importIndex]
 				@requiresClosure = true
-				exportedName = helpers.genUniqueVar()
 				varPrefix = if @isCoffee then '' else 'var '
-				childContent = "#{varPrefix}#{exportedName} = #{childContent};\n"
+				members = Object.keys importData.members
+				tempName = helpers.genUniqueVar()
+				tempNameDeclaration = "#{varPrefix}#{tempName} = #{childContent};\n"
+				childContentRef = tempName
 
-				if importData.default
-					childContent += "#{varPrefix}#{importData.default} = #{exportedName}['*default*'];\n"
+				switch
+					when importData.default
+						childContent = tempNameDeclaration
+						childContent += "#{varPrefix}#{importData.default} = #{childContentRef}['*default*'];\n"
+					
+					when members.length
+						if members.length is 1 and members[0] is '!*!'
+							childContentRef = childContent
+							childContent = '' # Since a copy is saved in childContentRef and it will be appended to this var via += when adding the members below
+						else
+							childContent = tempNameDeclaration
+
 				
 				for key,alias of importData.members
 					if key is '!*!'
-						childContent += "#{varPrefix}#{alias} = #{exportedName};\n"
+						childContent += "#{varPrefix}#{alias} = #{childContentRef};\n"
 					else
-						childContent += "#{varPrefix}#{alias} = #{exportedName}['#{key}'];\n"
+						childContent += "#{varPrefix}#{alias} = #{childContentRef}['#{key}'];\n"
 
 
 			# ==== Spacing =================================================================================
