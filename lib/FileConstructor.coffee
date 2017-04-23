@@ -288,8 +288,8 @@ File::processImport = (childPath, entireLine, priorContent, spacing, conditions=
 
 						.catch (err)=>
 							if @options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
-								console.error "#{consoleLabels.error} File/module doesn't exist #{childFile.filePathSimple} #{chalk.dim(selfReference)}"
 								selfReference = @filePathSimple+':'+(@contentLines.indexOf(entireLine)+1)
+								console.error "#{consoleLabels.error} File/module doesn't exist '#{origChildPath}' #{chalk.dim(selfReference)}"
 								Promise.reject(err)
 
 
