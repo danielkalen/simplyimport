@@ -13,7 +13,7 @@ regEx =
 	requireArg: /\brequire[,\)]/
 	processRequire: /\brequire[\(\s]['"]process['"]\)?/
 	processDec: /\bprocess\s?=\s?/
-	globalCheck: /typeof global/
+	globalCheck: /typeof global\b[^\.\[]/
 	moduleCheck: /typeof module\s?[\!=]==|=typeof module|if module\?/
 	defineCheck: /typeof define\s?[\!=]==|=typeof define|if define\?/
 	requireCheck: /typeof require\s?[\!=]==|=typeof require|if require\?/
