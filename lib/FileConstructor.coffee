@@ -403,7 +403,7 @@ File::replaceImports = (childImports)->
 						childContent = helpers.formatJsContentForCoffee(childContent)
 					
 
-					when childFile.isCoffee and not @isCoffee
+					when not @isCoffee and childFile.isCoffee and childFile.content
 						if @options.compileCoffeeChildren
 							childContent = coffeeCompiler.compile childContent, 'bare':true
 						else
