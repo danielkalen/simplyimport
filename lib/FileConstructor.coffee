@@ -152,7 +152,11 @@ File::expandFilePath = ()->
 			opts = matchBase:true
 			
 			for glob of @options.fileSpecific
-				matchingGlob = glob if globMatch.isMatch(@filePath, glob, opts) or globMatch.isMatch(@suppliedPath, glob, opts)
+				if globMatch.isMatch(@filePath, glob, opts) or
+					globMatch.isMatch(@filePath, glob) or
+					globMatch.isMatch(@filePathSimple, glob) or
+					globMatch.isMatch(@suppliedPath, glob, opts)
+						matchingGlob = glob
 
 			return @options.fileSpecific[matchingGlob] or {}
 
