@@ -11,7 +11,12 @@ regEx = require './regex'
 consoleLabels = require './consoleLabels'
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
-EMPTY_FILE = path.resolve(__dirname,'..','node_modules','browser-resolve','empty.js')
+EMPTY_FILE = do ()->
+	fsj = require 'fs-jetpack'
+	pathA = path.resolve('node_modules','browser-resolve','empty.js')
+	pathB = path.resolve(__dirname,'..','node_modules','browser-resolve','empty.js')
+	if fsj.exists(pathA) then pathA else pathB
+
 globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
 basedir = 'basedir':path.resolve(__dirname,'..')
