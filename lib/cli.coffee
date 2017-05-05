@@ -24,6 +24,7 @@ passedOptions =
 	'recursive': args.r or args.recursive
 	'conditions': args.c or args.conditions or []
 	'compileCoffeeChildren': args.C or args['compile-coffee-children']
+	'includePathComments': args['include-path-comments']
 
 
 

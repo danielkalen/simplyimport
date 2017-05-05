@@ -44,6 +44,11 @@ module.exports =
 		default: undefined
 		type: 'boolean'
 
+	'include-path-comments':
+		describe: 'Include a full path ref before each module definition as comments (for debugging) (default:false)'
+		default: undefined
+		type: 'boolean'
+
 
 
 
