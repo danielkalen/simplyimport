@@ -581,6 +581,22 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 				compiledResult
 
 		.then (compiledResult)=>
+			if @isMain and @options.transform.length
+				@applyTransforms(compiledResult, @options.transform)
+
+			else if not @isMain and @options.globalTransform.length
+				@applyTransforms(compiledResult, @options.globalTransform)			
+			
+			else
+				compiledResult
+		
+		.then (compiledResult)=>
+			if @specificOptions.transform
+				@applyTransforms(compiledResult, @specificOptions.transform)
+			else
+				compiledResult
+
+		.then (compiledResult)=>
 			switch
 				when @isMain
 					return @prependDuplicateRefs(compiledResult)
@@ -611,22 +627,7 @@ File::compile = (importerStack=[])-> if @compilePromise then @compilePromise els
 					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
 
 				else compiledResult
-
-		.then (compiledResult)=>
-			if @isMain and @options.transform.length
-				@applyTransforms(compiledResult, @options.transform)
-
-			else if not @isMain and @options.globalTransform.length
-				@applyTransforms(compiledResult, @options.globalTransform)			
-			
-			else
-				compiledResult
 		
-		.then (compiledResult)=>
-			if @specificOptions.transform
-				@applyTransforms(compiledResult, @specificOptions.transform)
-			else
-				compiledResult
 		
 		.then (result)=> @compiledContent = result or '{}'
 
