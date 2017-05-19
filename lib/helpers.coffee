@@ -41,6 +41,16 @@ coreModuleShims =
 	'util':						resolveModule.sync 'util/', basedir
 	'vm':						resolveModule.sync 'vm-browserify', basedir
 
+	# none-replaceable modules
+	'cluster': EMPTY_FILE
+	'dgram': EMPTY_FILE
+	'dns': EMPTY_FILE
+	'fs': EMPTY_FILE
+	'module': EMPTY_FILE
+	'net': EMPTY_FILE
+	'readline': EMPTY_FILE
+	'repl': EMPTY_FILE
+
 
 escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
 
