@@ -784,7 +784,7 @@ suite "SimplyImport", ()->
 					]
 
 				.then ()->
-					SimplyImport(tempFile('importer.js')).then (result)->
+					SimplyImport(tempFile('importer.js'), includePathComments:true).then (result)->
 						expect(result).to.contain('// test/temp/fileA.js')
 						expect(result).to.contain('// test/temp/fileB.js')
 				
@@ -1268,7 +1268,7 @@ suite "SimplyImport", ()->
 					]
 
 				.then ()->
-					SimplyImport(tempFile('importer.coffee')).then (result)->
+					SimplyImport(tempFile('importer.coffee'), includePathComments:true).then (result)->
 						expect(result).to.contain('# test/temp/fileA.coffee')
 						expect(result).to.contain('# test/temp/fileB.coffee')
 				
