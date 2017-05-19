@@ -37,15 +37,15 @@ SimplyImport = (input, options, state={})->
 		
 		.then ()->
 			### istanbul ignore next ###
-			unless state.isStream
-				findPkgJson(normalize:false, cwd:state.suppliedPath)
-					.then (result)->
-						helpers.resolvePackagePaths(result.pkg, result.path)
-						state.pkgFile = pkgFile = result.pkg
+			findPkgJson(normalize:false, cwd:state.context)
+				.then (result)->
+					helpers.resolvePackagePaths(result.pkg, result.path)
+					state.pkgFile = pkgFile = result.pkg
+					unless state.isStream
 						input = pkgFile.browser[input] if typeof pkgFile.browser is 'object' and pkgFile.browser[input]
-						delete pkgFile.browserify
-					
-					.catch ()->
+					delete pkgFile.browserify
+				
+				.catch ()->
 
 		.then ()-> if state.isStream then input else fs.readFileAsync(input, encoding:'utf8')
 
@@ -76,15 +76,15 @@ SimplyImport.scanImports = (input, opts={})->
 		
 		.then ()->
 			### istanbul ignore next ###
-			unless opts.isStream
-				findPkgJson(normalize:false, cwd:opts.suppliedPath)
-					.then (result)->
-						helpers.resolvePackagePaths(result.pkg, result.path)
-						opts.pkgFile = pkgFile = result.pkg
+			findPkgJson(normalize:false, cwd:opts.context)
+				.then (result)->
+					helpers.resolvePackagePaths(result.pkg, result.path)
+					opts.pkgFile = pkgFile = result.pkg
+					unless opts.isStream
 						input = pkgFile.browser[input] if typeof pkgFile.browser is 'object' and pkgFile.browser[input]
-						delete pkgFile.browserify
-					
-					.catch ()->
+					delete pkgFile.browserify
+				
+				.catch ()->
 
 		.then ()-> if opts.isStream then input else fs.readFileAsync(input, encoding:'utf8')
 
