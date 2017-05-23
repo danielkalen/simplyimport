@@ -80,7 +80,7 @@ class File
 
 	findCustomImports: ()->
 		@content.replace REGEX.customImport, (entireLine, priorContent='', importKeyword, conditions='', whitespace='', childPath, trailingContent='', offset)->
-			statement = {range:[]}
+			statement = {range:[], source:@}
 			statement.conditions = conditions.split(REGEX.commaSeparated)
 			statement.target = helpers.cleanImportPath(childPath)
 			statement.extract = statement.target.split('$')[1]
@@ -93,7 +93,7 @@ class File
 
 	findES6Imports: ()->
 		@content.replace REGEX.es6Import, (entireLine, importKeyword, metadata, defaultMember='', members='', childPath, offset)->
-			statement = {range:[]}
+			statement = {range:[], source:@}
 			statement.members = if members then helpers.parseMembersString(members)
 			statement.defaultMember = defaultMember
 			statement.target = helpers.cleanImportPath(childPath)
@@ -178,6 +178,7 @@ class File
 					.then ()-> getStream streamify(content).pipe(transformer.fn(filePath, transformOpts))
 					.tap ()=>
 						if transformer.name is 'coffeeify' or transformer.name is 'tsify'
+							@fileExt = 'js'
 							@filePath = helpers.changeExtension(@filePath, 'js')
 							@filePathSimple = helpers.changeExtension(@filePathSimple, 'js')
 				
@@ -186,401 +187,409 @@ class File
 
 
 	genAST: ()->
-		try
-			@ast = Parser.parse(@content, tolerant:true)
-		catch err
-			@task.emit 'parseError', @, err
-
-
-
-
-
-
-
-	checkIfImportsFile: (targetFile)->
-		iteratedArrays = [@imports]
-		importRefs = @task.importRefs
+		canGenAST = @fileExt is 'js' and (
+			@importStatements.custom.length or
+			@importStatements.es6.length or
+			REGEX.export.test(@content) or
+			REGEX.commonJS.export.test(@content)
+		)
 		
-		checkArray = (importsArray)->
-			importsArray.includes(targetFile.hash) or
-			importsArray.find (importHash)->
-				currentFile = importRefs[importHash]
-				### istanbul ignore else ###
-				if currentFile
-					if iteratedArrays.includes(currentFile.imports)
-						return false
-					else
-						iteratedArrays.push(currentFile.imports)
-						return checkArray(currentFile.imports)
-
-		checkArray(@imports)
+		if canGenAST
+			try
+				@ast = Parser.parse(@content, tolerant:true)
+			catch err
+				@task.emit 'parseError', @, err
 
 
 
-	addLineRef: (entireLine, targetRef, offset=0)->
-		lineIndex = @contentLines.indexOf(entireLine, offset)
-		existingRef = @lineRefs.findIndex (existingLineRef)-> existingLineRef is lineIndex
-
-		if existingRef >= 0
-			@addLineRef(entireLine, targetRef, lineIndex+1)
-		else
-			@lineRefs[targetRef] = lineIndex
 
 
-	processImport: (childPath, entireLine, priorContent, spacing, conditions='', defaultMember='', members='')->
-		entireLine = entireLine.replace REGEX.startingNewLine, ''
-		orderRefIndex = @orderRefs.push(entireLine)-1
-		childPath = origChildPath = childPath
-			.replace /['"]/g, '' # Remove quotes form pathname
-			.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
 
-		Promise.bind(@)
-			.then ()-> helpers.resolveModulePath(childPath, @context, @filePath, @pkgFile)
-			.then (module)->
-				childPath = module.file
-				pkgFile = module.pkg or @pkgFile
+
+	# checkIfImportsFile: (targetFile)->
+	# 	iteratedArrays = [@imports]
+	# 	importRefs = @task.importRefs
+		
+	# 	checkArray = (importsArray)->
+	# 		importsArray.includes(targetFile.hash) or
+	# 		importsArray.find (importHash)->
+	# 			currentFile = importRefs[importHash]
+	# 			### istanbul ignore else ###
+	# 			if currentFile
+	# 				if iteratedArrays.includes(currentFile.imports)
+	# 					return false
+	# 				else
+	# 					iteratedArrays.push(currentFile.imports)
+	# 					return checkArray(currentFile.imports)
+
+	# 	checkArray(@imports)
+
+
+
+	# addLineRef: (entireLine, targetRef, offset=0)->
+	# 	lineIndex = @contentLines.indexOf(entireLine, offset)
+	# 	existingRef = @lineRefs.findIndex (existingLineRef)-> existingLineRef is lineIndex
+
+	# 	if existingRef >= 0
+	# 		@addLineRef(entireLine, targetRef, lineIndex+1)
+	# 	else
+	# 		@lineRefs[targetRef] = lineIndex
+
+
+	# processImport: (childPath, entireLine, priorContent, spacing, conditions='', defaultMember='', members='')->
+	# 	entireLine = entireLine.replace REGEX.startingNewLine, ''
+	# 	orderRefIndex = @orderRefs.push(entireLine)-1
+	# 	childPath = origChildPath = childPath
+	# 		.replace /['"]/g, '' # Remove quotes form pathname
+	# 		.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
+
+	# 	Promise.bind(@)
+	# 		.then ()-> helpers.resolveModulePath(childPath, @context, @filePath, @pkgFile)
+	# 		.then (module)->
+	# 			childPath = module.file
+	# 			pkgFile = module.pkg or @pkgFile
 
 			
-				switch
-					when helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
-						Promise.resolve()
+	# 			switch
+	# 				when helpers.testForComments(entireLine, @isCoffee) or helpers.testForOuterString(entireLine) or helpers.isCoreModule(origChildPath)
+	# 					Promise.resolve()
 				
-					when not helpers.testConditions(@task.options.conditions, conditions)
-						@badImports.push(childPath)
-						@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
-						Promise.resolve()
+	# 				when not helpers.testConditions(@task.options.conditions, conditions)
+	# 					@badImports.push(childPath)
+	# 					@addLineRef(entireLine, 'bad_'+(@badImports.length-1))
+	# 					Promise.resolve()
 				
-					else
-						childFile = new File childPath, @task.options, @task.importRefs, {'suppliedPath':origChildPath, pkgFile}
-						childFile.process()
-							.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
-								childFile.importedCount++ unless module.isEmpty
-								@task.importRefs[childFile.hash] = childFile
-								@imports[orderRefIndex] = childFile.hash
-								@orderRefs[orderRefIndex] = childFile.hash
-								@addLineRef(entireLine, orderRefIndex)
+	# 				else
+	# 					childFile = new File childPath, @task.options, @task.importRefs, {'suppliedPath':origChildPath, pkgFile}
+	# 					childFile.process()
+	# 						.then (childFile)=> # Use the returned instance as it may be a cached version diff from the created instance
+	# 							childFile.importedCount++ unless module.isEmpty
+	# 							@task.importRefs[childFile.hash] = childFile
+	# 							@imports[orderRefIndex] = childFile.hash
+	# 							@orderRefs[orderRefIndex] = childFile.hash
+	# 							@addLineRef(entireLine, orderRefIndex)
 
-								if defaultMember or members
-									@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
-									childFile.hasUsefulExports = true
+	# 							if defaultMember or members
+	# 								@importMemberRefs[orderRefIndex] = default:defaultMember, members:helpers.parseMembersString(members)
+	# 								childFile.hasUsefulExports = true
 								
-								if priorContent and not module.isEmpty
-									childFile.requiresReturnedClosure = /\S/.test(priorContent)
+	# 							if priorContent and not module.isEmpty
+	# 								childFile.requiresReturnedClosure = /\S/.test(priorContent)
 
-								Promise.resolve()
+	# 							Promise.resolve()
 
-							.catch (err)=>
-								if @task.options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
-									selfReference = @filePathSimple+':'+(@contentLines.indexOf(entireLine)+1)
-									console.error "#{consoleLabels.error} File/module doesn't exist '#{origChildPath}' #{chalk.dim(selfReference)}"
-									Promise.reject(err)
+	# 						.catch (err)=>
+	# 							if @task.options.recursive # If false then it means this is just a scan from the entry file so ENONET errors are meaningless to us
+	# 								selfReference = @filePathSimple+':'+(@contentLines.indexOf(entireLine)+1)
+	# 								console.error "#{consoleLabels.error} File/module doesn't exist '#{origChildPath}' #{chalk.dim(selfReference)}"
+	# 								Promise.reject(err)
 
 
 
-	collectImports: ()-> if @collectedImports then @collectedImports else
-		if @options.scan is false
-			return @collectedImports = Promise.resolve()
+	# collectImports: ()-> if @collectedImports then @collectedImports else
+	# 	if @options.scan is false
+	# 		return @collectedImports = Promise.resolve()
 		
-		@collectedImports = Promise.resolve()
-			.then ()=>
-				if @requiredGlobals.includes('process')
-					declaration = if @isCoffee then 'process' else 'var process'
-					assignment = "#{declaration} = require('process');"
-					@content = "#{assignment}\n#{@content}"
-					@contentLines.unshift(assignment)
+	# 	@collectedImports = Promise.resolve()
+	# 		.then ()=>
+	# 			if @requiredGlobals.includes('process')
+	# 				declaration = if @isCoffee then 'process' else 'var process'
+	# 				assignment = "#{declaration} = require('process');"
+	# 				@content = "#{assignment}\n#{@content}"
+	# 				@contentLines.unshift(assignment)
 			
-			.then ()=>
-				replaceAsync.seq @content, REGEX.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
-					if helpers.testIfIsIgnored @ignoreRanges, Array::slice.call(arguments, -2)[0]
-						Promise.resolve()
-					else
-						@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
+	# 		.then ()=>
+	# 			replaceAsync.seq @content, REGEX.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath)=>
+	# 				if helpers.testIfIsIgnored @ignoreRanges, Array::slice.call(arguments, -2)[0]
+	# 					Promise.resolve()
+	# 				else
+	# 					@processImport(childPath, entireLine, priorContent, spacing, conditions, defaultMember, members)
 
 
-			.then ()=> unless @isThirdPartyBundle
-				replaceAsync.seq @content, REGEX.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)=>
-					if not REGEX.commonJS.validRequire.test(entireLine) and not @isCoffee
-						Promise.resolve()
-					else
-						if helpers.testIfIsIgnored @ignoreRanges, Array::slice.call(arguments, -2)[0]
-							Promise.resolve()
-						else
-							@processImport(childPath, entireLine, priorContent)
-					# If the trailing content has a closing bracket w/out an opening then it means the 'childPath'
-					# is some sort of an expression (i.e. "'st'+'ing'" or "'string'+suffix") which is currently
-					# unsupported and means the childPath wasn't fully captured
+	# 		.then ()=> unless @isThirdPartyBundle
+	# 			replaceAsync.seq @content, REGEX.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)=>
+	# 				if not REGEX.commonJS.validRequire.test(entireLine) and not @isCoffee
+	# 					Promise.resolve()
+	# 				else
+	# 					if helpers.testIfIsIgnored @ignoreRanges, Array::slice.call(arguments, -2)[0]
+	# 						Promise.resolve()
+	# 					else
+	# 						@processImport(childPath, entireLine, priorContent)
+	# 				# If the trailing content has a closing bracket w/out an opening then it means the 'childPath'
+	# 				# is some sort of an expression (i.e. "'st'+'ing'" or "'string'+suffix") which is currently
+	# 				# unsupported and means the childPath wasn't fully captured
 
 
-		@collectedImports
-			.then ()=>
-				if REGEX.export.test(@content) or REGEX.commonJS.export.test(@content) or REGEX.vars.exports.test(@content)
-					@hasExports = true unless @hasThirdPartyRequire or @isEntry
-					@normalizeExports()	unless @isThirdPartyBundle
+	# 	@collectedImports
+	# 		.then ()=>
+	# 			if REGEX.export.test(@content) or REGEX.commonJS.export.test(@content) or REGEX.vars.exports.test(@content)
+	# 				@hasExports = true unless @hasThirdPartyRequire or @isEntry
+	# 				@normalizeExports()	unless @isThirdPartyBundle
 
-			.then ()=>
-				if @task.options.recursive
-					Promise.all(@imports
-						.map (childFileHash)=> @task.importRefs[childFileHash]
-						.filter (file)=> not file.checkIfImportsFile(@)
-						.map (file)-> file.collectImports()
-					)
-
-
-
-	normalizeExports: ()->
-		# ==== CommonJS syntax =================================================================================
-		@content.replace REGEX.commonJS.export, (entireLine, priorContent, operator, trailingContent)=>
-			operator = " #{operator}" if operator is '='
-			lineIndex = @contentLines.indexOf(entireLine)
-			@contentLines[lineIndex] = "#{priorContent}module.exports#{operator}#{trailingContent}"
+	# 		.then ()=>
+	# 			if @task.options.recursive
+	# 				Promise.all(@imports
+	# 					.map (childFileHash)=> @task.importRefs[childFileHash]
+	# 					.filter (file)=> not file.checkIfImportsFile(@)
+	# 					.map (file)-> file.collectImports()
+	# 				)
 
 
-		# ==== ES6/SimplyImport syntax =================================================================================
-		@content.replace REGEX.export, (entireLine, exportMap, exportType, label, trailingContent)=>
-			lineIndex = @contentLines.indexOf(entireLine)
-			switch
-				when exportMap
-					@contentLines[lineIndex] = "module.exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
+
+	# normalizeExports: ()->
+	# 	# ==== CommonJS syntax =================================================================================
+	# 	@content.replace REGEX.commonJS.export, (entireLine, priorContent, operator, trailingContent)=>
+	# 		operator = " #{operator}" if operator is '='
+	# 		lineIndex = @contentLines.indexOf(entireLine)
+	# 		@contentLines[lineIndex] = "#{priorContent}module.exports#{operator}#{trailingContent}"
+
+
+	# 	# ==== ES6/SimplyImport syntax =================================================================================
+	# 	@content.replace REGEX.export, (entireLine, exportMap, exportType, label, trailingContent)=>
+	# 		lineIndex = @contentLines.indexOf(entireLine)
+	# 		switch
+	# 			when exportMap
+	# 				@contentLines[lineIndex] = "module.exports = #{helpers.normalizeExportMap(exportMap)}#{trailingContent}"
 				
-				when exportType is 'default' then return switch
-					when helpers.testIfIsExportMap(label+trailingContent)
-						exportMap = label+trailingContent.replace(/;$/, '')
-						@contentLines[lineIndex] = "module.exports['*default*'] = #{helpers.normalizeExportMap(exportMap)}"
-					else
-						@contentLines[lineIndex] = "module.exports['*default*'] = #{label}#{trailingContent}"
+	# 			when exportType is 'default' then return switch
+	# 				when helpers.testIfIsExportMap(label+trailingContent)
+	# 					exportMap = label+trailingContent.replace(/;$/, '')
+	# 					@contentLines[lineIndex] = "module.exports['*default*'] = #{helpers.normalizeExportMap(exportMap)}"
+	# 				else
+	# 					@contentLines[lineIndex] = "module.exports['*default*'] = #{label}#{trailingContent}"
 				
-				when exportType?.includes('function')
-					labelName = label.replace(/\(.*?\).*$/, '')
-					### istanbul ignore next ###
-					value = if trailingContent.includes('=>') then "#{label}#{trailingContent}" else "#{exportType} #{label}#{trailingContent}"
-					@contentLines[lineIndex] = "module.exports['#{labelName}'] = #{value}"
+	# 			when exportType?.includes('function')
+	# 				labelName = label.replace(/\(.*?\).*$/, '')
+	# 				### istanbul ignore next ###
+	# 				value = if trailingContent.includes('=>') then "#{label}#{trailingContent}" else "#{exportType} #{label}#{trailingContent}"
+	# 				@contentLines[lineIndex] = "module.exports['#{labelName}'] = #{value}"
 
-				when exportType is 'class'
-						@contentLines[lineIndex] = "module.exports['#{label}'] = #{exportType} #{label}#{trailingContent}"
+	# 			when exportType is 'class'
+	# 					@contentLines[lineIndex] = "module.exports['#{label}'] = #{exportType} #{label}#{trailingContent}"
 
-				when exportType
-						declaration = if @isCoffee then '' else "#{exportType} "
-						@contentLines[lineIndex] = "#{declaration}#{label} = module.exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
+	# 			when exportType
+	# 					declaration = if @isCoffee then '' else "#{exportType} "
+	# 					@contentLines[lineIndex] = "#{declaration}#{label} = module.exports['#{label}'] = #{trailingContent.replace(/^\s*\=\s*/, '')}"
 
-				when not exportType and not exportMap
-					label = trailingContent.match(/^\S+/)[0]
-					@contentLines[lineIndex] = "module.exports['#{label}'] = #{trailingContent}"
-				# else
-				# 	throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
+	# 			when not exportType and not exportMap
+	# 				label = trailingContent.match(/^\S+/)[0]
+	# 				@contentLines[lineIndex] = "module.exports['#{label}'] = #{trailingContent}"
+	# 			# else
+	# 			# 	throw new Error "Cannot figure out a way to parse the following ES6 export statement: (line:#{lineIndex+1}) #{entireLine}"
 
 
 
-	replaceImports: (childImports)->
-		@imports.forEach (childHash, importIndex)=>
-			childFile = @task.importRefs[childHash]
-			childContent = childFile.compiledContent
-			targetLine = @lineRefs[importIndex]
+	# replaceImports: (childImports)->
+	# 	@imports.forEach (childHash, importIndex)=>
+	# 		childFile = @task.importRefs[childHash]
+	# 		childContent = childFile.compiledContent
+	# 		targetLine = @lineRefs[importIndex]
 
-			replaceLine = (childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)=>
-				if childFile.importedCount > 1 or childFile.hasExports
-					childContent = "_s$m(#{childFile.ID})"
-				else
-					# ==== JS vs. Coffeescript conflicts =================================================================================
-					switch
-						when @isCoffee and not childFile.isCoffee
-							childContent = helpers.formatJsContentForCoffee(childContent)
+	# 		replaceLine = (childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)=>
+	# 			if childFile.importedCount > 1 or childFile.hasExports
+	# 				childContent = "_s$m(#{childFile.ID})"
+	# 			else
+	# 				# ==== JS vs. Coffeescript conflicts =================================================================================
+	# 				switch
+	# 					when @isCoffee and not childFile.isCoffee
+	# 						childContent = helpers.formatJsContentForCoffee(childContent)
 						
 
-						when not @isCoffee and childFile.isCoffee and childFile.content
-							if @task.options.compileCoffeeChildren
-								childContent = coffeeCompiler.compile childContent, 'bare':true
-							else
-								selfReference = @filePathSimple+':'+(@contentLines.indexOf(entireLine)+1)
-								throw new Error "
-									#{chalk.dim(selfReference)}: 
-									You're attempting to import a CoffeeScript file (#{chalk.dim(childFile.filePathSimple)})
-									into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children
-								"
+	# 					when not @isCoffee and childFile.isCoffee and childFile.content
+	# 						if @task.options.compileCoffeeChildren
+	# 							childContent = coffeeCompiler.compile childContent, 'bare':true
+	# 						else
+	# 							selfReference = @filePathSimple+':'+(@contentLines.indexOf(entireLine)+1)
+	# 							throw new Error "
+	# 								#{chalk.dim(selfReference)}: 
+	# 								You're attempting to import a CoffeeScript file (#{chalk.dim(childFile.filePathSimple)})
+	# 								into a JS file (which will provide a broken file), rerun this import with -C or --compile-coffee-children
+	# 							"
 
 
 
-				# ==== Handle Parenthesis =================================================================================
-				if trailingContent.startsWith(')')
-					if priorContent
-						spacing += '(' unless priorContent.includes('(')
-					else
-						priorContent = '('
-						spacing = ''
+	# 			# ==== Handle Parenthesis =================================================================================
+	# 			if trailingContent.startsWith(')')
+	# 				if priorContent
+	# 					spacing += '(' unless priorContent.includes('(')
+	# 				else
+	# 					priorContent = '('
+	# 					spacing = ''
 
-				# ==== Extract exports =================================================================================
-				if childFile.hasUsefulExports and importData=@importMemberRefs[importIndex]
-					@requiresClosure = true
-					varPrefix = if @isCoffee then '' else 'var '
-					members = Object.keys importData.members
-					tempName = helpers.genUniqueVar()
-					tempNameDeclaration = "#{varPrefix}#{tempName} = #{childContent};\n"
-					childContentRef = tempName
+	# 			# ==== Extract exports =================================================================================
+	# 			if childFile.hasUsefulExports and importData=@importMemberRefs[importIndex]
+	# 				@requiresClosure = true
+	# 				varPrefix = if @isCoffee then '' else 'var '
+	# 				members = Object.keys importData.members
+	# 				tempName = helpers.genUniqueVar()
+	# 				tempNameDeclaration = "#{varPrefix}#{tempName} = #{childContent};\n"
+	# 				childContentRef = tempName
 
-					switch
-						when importData.default
-							childContent = tempNameDeclaration
-							childContent += "#{varPrefix}#{importData.default} = #{childContentRef}['*default*'];\n"
+	# 				switch
+	# 					when importData.default
+	# 						childContent = tempNameDeclaration
+	# 						childContent += "#{varPrefix}#{importData.default} = #{childContentRef}['*default*'];\n"
 						
-						when members.length
-							if members.length is 1 and members[0] is '!*!'
-								childContentRef = childContent
-								childContent = '' # Since a copy is saved in childContentRef and it will be appended to this var via += when adding the members below
-							else
-								childContent = tempNameDeclaration
+	# 					when members.length
+	# 						if members.length is 1 and members[0] is '!*!'
+	# 							childContentRef = childContent
+	# 							childContent = '' # Since a copy is saved in childContentRef and it will be appended to this var via += when adding the members below
+	# 						else
+	# 							childContent = tempNameDeclaration
 
 					
-					for key,alias of importData.members
-						if key is '!*!'
-							childContent += "#{varPrefix}#{alias} = #{childContentRef};\n"
-						else
-							childContent += "#{varPrefix}#{alias} = #{childContentRef}['#{key}'];\n"
+	# 				for key,alias of importData.members
+	# 					if key is '!*!'
+	# 						childContent += "#{varPrefix}#{alias} = #{childContentRef};\n"
+	# 					else
+	# 						childContent += "#{varPrefix}#{alias} = #{childContentRef}['#{key}'];\n"
 
 
-				# ==== Spacing =================================================================================
-				if priorContent and priorContent.replace(/\s/g, '') is ''
-					spacing = priorContent+spacing
-					priorContent = ''
+	# 			# ==== Spacing =================================================================================
+	# 			if priorContent and priorContent.replace(/\s/g, '') is ''
+	# 				spacing = priorContent+spacing
+	# 				priorContent = ''
 
-				if spacing and not priorContent
-					childContent = helpers.addSpacingToString(childContent, spacing)
+	# 			if spacing and not priorContent
+	# 				childContent = helpers.addSpacingToString(childContent, spacing)
 
-				if priorContent and childContent
-					if priorContentSpacing = priorContent.match(REGEX.initialWhitespace)?[0]
-						childContent = helpers.addSpacingToString(childContent, priorContentSpacing, 1)
+	# 			if priorContent and childContent
+	# 				if priorContentSpacing = priorContent.match(REGEX.initialWhitespace)?[0]
+	# 					childContent = helpers.addSpacingToString(childContent, priorContentSpacing, 1)
 					
-					childContent = priorContent + spacing + childContent
+	# 				childContent = priorContent + spacing + childContent
 
-				return childContent+trailingContent
+	# 			return childContent+trailingContent
 			
 
 
-			if REGEX.import.test(@contentLines[targetLine])
-				@contentLines[targetLine] = @contentLines[targetLine].replace REGEX.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath, trailingContent)->
-					replaceLine(childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)
-			else
-				@contentLines[targetLine] = @contentLines[targetLine].replace REGEX.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)->
-					replaceLine(childPath, entireLine, priorContent, trailingContent, '')
+	# 		if REGEX.import.test(@contentLines[targetLine])
+	# 			@contentLines[targetLine] = @contentLines[targetLine].replace REGEX.import, (entireLine, priorContent, spacing, conditions, defaultMember, members, childPath, trailingContent)->
+	# 				replaceLine(childPath, entireLine, priorContent, trailingContent, spacing, conditions, defaultMember, members)
+	# 		else
+	# 			@contentLines[targetLine] = @contentLines[targetLine].replace REGEX.commonJS.import, (entireLine, priorContent, bracketOrSpace, childPath, trailingContent)->
+	# 				replaceLine(childPath, entireLine, priorContent, trailingContent, '')
 
-		return
-
-
-
-
-	replaceBadImports: ()->
-		for badImport,index in @badImports
-			targetLine = @lineRefs['bad_'+index]
-
-			if @task.options.preserve
-				@contentLines[targetLine] = helpers.commentOut(@contentLines[targetLine], @isCoffee)
-			else
-				@contentLines.splice(targetLine, 1)
+	# 	return
 
 
 
 
-	prependDuplicateRefs: (content)->
-		duplicates = (file for hash,file of @task.importRefs when file.importedCount > 1 or file.hasExports)
-		return content if not duplicates.length
+	# replaceBadImports: ()->
+	# 	for badImport,index in @badImports
+	# 		targetLine = @lineRefs['bad_'+index]
 
-		Promise
-			.all duplicates.map (file)-> file.compile()
-			.then ()=>
-				assignments = []
+	# 		if @task.options.preserve
+	# 			@contentLines[targetLine] = helpers.commentOut(@contentLines[targetLine], @isCoffee)
+	# 		else
+	# 			@contentLines.splice(targetLine, 1)
+
+
+
+
+	# prependDuplicateRefs: (content)->
+	# 	duplicates = (file for hash,file of @task.importRefs when file.importedCount > 1 or file.hasExports)
+	# 	return content if not duplicates.length
+
+	# 	Promise
+	# 		.all duplicates.map (file)-> file.compile()
+	# 		.then ()=>
+	# 			assignments = []
 				
-				for file in duplicates
-					value = if @isCoffee and not file.isCoffee
-								helpers.formatJsContentForCoffee(file.compiledContent)
-							else
-								file.compiledContent
+	# 			for file in duplicates
+	# 				value = if @isCoffee and not file.isCoffee
+	# 							helpers.formatJsContentForCoffee(file.compiledContent)
+	# 						else
+	# 							file.compiledContent
 
-					assignments.push "m[#{file.ID}] = #{value}"
+	# 				assignments.push "m[#{file.ID}] = #{value}"
 
-				loader = helpers.wrapInLoaderClosure(assignments, '\t', @isCoffee)
-				result = "#{loader}\n#{content}"
-				result = if @task.options.preventGlobalLeaks then helpers.wrapInClosure(result, @isCoffee, false, '') else result
-				return result
+	# 			loader = helpers.wrapInLoaderClosure(assignments, '\t', @isCoffee)
+	# 			result = "#{loader}\n#{content}"
+	# 			result = if @task.options.preventGlobalLeaks then helpers.wrapInClosure(result, @isCoffee, false, '') else result
+	# 			return result
 
 
 
-	compile: (importerStack=[])-> if @compilePromise then @compilePromise else
-		return (@compiledContent=@content) if not @task.options.recursive and not @isEntry
-		### istanbul ignore next ###
-		importerStack.push(@) unless importerStack.includes(@)
+	# compile: (importerStack=[])-> if @compilePromise then @compilePromise else
+	# 	return (@compiledContent=@content) if not @task.options.recursive and not @isEntry
+	# 	### istanbul ignore next ###
+	# 	importerStack.push(@) unless importerStack.includes(@)
 
-		childImportsPromise = Promise.delay().then ()=>
-			Promise.all @imports.map (hash)=>
-				childFile = @task.importRefs[hash]
-				childFile.compile(importerStack) unless importerStack.includes(childFile) and childFile.imports.length
+	# 	childImportsPromise = Promise.delay().then ()=>
+	# 		Promise.all @imports.map (hash)=>
+	# 			childFile = @task.importRefs[hash]
+	# 			childFile.compile(importerStack) unless importerStack.includes(childFile) and childFile.imports.length
 
 			
-		@compilePromise = childImportsPromise
-			.then (childImports)=>
-				@replaceImports(childImports)
-				@replaceBadImports(childImports)
-				return @contentLines.join '\n'
+	# 	@compilePromise = childImportsPromise
+	# 		.then (childImports)=>
+	# 			@replaceImports(childImports)
+	# 			@replaceBadImports(childImports)
+	# 			return @contentLines.join '\n'
 
-			.then (compiledResult)=>
-				if @requiredGlobals.length and not @isThirdPartyBundle
-					helpers.wrapInGlobalsClosure(compiledResult, @)
-				else
-					compiledResult
+	# 		.then (compiledResult)=>
+	# 			if @requiredGlobals.length and not @isThirdPartyBundle
+	# 				helpers.wrapInGlobalsClosure(compiledResult, @)
+	# 			else
+	# 				compiledResult
 
-			.then (compiledResult)=>
-				if not @isEntry and @pkgTransform?.length
-					@applyPkgTransforms(compiledResult)
-				else
-					compiledResult
+	# 		.then (compiledResult)=>
+	# 			if not @isEntry and @pkgTransform?.length
+	# 				@applyPkgTransforms(compiledResult)
+	# 			else
+	# 				compiledResult
 
-			.then (compiledResult)=>
-				if @isEntry and @task.options.transform.length
-					@applyTransforms(compiledResult, @task.options.transform)
+	# 		.then (compiledResult)=>
+	# 			if @isEntry and @task.options.transform.length
+	# 				@applyTransforms(compiledResult, @task.options.transform)
 
-				else if not @isEntry and @task.options.globalTransform.length
-					@applyTransforms(compiledResult, @task.options.globalTransform)			
+	# 			else if not @isEntry and @task.options.globalTransform.length
+	# 				@applyTransforms(compiledResult, @task.options.globalTransform)			
 				
-				else
-					compiledResult
+	# 			else
+	# 				compiledResult
 			
-			.then (compiledResult)=>
-				if @options.transform
-					@applyTransforms(compiledResult, @options.transform)
-				else
-					compiledResult
+	# 		.then (compiledResult)=>
+	# 			if @options.transform
+	# 				@applyTransforms(compiledResult, @options.transform)
+	# 			else
+	# 				compiledResult
 
-			.then (compiledResult)=>
-				switch
-					when @isEntry
-						return @prependDuplicateRefs(compiledResult)
+	# 		.then (compiledResult)=>
+	# 			switch
+	# 				when @isEntry
+	# 					return @prependDuplicateRefs(compiledResult)
 					
-					when @hasExports
-						return helpers.wrapInExportsClosure(compiledResult, @isCoffee, true, @debugRef)
+	# 				when @hasExports
+	# 					return helpers.wrapInExportsClosure(compiledResult, @isCoffee, true, @debugRef)
 					
-					when @requiresReturnedClosure or @importedCount>1
-						if @isCoffee
-							if @importedCount is 1 and helpers.testIfCoffeeIsExpression(compiledResult)
-								return compiledResult
-							else
-								return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
-						else
-							modifiedContent = helpers.modToReturnLastStatement(compiledResult, @filePathSimple)
+	# 				when @requiresReturnedClosure or @importedCount>1
+	# 					if @isCoffee
+	# 						if @importedCount is 1 and helpers.testIfCoffeeIsExpression(compiledResult)
+	# 							return compiledResult
+	# 						else
+	# 							return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
+	# 					else
+	# 						modifiedContent = helpers.modToReturnLastStatement(compiledResult, @filePathSimple)
 							
-							if modifiedContent is false
-								return compiledResult
+	# 						if modifiedContent is false
+	# 							return compiledResult
 						
-							if modifiedContent is 'ExpressionStatement'
-								return compiledResult unless @importedCount>1
-								modifiedContent = "return #{compiledResult}"
+	# 						if modifiedContent is 'ExpressionStatement'
+	# 							return compiledResult unless @importedCount>1
+	# 							modifiedContent = "return #{compiledResult}"
 							
-							return helpers.wrapInClosure(modifiedContent, false, @importedCount>1, @debugRef)
-						### istanbul ignore next ###
+	# 						return helpers.wrapInClosure(modifiedContent, false, @importedCount>1, @debugRef)
+	# 					### istanbul ignore next ###
 					
-					when @requiresClosure
-						return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
+	# 				when @requiresClosure
+	# 					return helpers.wrapInClosure(compiledResult, @isCoffee, @importedCount>1, @debugRef)
 
-					else compiledResult
+	# 				else compiledResult
 			
 			
-			.then (result)=> @compiledContent = result or '{}'
+	# 		.then (result)=> @compiledContent = result or '{}'
 
 
 

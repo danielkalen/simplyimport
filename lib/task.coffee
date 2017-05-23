@@ -5,13 +5,13 @@ md5 = require 'md5'
 fs = require 'fs-jetpack'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
-defaultOptions = require './defaultOptions'
 File = require './file'
 ALLOWED_EXTENSIONS = ['js','ts','coffee','sass','scss','css','html','jade','pug']
 
 class Task extends require('events')
 	constructor: (options, @entryInput)->
 		@currentID = -1
+		@imports = Object.create(null)
 		@importRefs = Object.create(null)
 		@cache = Object.create(null)
 		@requiredGlobals = {}
@@ -183,9 +183,21 @@ class Task extends require('events')
 			.return(file)
 
 
-	scanImports: (file)->
+	scanImports: (file, depth=Infinity, currentDepth=0)->
+		file.scanned = true
 		Promise.bind(@)
-			.then ()-> file.scan()
+			.then ()-> file.scanImports()
+			.tap (imports)-> @importStatements.push(imports...)
+			.map (importStatement)->
+				Promise.bind(@)
+					.then ()-> @initFile(importStatement.target, file)
+					.then (childFile)-> importStatement.target = childFile
+					.return(importStatement)
+
+			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
+			.filter (importStatement)-> not importStatement.target.scanned
+			.map (importStatement)-> @scanImports(importStatement.target)
+			.catch promiseBreak.end
 
 
 
@@ -211,7 +223,7 @@ class Task extends require('events')
 
 ### istanbul ignore next ###
 extendOptions = (suppliedOptions)->
-	options = extend({}, defaultOptions, suppliedOptions)
+	options = extend({}, require('./defaultOptions'), suppliedOptions)
 	options.conditions = [].concat(options.conditions) if options.conditions and not Array.isArray(options.conditions)
 	options.transform = normalizeTransformOpts(options.transform) if options.transform
 	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
