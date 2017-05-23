@@ -1,4 +1,5 @@
 regEx = 
+	commaSeparated: /,\s?/
 	stringContents: /".+?"|'.+?'/g
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
@@ -54,19 +55,37 @@ regEx =
 		`						# Backtick
 	///g
 
-	import: ///^
-		(?:
-			(.*)				# prior content
-			([\ \t\r=]+)		# prior space (excluding new line)
+	customImport: ///^
+		(
+			.*					# prior content
+			[\ \t\r=]+			# prior space (excluding new line)
 			\W?					# no letters
 				|				# or if above aren't present
 			\W?					# no letters
 		)
-		import					# import declaration
-		\s+						# whitespace after import declaration
+		(
+			import					# import declaration
+			\s+						# whitespace after import declaration
+		)
 		(?:\[(.+)\])?			# conditionals
-		\s*						# whitespace after conditional
-		(?:
+		(
+			\s*						# whitespace after conditional
+		)
+		(?!
+			\{.+\}
+				|
+			\ from
+		)
+		(\S+?)					# filepath
+		(\).*?|\s*?)			# trailing whitespace/parentheses
+	$///gm
+
+	es6import: ///
+		(
+			import					# import declaration
+			\s+						# whitespace after import declaration
+		)
+		(
 			(?:
 				([^\*,\{\s]+) 	# default member
 				,?\ ?			# trailing comma
@@ -77,10 +96,9 @@ regEx =
 				\{.+\} 			# specific members
 			)?
 			\ from
-		)?
-		\s*						# whitespace after members
+			\s*					# whitespace after members
+		)
 		(\S+?)					# filepath
-		(\).*?|\s*?)			# trailing whitespace/parentheses
 	$///gm
 
 

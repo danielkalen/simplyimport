@@ -1,7 +1,7 @@
 Promise = require 'bluebird'
 resolveModule = Promise.promisify require('browser-resolve')
 fs = Promise.promisifyAll require 'fs-extra'
-path = require 'path'
+Path = require 'path'
 chalk = require 'chalk'
 coffeeAST = require('decaffeinate-parser').parse
 acorn = require 'acorn'
@@ -11,45 +11,12 @@ regEx = require './regex'
 consoleLabels = require './consoleLabels'
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')
-EMPTY_FILE_END = path.join('node_modules','browser-resolve','empty.js')
-EMPTY_FILE = path.resolve(__dirname,'..',EMPTY_FILE_END)
+EMPTY_FILE_END = Path.join('node_modules','browser-resolve','empty.js')
+EMPTY_FILE = Path.resolve(__dirname,'..',EMPTY_FILE_END)
 globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
-basedir = 'basedir':path.resolve(__dirname,'..')
-coreModuleShims = 
-	'': path.resolve(__dirname,'..','node_modules','')
-	'assert':					resolveModule.sync 'assert/', basedir
-	'zlib':						resolveModule.sync '@danielkalen/browserify-zlib', basedir
-	'buffer':					resolveModule.sync 'buffer/', basedir
-	'console':					resolveModule.sync 'console-browserify', basedir
-	'constants':				resolveModule.sync 'constants-browserify', basedir
-	'crypto':					resolveModule.sync 'crypto-browserify', basedir
-	'domain':					resolveModule.sync 'domain-browser', basedir
-	'events':					resolveModule.sync 'events/', basedir
-	'https':					resolveModule.sync 'https-browserify', basedir
-	'os':						resolveModule.sync 'os-browserify', basedir
-	'path':						resolveModule.sync 'path-browserify', basedir
-	'process':					resolveModule.sync 'process/', basedir
-	'punycode':					resolveModule.sync 'punycode/', basedir
-	'querystring':				resolveModule.sync 'querystring-es3', basedir
-	'http':						resolveModule.sync 'stream-http', basedir
-	'string_decoder':			resolveModule.sync 'string_decoder', basedir
-	'stream':					resolveModule.sync 'stream-browserify', basedir
-	'timers':					resolveModule.sync 'timers-browserify', basedir
-	'tty':						resolveModule.sync 'tty-browserify', basedir
-	'url':						resolveModule.sync 'url/', basedir
-	'util':						resolveModule.sync 'util/', basedir
-	'vm':						resolveModule.sync 'vm-browserify', basedir
+coreModuleShims = require('./coreShims')(EMPTY_FILE)
 
-	# none-replaceable modules
-	'cluster': EMPTY_FILE
-	'dgram': EMPTY_FILE
-	'dns': EMPTY_FILE
-	'fs': EMPTY_FILE
-	'module': EMPTY_FILE
-	'net': EMPTY_FILE
-	'readline': EMPTY_FILE
-	'repl': EMPTY_FILE
 
 
 escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
@@ -59,11 +26,16 @@ moduleResolveError = (err)-> err.message.startsWith('Cannot find module')
 
 
 helpers = 
-	getNormalizedDirname: (inputPath)->
-		path.normalize( path.dirname( path.resolve(inputPath) ) )
+	getNormalizedDirname: (targetPath)->
+		Path.normalize( Path.dirname( Path.resolve(targetPath) ) )
 
-	simplifyPath: (inputPath)->
-		inputPath.replace process.cwd()+'/', ''
+	simplifyPath: (targetPath)->
+		targetPath.replace process.cwd()+'/', ''
+
+	cleanImportPath: (targetPath)->
+		targetPath
+			.replace /['"]/g, '' # Remove quotes form pathname
+			.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
 
 	changeExtension: (filePath, extension)->
 		filePath = filePath.replace(/\.\w+?$/,'')
@@ -325,13 +297,14 @@ helpers =
 
 
 	resolveModulePath: (moduleName, basedir, basefile, pkgFile)-> Promise.resolve().then ()->
-		fullPath = path.resolve(basedir, moduleName)
+		fullPath = Path.resolve(basedir, moduleName)
 		output = 'file':fullPath
 		
 		if helpers.testIfIsLocalModule(moduleName)
 			if pkgFile and typeof pkgFile.browser is 'object'
 				replacedPath = pkgFile.browser[fullPath]
 				replacedPath ?= pkgFile.browser[fullPath+'.js']
+				replacedPath ?= pkgFile.browser[fullPath+'.ts']
 				replacedPath ?= pkgFile.browser[fullPath+'.coffee']
 				
 				if replacedPath?
@@ -341,6 +314,7 @@ helpers =
 					else
 						output.file = replacedPath
 
+			output.pkg = pkgFile
 			return output
 
 		else		
@@ -364,23 +338,23 @@ helpers =
 
 	resolvePackagePaths: (pkgFile, pkgPath)->
 		pkgFile.srcPath = pkgPath
-		pkgFile.dirPath = path.dirname(pkgPath)
+		pkgFile.dirPath = Path.dirname(pkgPath)
 		pkgFile.main = 'index.js' if not pkgFile.main
-		pkgFile.main = path.resolve(pkgFile.dirPath, pkgFile.main)
+		pkgFile.main = Path.resolve(pkgFile.dirPath, pkgFile.main)
 		
 		if pkgFile.browser then switch typeof pkgFile.browser
 			when 'string'
-				pkgFile.browser = pkgFile.main = path.resolve(pkgFile.dirPath, pkgFile.browser)
+				pkgFile.browser = pkgFile.main = Path.resolve(pkgFile.dirPath, pkgFile.browser)
 
 			when 'object'
 				browserField = pkgFile.browser
 				
 				for key,value of browserField
 					if typeof value is 'string'
-						browserField[key] = value = path.resolve(pkgFile.dirPath, value)
+						browserField[key] = value = Path.resolve(pkgFile.dirPath, value)
 
 					if helpers.testIfIsLocalModule(key)
-						newKey = path.resolve(pkgFile.dirPath, key)
+						newKey = Path.resolve(pkgFile.dirPath, key)
 						browserField[newKey] = value
 						delete browserField[key]
 
@@ -402,10 +376,10 @@ helpers =
 
 	safeRequire: (targetPath, basedir)->
 		if basedir
-			require(path.join(basedir, targetPath))
+			require(Path.join(basedir, targetPath))
 		
 		else if targetPath.includes('.') or targetPath.includes('/')
-			require(path.resolve(targetPath))
+			require(Path.resolve(targetPath))
 		
 		else
 			require(targetPath)
@@ -421,7 +395,6 @@ helpers =
 
 	isCoreModule: (moduleName)->
 		coreModulesUnsupported.includes(moduleName)
-
 
 
 

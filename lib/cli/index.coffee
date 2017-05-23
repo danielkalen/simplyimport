@@ -1,22 +1,21 @@
 process.title = 'simplyimport'
 
 yargs = require 'yargs'
-	.usage(require './cliUsage')
-	.options(require './cliOptions')
+	.usage(require './usage')
+	.options(require './options')
 	.help('h')
 	.wrap(require('yargs').terminalWidth())
-	.version(()-> require('../package.json').version)
+	.version(()-> require('../../package.json').version)
 args = yargs.argv
-SimplyImport = require './simplyimport'
-helpers = require './cliHelpers'
+SimplyImport = require '../index'
+helpers = require './helpers'
 path = require 'path'
-fs = require 'fs-extra'
-
+fs = require 'fs-jetpack'
 
 inputPath = args.i or args.input or args._[0]
 outputPath = args.o or args.output or args._[1]
 help = args.h or args.help
-outputIsFile = try fs.statSync(outputPath).isFile()
+outputIsFile = fs.inspect(outputPath)?.type is 'file'
 passedOptions = 
 	'transform': helpers.normalizeTransformOpts args.t or args.transform
 	'globalTransform': helpers.normalizeTransformOpts args.g or args.globalTransform
