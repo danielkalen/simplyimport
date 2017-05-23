@@ -3,20 +3,22 @@ promiseBreak = require 'p-break'
 PATH = require 'path'
 md5 = require 'md5'
 fs = require 'fs-jetpack'
+chalk = require 'chalk'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
 helpers = require './helpers'
 File = require './file'
+labels = require './consoleLabels'
 ALLOWED_EXTENSIONS = ['js','ts','coffee','sass','scss','css','html','jade','pug']
 
 class Task extends require('events')
-	constructor: (options, @entryInput)->
+	constructor: (options, @entryInput, @isScanOnly)->
 		@currentID = -1
+		@importStatements = []
 		@imports = Object.create(null)
 		@importRefs = Object.create(null)
 		@cache = Object.create(null)
 		@requiredGlobals = {}
-		@.on 'requiredGlobal', (varName)=> @requiredGlobals[varName] = true
 		
 		@options = extendOptions(options)
 		@options.context ?= if @options.isStream then process.cwd() else helpers.getNormalizedDirname(@entryInput)
@@ -27,6 +29,9 @@ class Task extends require('events')
 			@options.isCoffee ?= PATH.extname(@entryInput).toLowerCase() is '.coffee'
 		
 		super
+		@.on 'requiredGlobal', (varName)=> @requiredGlobals[varName] = true
+		@.on 'astParseError', (file, err)=> unless @isScanOnly
+			console.warn "#{labels.warn} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
 
 
 	resolveEntryPackage: ()->
@@ -71,7 +76,6 @@ class Task extends require('events')
 						promiseBreak PATH.join(params.dir, fileMatch)
 					else #if exactMatch
 						return params
-						resolvedPath = PATH.join(params.dir, params.base)
 			
 			.then (params)->
 				resolvedPath = PATH.join(params.dir, params.base)
@@ -117,7 +121,7 @@ class Task extends require('events')
 					filePath: @options.suppliedPath
 					filePathSimple: '*ENTRY*'
 					filePathRel: '/main.js'
-					fileExt: 'coffee' if @options.isCoffee
+					fileExt: if @options.isCoffee then 'coffee' else 'js'
 				}
 
 
@@ -174,21 +178,20 @@ class Task extends require('events')
 			.then file.checkIfIsThirdPartyBundle
 			.then file.collectRequiredGlobals
 			.then file.collectIgnoreRanges
+			.then file.determineType
 			.then file.findCustomImports
 			.then file.findES6Imports
 			.then file.customImportsToCommonJS
 			.then file.ES6ImportsToCommonJS
-			.then file.applySpecificTransforms
-			.then(file.applyPkgTransforms if file.isEntry or file.isExternalEntry)
-			.then(file.applyGlobalTransforms unless file.isEntry)
-			.then file.genAST
+			.then file.applyAllTransforms
+			.then file.attemptASTGen
 			.return(file)
 
 
 	scanImports: (file, depth=Infinity, currentDepth=0)->
 		file.scanned = true
 		Promise.bind(@)
-			.then ()-> file.scanImports()
+			.then ()-> file.collectImports()
 			.tap (imports)-> @importStatements.push(imports...)
 			.map (importStatement)->
 				Promise.bind(@)
@@ -200,8 +203,22 @@ class Task extends require('events')
 			.filter (importStatement)-> not importStatement.target.scanned
 			.map (importStatement)-> @scanImports(importStatement.target)
 			.catch promiseBreak.end
+			.return(@importStatements)
 
 
+
+	calcImportTree: ()->
+		Promise.bind(@)
+			.then ()->
+				for statement in @importStatements
+					@imports[statement.target.hash] ?= []
+					@imports[statement.target.hash].push statement
+				return
+
+			.then ()->
+				for hash,importStatement of @imports
+					@imports[]
+				return
 
 
 
@@ -237,7 +254,7 @@ extendOptions = (suppliedOptions)->
 
 normalizeTransformOpts = (transform)->
 	transform = [].concat(transform) if transform and not Array.isArray(transform)
-	if transform.length is 2 and typeof transform[0] is 'string' and isPlainObject(transform[1])
+	if transform.length is 2 and typeof transform[0] is 'string' and require('is-plain-obj')(transform[1])
 		transform = [transform]
 
 	return transform

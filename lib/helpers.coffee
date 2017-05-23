@@ -9,8 +9,6 @@ escodegen = require 'escodegen'
 findPkgJson = require 'read-pkg-up'
 regEx = require './regex'
 consoleLabels = require './consoleLabels'
-stackTraceFilter = require('stack-filter')
-stackTraceFilter.filters.push('bluebird')
 EMPTY_FILE_END = Path.join('node_modules','browser-resolve','empty.js')
 EMPTY_FILE = Path.resolve(__dirname,'..',EMPTY_FILE_END)
 globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'

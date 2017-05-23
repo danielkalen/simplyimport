@@ -1,9 +1,9 @@
 require('array-includes').shim()
 require('object.entries').shim()
+stackTraceFilter = require('stack-filter')
+stackTraceFilter.filters.push('bluebird', 'escodegen', 'esprima')
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
-isPlainObject = require 'is-plain-obj'
-uniq = require 'uniq'
 Task = require './task'
 regEx = require './regex'
 helpers = require './helpers'
@@ -29,11 +29,14 @@ SimplyImport.compile = (input, options, state={})->
 		.then task.initEntryFile
 		.then task.processFile
 		.then task.scanImports
+		.then task.calcImportTree
+		# .tap ()-> console.dir arguments[0], colors:true, depth:3
+		# .tap ()-> console.log task.entryFile.content, task.entryFile.contentOriginal
 		.then task.compile
 
 
 SimplyImport.scanImports = (input, options, state={})->
-	task = new Task(options, input)
+	task = new Task(options, input, true)
 
 	Promise.bind(task)
 		.then task.resolveEntryPackage

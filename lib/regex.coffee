@@ -1,4 +1,4 @@
-regEx = 
+REGEX = 
 	commaSeparated: /,\s?/
 	stringContents: /".+?"|'.+?'/g
 	bracketContents: /\[\s*(.+?)\s*\]/
@@ -28,11 +28,6 @@ regEx =
 		__filename: /\b\_\_filename\b/
 		# require: /\brequire[\(\s]/
 	
-	fileExt: ///
-		.+ 						# File name
-		\. 						# Period separator
-		(js|coffee)$			# Extension
-	///i
 
 	fileContent: ///^
 		(\s*)					# Whitespace
@@ -64,8 +59,8 @@ regEx =
 			\W?					# no letters
 		)
 		(
-			import					# import declaration
-			\s+						# whitespace after import declaration
+			import					# import keyword
+			\s+						# whitespace after import keyword
 		)
 		(?:\[(.+)\])?			# conditionals
 		(
@@ -82,8 +77,8 @@ regEx =
 
 	es6import: ///
 		(
-			import					# import declaration
-			\s+						# whitespace after import declaration
+			import					# import keyword
+			\s+						# whitespace after import keyword
 		)
 		(
 			(?:
@@ -102,6 +97,32 @@ regEx =
 	$///gm
 
 
+	pugImport: ///^
+		(
+			.*					# prior content
+			\W?					# no letters
+				|				# or if above aren't present
+			\W?					# no letters
+		)
+		include					# import keyword
+		\s+						# whitespace after import keyword
+		(\S+?)					# filepath
+	$///gm
+
+
+	cssImport: ///^
+		(
+			.*					# prior content
+			\W?					# no letters
+				|				# or if above aren't present
+			\W?					# no letters
+		)
+		@import					# import keyword
+		\s+						# whitespace after import keyword
+		(\S+?)					# filepath
+	$///gm
+
+
 	export: ///^
 		export
 		\s+
@@ -113,7 +134,7 @@ regEx =
 			(\S+)? 											# item label
 		)?
 		(.*) 												# trailing content
-	$///gm
+	$///m
 
 	commonJS:
 		export: ///^
@@ -139,7 +160,7 @@ regEx =
 				[=\.] 										# property dot-notation access
 			)
 			(.*) 											# trailing content
-		$///gm
+		$///m
 
 		import: ///^
 			(.+[\ \t\r\(=]|.+\;|)							# prior content
@@ -179,8 +200,6 @@ regEx =
 		singleLine: /([^:]|^)\/\/(.*)$/mg
 		multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg
 
-
-	# AMD: /(?:^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF.])define\s*\(\s*("[^"]+"\s*,\s*|'[^']+'\s*,\s*)?\s*(\[(\s*(("[^"]+"|'[^']+')\s*,|\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*(\s*("[^"]+"|'[^']+')\s*,?)?(\s*(\/\/.*\r?\n|\/\*(.|\s)*?\*\/))*\s*\]|function\s*|{|[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*\))/
 	
 
 
@@ -192,4 +211,4 @@ regEx =
 
 
 
-module.exports = regEx
+module.exports = REGEX
