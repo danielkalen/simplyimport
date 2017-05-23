@@ -5,6 +5,7 @@ md5 = require 'md5'
 fs = require 'fs-jetpack'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
+helpers = require './helpers'
 File = require './file'
 ALLOWED_EXTENSIONS = ['js','ts','coffee','sass','scss','css','html','jade','pug']
 
@@ -18,12 +19,12 @@ class Task extends require('events')
 		@.on 'requiredGlobal', (varName)=> @requiredGlobals[varName] = true
 		
 		@options = extendOptions(options)
-		@options.context ?= if @options.isStream then process.cwd() else helpers.getNormalizedDirname(input)
+		@options.context ?= if @options.isStream then process.cwd() else helpers.getNormalizedDirname(@entryInput)
 		if @options.isStream
 			@options.suppliedPath = PATH.resolve('main.'+ if @options.isCoffee then 'coffee' else 'js')
 		else
-			@options.suppliedPath = input = PATH.resolve(input)
-			@options.isCoffee ?= PATH.extname(input).toLowerCase()) is '.coffee'
+			@options.suppliedPath = @entryInput = PATH.resolve(@entryInput)
+			@options.isCoffee ?= PATH.extname(@entryInput).toLowerCase() is '.coffee'
 		
 		super
 
@@ -98,7 +99,7 @@ class Task extends require('events')
 				return {filePath, filePathSimple, filePathRel, context, contextRel, suppliedPath, fileExt}
 
 
-	initEntryFile: (content)->
+	initEntryFile: ()->
 		Promise.bind(@)
 			.then ()-> promiseBreak(@entryInput) if @options.isStream
 			.then ()-> fs.readAsync(@entryInput)
@@ -108,7 +109,7 @@ class Task extends require('events')
 					isEntry: true
 					content: content
 					hash: md5(content)
-					isCoffee: @options.isCoffee
+					options: @options.pkgFile.simplyimport?.main or {}
 					pkgFile: @options.pkgFile
 					suppliedPath: if @options.isStream then '' else @entryInput
 					context: @options.context
@@ -116,6 +117,7 @@ class Task extends require('events')
 					filePath: @options.suppliedPath
 					filePathSimple: '*ENTRY*'
 					filePathRel: '/main.js'
+					fileExt: 'coffee' if @options.isCoffee
 				}
 
 

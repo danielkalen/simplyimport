@@ -64,7 +64,7 @@ suite "SimplyImport", ()->
 
 	suite "VanillaJS", ()->
 		test "Unquoted imports that have whitespace after them should not make any difference", ()->
-			SimplyImport("import test/temp/someFile.js\t", null, {isStream:true}).then (result)->
+			SimplyImport("import test/temp/someFile.js\t", {isStream:true}).then (result)->
 				expect(result).to.equal "abc123\t"
 			
 

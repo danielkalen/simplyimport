@@ -79,7 +79,7 @@ class File
 
 
 	findCustomImports: ()->
-		@content.replace REGEX.customImport, (entireLine, priorContent='', importKeyword, conditions='', whitespace='', childPath, trailingContent='', offset)->
+		@content.replace REGEX.customImport, (entireLine, priorContent='', importKeyword, conditions='', whitespace='', childPath, trailingContent='', offset)=>
 			statement = {range:[], source:@}
 			statement.conditions = conditions.split(REGEX.commaSeparated)
 			statement.target = helpers.cleanImportPath(childPath)
@@ -92,7 +92,7 @@ class File
 
 
 	findES6Imports: ()->
-		@content.replace REGEX.es6Import, (entireLine, importKeyword, metadata, defaultMember='', members='', childPath, offset)->
+		@content.replace REGEX.es6Import, (entireLine, importKeyword, metadata, defaultMember='', members='', childPath, offset)=>
 			statement = {range:[], source:@}
 			statement.members = if members then helpers.parseMembersString(members)
 			statement.defaultMember = defaultMember
