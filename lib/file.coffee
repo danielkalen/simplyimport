@@ -4,10 +4,13 @@ replaceAsync = require 'string-replace-async'
 streamify = require 'streamify-string'
 getStream = require 'get-stream'
 PATH = require 'path'
+md5 = require 'md5'
 chalk = require 'chalk'
 extend = require 'extend'
-globMatch = require 'micromatch'
 Parser = require 'esprima'
+LinesAndColumns = require 'lines-and-columns'
+sourcemapConvert = require 'convert-source-map'
+sourcemapRegex = sourcemapConvert.commentRegex
 REGEX = require './regex'
 helpers = require './helpers'
 consoleLabels = require './consoleLabels'
@@ -20,6 +23,7 @@ class File
 		@importStatements = []
 		@importStatements.es6 = []
 		@importStatements.custom = []
+		@inlineImportRanges = []
 		@badImports = []
 		@importMemberRefs = []
 		@lineRefs = []
@@ -52,7 +56,7 @@ class File
 
 		@hasThirdPartyRequire = @isThirdPartyBundle and
 			not REGEX.requireArg.test(@content) and
-			REGEX.commonJS.validRequire.test(@content)
+			REGEX.commonImportReal.test(@content)
 
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle
@@ -79,8 +83,12 @@ class File
 			@ignoreRanges.push(currentRange)
 
 
+	saveContentMilestone: (milestone)->
+		@[milestone] = @content
+
+
 	determineType: ()->
-		if not REGEX.export.test(@content) and not REGEX.commonJS.export.test(@content)
+		if not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content)
 			@type = 'inline'
 		else
 			@type = 'module'
@@ -110,75 +118,90 @@ class File
 
 
 	customImportsToCommonJS: ()->
+		replacementOffset = 0
 		for statement in @importStatements.custom
 			body = "'#{statement.target}'"
 			body += ", [#{statement.conditions.map((i)-> '"'+i+'"').join(',')}]" if statement.conditions
 			commonSyntax = "require(#{body})"
 			@content = @content.slice(0,statement.range[0]) + commonSyntax + @content.slice(statement.range[1])
-			statement.range[1] = statement.range[0] + commonSyntax.length # Update end offset of range
+			
+			# Update offsets
+			originalSyntaxLength = statement.range[0]+statement.range[1]
+			statement.range[0] -= replacementOffset
+			statement.range[1] = statement.range[0] + commonSyntax.length
+			syntaxLengthDiff = originalSyntaxLength - commonSyntax.length
+			replacementOffset += syntaxLengthDiff
 
 		return
 
 
 	ES6ImportsToCommonJS: ()->
+		replacementOffset = 0
 		for statement in @importStatements.es6
 			body = "'#{statement.target}', null"
 			body += ", #{if statement.defaultMember then '"'+statement.defaultMember+'"' else 'null'}"
 			body += ", #{if statement.members then statement.members else 'null'}"
 			commonSyntax = "require(#{body})"
 			@content = @content.slice(0,statement.range[0]) + commonSyntax + @content.slice(statement.range[1])
-			statement.range[1] = statement.range[0] + commonSyntax.length # Update end offset of range
+			
+			# Update offsets
+			originalSyntaxLength = statement.range[0]+statement.range[1]
+			statement.range[0] -= replacementOffset
+			statement.range[1] = statement.range[0] + commonSyntax.length
+			syntaxLengthDiff = originalSyntaxLength - commonSyntax.length
+			replacementOffset += syntaxLengthDiff			
 
 		return
 
 
-	applyAllTransforms: (force=@isEntry)-> if @type is 'module' or force
-		Promise.bind(@)
+	applyAllTransforms: (content=@content, force=@isEntry)-> if @type is 'module' or force
+		Promise.resolve(content).bind(@)
 			.then @applySpecificTransforms
 			.then(@applyPkgTransforms if @isEntry or @isExternalEntry)
 			.then(@applyGlobalTransforms unless @isEntry)
+			.then (content)-> @content = content
 
 
-	applySpecificTransforms: ()->
-		Promise.bind(@)
-			.then ()->
+	applySpecificTransforms: (content)->
+		Promise.resolve(content).bind(@)
+			.then (content)->
 				transforms = @options.transform or []
 				transforms.unshift('tsify') if @fileExt is 'tn' and not transforms.includes('tsify')
 				transforms.unshift('coffeeify') if @fileExt is 'coffee' and not transforms.includes('coffeeify')
-				promiseBreak(@content) if not transforms.length
+				promiseBreak(content) if not transforms.length
+				return [content, transforms]
 			
-			.then (transforms)->
-				@applyTransforms(@content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
+			.spread (content, transforms)->
+				@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
 
 			.catch promiseBreak.end
-			.then (@content)->
 
 
-	applyPkgTransforms: ()->
+	applyPkgTransforms: (content)->
 		Promise.resolve(@pkgTransform).bind(@)
-			.tap (transform)-> promiseBreak(@content) if not transform
+			.tap (transform)-> promiseBreak(content) if not transform
 			.filter (transform)->
 				name = if typeof transform is 'string' then transform else transform[0]
 				return name.toLowerCase() isnt 'simplyimportify'
-
-			.then (transforms)->
-				@applyTransforms(@content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
+			
+			.then (transforms)-> [content, transforms]
+			.spread (content, transforms)->
+				@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
 
 			.catch promiseBreak.end
-			.then (@content)->
 
 
-	applyGlobalTransforms: ()->
+	applyGlobalTransforms: (content)->
 		Promise.bind(@)
 			.then ()->
 				transforms = @task.options.globalTransform
-				promiseBreak(@content) if not transforms?.length
+				promiseBreak(content) if not transforms?.length
+				return [content, transforms]
 			
-			.then (transforms)->
-				@applyTransforms(@content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
+			.spread (content, transforms)->
+				@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
 
 			.catch promiseBreak.end
-			.then (@content)->
 
 
 
@@ -191,28 +214,36 @@ class File
 			
 				Promise.resolve()
 					.then ()=> getStream streamify(content).pipe(transformer.fn(filePath, transformOpts, @))
-					.tap ()=>
+					.then (content)=>
 						if transformer.name is 'coffeeify' or transformer.name is 'tsify'
 							@fileExt = 'js'
 							@filePath = helpers.changeExtension(@filePath, 'js')
 							@filePathSimple = helpers.changeExtension(@filePathSimple, 'js')
+
+						sourceComment = content.match(sourcemapRegex)
+						if sourceComment
+							@sourceMap = sourceComment
+							content = sourcemap.removeComments(content)
+
+						return content
 				
 			, content)
 
 
 
-	attemptASTGen: ()->
-		shouldGenAST =
+	attemptASTGen: (content)->
+		@shouldGenAST = @shouldGenAST or 
 			@fileExt is 'js' and (
 				@importStatements.custom.length or
 				@importStatements.es6.length or
-				REGEX.export.test(@content) or
-				REGEX.commonJS.export.test(@content)
+				REGEX.commonImport.test(@content) or
+				REGEX.es6export.test(@content) or
+				REGEX.commonExport.test(@content)
 			)
 
-		if shouldGenAST
+		if @shouldGenAST
 			try
-				@AST = Parser.parse(@content, tolerant:true, sourceType:'module', range:true)
+				@AST = Parser.parse(content, tolerant:true, sourceType:'module', range:true)
 			catch err
 				@task.emit 'astParseError', @, err
 
@@ -221,6 +252,7 @@ class File
 	collectImports: (AST=@AST)->
 		switch
 			when AST
+				@collectedImports = true
 				require('esprima-walk') AST, (node)=>
 					if  node.type is 'CallExpression' and
 						node.callee.type is 'Identifier' and
@@ -228,17 +260,20 @@ class File
 						node.arguments.length and
 						typeof node.arguments[0].value is 'string'
 							[target, conditions, defaultMember, members] = node.arguments
-							target = helpers.cleanImportPath(target.value).split('$')
+							target = helpers.cleanImportPath(target.value)
+							targetSplit = target.split('$')
 							statement = {range:node.range, source:@}
-							statement.target = target[0]
-							statement.extract = target[1]
-							statement.conditions = if conditions?.elements then conditions.elements.map (element)-> element.value
+							statement.id = md5(target)
+							statement.target = targetSplit[0]
+							statement.extract = targetSplit[1]
+							statement.conditions = if conditions?.elements then require('sugar/array/map')(conditions.elements, 'value')
 							statement.members = if members and members.value then helpers.parseMembersString(members)
 							statement.defaultMember = if defaultMember and defaultMember.value then defaultMember.value
-							@importStatements.push(statement)
+							@importStatements.push(statement) unless require('sugar/array/find')(@importStatements, {id})
 
 
 			when @fileExt is 'pug' or @fileExt is 'jade'
+				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = {range:[], source:@}
 					statement.target = helpers.cleanImportPath(target.value)
@@ -249,6 +284,7 @@ class File
 
 
 			when @fileExt is 'sass' or @fileExt is 'scss'
+				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = {range:[], source:@}
 					statement.target = helpers.cleanImportPath(target.value)
@@ -260,6 +296,38 @@ class File
 
 		return @importStatements
 
+
+	insertInlineImports: (inlineImports)->
+		content = @contentPostInlinement or @contentPostNormalization
+		lines = new LinesAndColumns(content)
+		
+		for statement in inlineImports
+			targetContent = do ()=>
+				targetContent = statement.target.content
+				
+				if statement.target.contentLines.length <= 1
+					return targetContent
+				else
+					loc = lines.locationForIndex(statement.range[0])
+					contentLine = content.slice(statement.range[0] - loc.column, statement.range[1])
+					priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
+					hasPriorLetters = contentLine.length - priorWhitespace.length > statement.range[1]-statement.range[0]
+
+					if not priorWhitespace
+						return targetContent
+					else
+						targetContent
+							.split '\n'
+							.map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
+							.join '\n'
+			
+			@inlineImportRanges.push [statement.range[0], statement.range[0]+targetContent.length]
+			content =
+				content.slice(0, statement.range[0]) +
+				targetContent +
+				content.slice(statement.range[1])
+
+		return content
 
 
 

@@ -123,7 +123,7 @@ REGEX =
 	$///gm
 
 
-	export: ///^
+	es6export: ///^
 		export
 		\s+
 		(?:
@@ -136,66 +136,54 @@ REGEX =
 		(.*) 												# trailing content
 	$///m
 
-	commonJS:
-		export: ///^
-			(.+[\ \t\r]|.+\;|)								# prior content
-			(?:
-				exports\s* 									# plain exports variable
-					|
-				(?: 										# module.exports variable variations
-					module
-					(?:
-						\.exports
-							|
-						\['exports'\]
-							|
-						\["exports"\]
-					)
-					\s* 									# variable-access trailing whitespace
+	commonExport: ///^
+		(.+[\ \t\r]|.+\;|)								# prior content
+		(?:
+			exports\s* 									# plain exports variable
+				|
+			(?: 										# module.exports variable variations
+				module
+				(?:
+					\.exports
+						|
+					\['exports'\]
+						|
+					\["exports"\]
 				)
+				\s* 									# variable-access trailing whitespace
 			)
-			(
-				\[ 											# property string-notation access
-					|
-				[=\.] 										# property dot-notation access
-			)
-			(.*) 											# trailing content
-		$///m
+		)
+		(
+			\[ 											# property string-notation access
+				|
+			[=\.] 										# property dot-notation access
+		)
+		(.*) 											# trailing content
+	$///
 
-		import: ///^
-			(.+[\ \t\r\(=]|.+\;|)							# prior content
-			require 										# require reference
-			(
-				\s+ | \( 									# trailing char after 'require' (either bracket or space)
-			)
-			\s*
-			(
-				".*?"
-					|
-				'.*?'
-			)
-			(?:
-				\) | [^\n\S]? 									# trailing char after end of 'require' (either bracket or space)
-			)
-			(.*) 											# trailing content
-		$///gm
+	commonImport: ///^
+		\b
+		require 										# require reference
+		\( 												# trailing char after 'require' (bracket open)
+		\s*
+		(.+)
+		\) 												# trailing char after 'require' (bracket close)
+	$///
 
-		validRequire: ///
-			require 										# require keyword
-			\(												# opening bracket
-			(["'])											# quote mark
-			(?: 											# content between quotes (excluding the quote mark captured before)
-				(?!\1)
-				.
-			)+
-			\1 												# quote mark captured before
-			\) 												# closing bracket
-		///
-
-		# import: /(^\uFEFF?|[^$_a-zA-Z\xA0-\uFFFF."'])require\s*\(?\s*("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')\s*\)?/
+	commonImportReal: ///^
+		\b
+		require 										# require reference
+		\( 												# trailing char after 'require' (bracket open)
+		\s*
+		(
+			".*?"
+				|
+			'.*?'
+		)
+		\) 												# trailing char after 'require' (bracket close)
+	$///
 
 
-	# comment: /(^|[^\\])\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$/mg
 	comment:
 		singleLine: /([^:]|^)\/\/(.*)$/mg
 		multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg

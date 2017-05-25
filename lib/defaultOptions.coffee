@@ -2,6 +2,8 @@ module.exports =
 	'recursive': true
 	'preserve': false
 	'dirCache': true
+	'sourceMap': false
+	'debug': false
 	'preventGlobalLeaks': true
 	'includePathComments': false
 	'compileCoffeeChildren': false

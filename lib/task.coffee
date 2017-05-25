@@ -3,20 +3,21 @@ promiseBreak = require 'p-break'
 PATH = require 'path'
 md5 = require 'md5'
 fs = require 'fs-jetpack'
+globMatch = require 'micromatch'
 chalk = require 'chalk'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
 helpers = require './helpers'
 File = require './file'
 labels = require './consoleLabels'
-ALLOWED_EXTENSIONS = ['js','ts','coffee','sass','scss','css','html','jade','pug']
+ALLOWED_EXTENSIONS = ['js','ts','coffee','json','sass','scss','css','html','jade','pug']
 
 class Task extends require('events')
 	constructor: (options, @entryInput, @isScanOnly)->
 		@currentID = -1
 		@importStatements = []
-		@imports = Object.create(null)
-		@importRefs = Object.create(null)
+		# @imports = Object.create(null)
+		# @importRefs = Object.create(null)
 		@cache = Object.create(null)
 		@requiredGlobals = {}
 		
@@ -183,8 +184,18 @@ class Task extends require('events')
 			.then file.findES6Imports
 			.then file.customImportsToCommonJS
 			.then file.ES6ImportsToCommonJS
+			.then file.saveContentMilestone.bind(file, 'contentPostNormalization')
 			.then file.applyAllTransforms
+			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.then file.attemptASTGen
+			.return(file)
+
+
+	processFilePostInlinement: (file, attemptASTGen)->
+		Promise.resolve(file.contentPostInlinement).bind(file)
+			.then file.applyAllTransforms
+			.then(file.attemptASTGen if attemptASTGen)
+			.then file.collectImports
 			.return(file)
 
 
@@ -193,32 +204,46 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then ()-> file.collectImports()
 			.tap (imports)-> @importStatements.push(imports...)
-			.map (importStatement)->
+			.map (statement)->
 				Promise.bind(@)
-					.then ()-> @initFile(importStatement.target, file)
-					.then (childFile)-> importStatement.target = childFile
-					.return(importStatement)
-
+					.then ()-> @initFile(statement.target, file)
+					.then (childFile)-> statement.target = childFile
+					.return(statement)
+			
+			.tap (importStatements)-> @processInlineImports(file, importStatements)
+			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
-			.filter (importStatement)-> not importStatement.target.scanned
-			.map (importStatement)-> @scanImports(importStatement.target)
+			.filter (statement)-> not statement.target.scanned
+			.map (statement)-> @scanImports(statement.target)
 			.catch promiseBreak.end
 			.return(@importStatements)
 
 
+	processInlineImports: (file, importStatements)->
+		inlineImports = importStatements.filter (statement)-> statement.target.type is 'inline'
+		if inlineImports.length
+			Promise.resolve(inlineImports).bind(file)
+				.then file.insertInlineImports
+				.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
+				.then
 
-	calcImportTree: ()->
+		Promise.resolve(@importStatements).bind(@)
+			.filter (statement)-> statement.target.type is 'inline'
+			.map (statement)->
+
+
+	groupImportsByHash: ()->
 		Promise.bind(@)
 			.then ()->
-				for statement in @importStatements
+				for statement in @importStatements when not statement.sorted
 					@imports[statement.target.hash] ?= []
-					@imports[statement.target.hash].push statement
+					@imports[statement.target.hash].push(statement)
+					statement.type = statement.target.type
+					statement.sorted = true
 				return
 
-			.then ()->
-				for hash,importStatement of @imports
-					@imports[]
-				return
+			# .then ()->
+			# 	@imports = require('sugar/array/groupBy')()
 
 
 
