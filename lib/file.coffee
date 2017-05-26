@@ -83,6 +83,9 @@ class File
 			@ignoreRanges.push(currentRange)
 
 
+	saveContent: (content)->
+		@content = content
+
 	saveContentMilestone: (milestone)->
 		@[milestone] = @content
 

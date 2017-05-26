@@ -30,9 +30,8 @@ SimplyImport.compile = (input, options, state={})->
 		.then task.initEntryFile
 		.then task.processFile
 		.then task.scanImports
-		.then task.groupImportsByHash
-		# .tap ()-> console.dir arguments[0], colors:true, depth:3
-		# .tap ()-> console.log task.entryFile.content, task.entryFile.contentOriginal
+		.then task.calcImportTree
+		.then task.insertInlineImports
 		.then task.compile
 
 

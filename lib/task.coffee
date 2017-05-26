@@ -185,9 +185,6 @@ class Task extends require('events')
 			.then file.customImportsToCommonJS
 			.then file.ES6ImportsToCommonJS
 			.then file.saveContentMilestone.bind(file, 'contentPostNormalization')
-			.then file.applyAllTransforms
-			.then (content)-> file.content = content
-			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.then file.tokenize
 			.return(file)
 
@@ -204,7 +201,7 @@ class Task extends require('events')
 					.then (childFile)-> statement.target = childFile
 					.return(statement)
 			
-			# .tap (importStatements)-> @processInlineImports(file, importStatements)
+			# .tap (importStatements)-> @insertInlineImports(file, importStatements)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
 			.filter (statement)-> not statement.target.scanned
@@ -213,7 +210,7 @@ class Task extends require('events')
 			.return(@importStatements)
 
 
-	# processInlineImports: (file, importStatements)->
+	# insertInlineImports: (file, importStatements)->
 	# 	inlineImports = importStatements.filter (statement)-> statement.target.type is 'inline'
 		
 	# 	if inlineImports.length
@@ -231,20 +228,16 @@ class Task extends require('events')
 
 
 
-	groupImportsByHash: ()->
+	calcImportTree: ()->
 		Promise.bind(@)
-			.then ()->
-				for statement in @importStatements when not statement.sorted
-					@imports[statement.target.hash] ?= []
-					@imports[statement.target.hash].push(statement)
-					statement.type = statement.target.type
-					statement.sorted = true
-				return
-
-			# .then ()->
-			# 	@imports = require('sugar/array/groupBy')()
+			.then ()-> @imports = @importStatements.groupBy('target.hash')
 
 
+	compile: (file)->
+		Promise.bind(file)
+			.then file.applyAllTransforms
+			.then file.saveContent
+			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 
 
 

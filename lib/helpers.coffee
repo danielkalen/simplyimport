@@ -396,13 +396,14 @@ helpers =
 
 	helpers.newParsedToken = ()->
 		id: null
+		range: null
+		tokenRange: null
+		source: null
 		target: null
 		extract: null
-		range: null
 		conditions: null
 		defaultMember: null
 		members: null
-		tokenRange: null
 
 
 	walkTokens: (tokens, valueToStopAt, cb)->
