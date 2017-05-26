@@ -31,7 +31,7 @@ class Task extends require('events')
 		
 		super
 		@.on 'requiredGlobal', (varName)=> @requiredGlobals[varName] = true
-		@.on 'astParseError', (file, err)=> unless @isScanOnly
+		@.on 'TokenizeError', (file, err)=> unless @isScanOnly
 			console.warn "#{labels.warn} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
 
 
@@ -186,17 +186,11 @@ class Task extends require('events')
 			.then file.ES6ImportsToCommonJS
 			.then file.saveContentMilestone.bind(file, 'contentPostNormalization')
 			.then file.applyAllTransforms
+			.then (content)-> file.content = content
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
-			.then file.attemptASTGen
+			.then file.tokenize
 			.return(file)
 
-
-	processFilePostInlinement: (file, attemptASTGen)->
-		Promise.resolve(file.contentPostInlinement).bind(file)
-			.then file.applyAllTransforms
-			.then(file.attemptASTGen if attemptASTGen)
-			.then file.collectImports
-			.return(file)
 
 
 	scanImports: (file, depth=Infinity, currentDepth=0)->
@@ -210,7 +204,7 @@ class Task extends require('events')
 					.then (childFile)-> statement.target = childFile
 					.return(statement)
 			
-			.tap (importStatements)-> @processInlineImports(file, importStatements)
+			# .tap (importStatements)-> @processInlineImports(file, importStatements)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
 			.filter (statement)-> not statement.target.scanned
@@ -219,17 +213,22 @@ class Task extends require('events')
 			.return(@importStatements)
 
 
-	processInlineImports: (file, importStatements)->
-		inlineImports = importStatements.filter (statement)-> statement.target.type is 'inline'
-		if inlineImports.length
-			Promise.resolve(inlineImports).bind(file)
-				.then file.insertInlineImports
-				.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
-				.then
+	# processInlineImports: (file, importStatements)->
+	# 	inlineImports = importStatements.filter (statement)-> statement.target.type is 'inline'
+		
+	# 	if inlineImports.length
+	# 		Promise.resolve(inlineImports).bind(file)
+	# 			.then file.insertInlineImports
+	# 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
+	# 			.then ()=>
+	# 				Promise.resolve(file.contentPostInlinement).bind(file)
+	# 					.then file.applyAllTransforms
+	# 					.then(file.attemptASTGen if attemptASTGen)
+	# 					.then file.collectImports
+	# 					.return(file)
+					
+					
 
-		Promise.resolve(@importStatements).bind(@)
-			.filter (statement)-> statement.target.type is 'inline'
-			.map (statement)->
 
 
 	groupImportsByHash: ()->

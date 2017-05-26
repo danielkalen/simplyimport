@@ -1,5 +1,6 @@
 require('array-includes').shim()
 require('object.entries').shim()
+require('./sugar')
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird', 'escodegen', 'esprima')
 Promise = require 'bluebird'

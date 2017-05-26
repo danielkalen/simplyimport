@@ -1,5 +1,7 @@
 REGEX = 
+	quotes: /['"]/
 	commaSeparated: /,\s?/
+	squareBrackets: /[\[\]]/
 	stringContents: /".+?"|'.+?'/g
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/

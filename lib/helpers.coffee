@@ -394,6 +394,30 @@ helpers =
 	isCoreModule: (moduleName)->
 		coreModulesUnsupported.includes(moduleName)
 
+	helpers.newParsedToken = ()->
+		id: null
+		target: null
+		extract: null
+		range: null
+		conditions: null
+		defaultMember: null
+		members: null
+		tokenRange: null
+
+
+	walkTokens: (tokens, valueToStopAt, cb)->
+		results = []
+		api =
+			index: 0
+			next: ()-> tokens[++@index] or {}
+
+		for token,index in tokens when token.value is valueToStopAt
+			result = cb.call(api, token, api.index=index)
+			if result
+				result.tokenRange = [index, api.index]
+				results.push(result)
+
+		return results
 
 
 

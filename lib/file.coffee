@@ -98,7 +98,7 @@ class File
 		@content.replace REGEX.customImport, (entireLine, priorContent='', importKeyword, conditions, whitespace='', childPath, trailingContent='', offset)=>
 			statement = {range:[], source:@}
 			statement.conditions = conditions.split(REGEX.commaSeparated) if conditions
-			statement.target = helpers.cleanImportPath(childPath)
+			statement.target = childPath.removeAll(REGEX.quotes)
 			statement.range[0] = offset + priorContent.length
 			statement.range[1] = statement.range[0] + importKeyword.length + (if conditions then 2 else 0) + whitespace.length + childPath.length
 			
@@ -110,7 +110,7 @@ class File
 			statement = {range:[], source:@}
 			statement.members = if members then members
 			statement.defaultMember = defaultMember
-			statement.target = helpers.cleanImportPath(childPath)
+			statement.target = childPath.removeAll(REGEX.quotes)
 			statement.range[0] = offset
 			statement.range[1] = offset + entireLine.length
 			
@@ -121,7 +121,7 @@ class File
 		replacementOffset = 0
 		for statement in @importStatements.custom
 			body = "'#{statement.target}'"
-			body += ", [#{statement.conditions.map((i)-> '"'+i+'"').join(',')}]" if statement.conditions
+			body += ", [#{statement.conditions.join(',')}]" if statement.conditions
 			commonSyntax = "require(#{body})"
 			@content = @content.slice(0,statement.range[0]) + commonSyntax + @content.slice(statement.range[1])
 			
@@ -159,7 +159,6 @@ class File
 			.then @applySpecificTransforms
 			.then(@applyPkgTransforms if @isEntry or @isExternalEntry)
 			.then(@applyGlobalTransforms unless @isEntry)
-			.then (content)-> @content = content
 
 
 	applySpecificTransforms: (content)->
@@ -231,52 +230,66 @@ class File
 
 
 
-	attemptASTGen: (content)->
-		@shouldGenAST = @shouldGenAST or 
-			@fileExt is 'js' and (
-				@importStatements.custom.length or
-				@importStatements.es6.length or
-				REGEX.commonImport.test(@content) or
-				REGEX.es6export.test(@content) or
-				REGEX.commonExport.test(@content)
-			)
+	tokenize: (content)->
+		# @shouldGenAST = @shouldGenAST or 
+		# 	@fileExt is 'js' and (
+		# 		@importStatements.custom.length or
+		# 		@importStatements.es6.length or
+		# 		REGEX.commonImport.test(@content) or
+		# 		REGEX.es6export.test(@content) or
+		# 		REGEX.commonExport.test(@content)
+		# 	)
 
-		if @shouldGenAST
-			try
-				@AST = Parser.parse(content, tolerant:true, sourceType:'module', range:true)
-			catch err
-				@task.emit 'astParseError', @, err
+		try
+			@Tokens = Parser.tokenize(content, range:true)
+			@Tokens.forEach (token, index)-> token.index = index
+		catch err
+			@task.emit 'TokenizeError', @, err
 
 
 
-	collectImports: (AST=@AST)->
+	collectImports: (Tokens=@Tokens)->
 		switch
-			when AST
+			when Tokens
 				@collectedImports = true
-				require('esprima-walk') AST, (node)=>
-					if  node.type is 'CallExpression' and
-						node.callee.type is 'Identifier' and
-						node.callee.name is 'require' and
-						node.arguments.length and
-						typeof node.arguments[0].value is 'string'
-							[target, conditions, defaultMember, members] = node.arguments
-							target = helpers.cleanImportPath(target.value)
-							targetSplit = target.split('$')
-							statement = {range:node.range, source:@}
-							statement.id = md5(target)
-							statement.target = targetSplit[0]
-							statement.extract = targetSplit[1]
-							statement.conditions = if conditions?.elements then require('sugar/array/map')(conditions.elements, 'value')
-							statement.members = if members and members.value then helpers.parseMembersString(members)
-							statement.defaultMember = if defaultMember and defaultMember.value then defaultMember.value
-							@importStatements.push(statement) unless require('sugar/array/find')(@importStatements, {id})
+				statements = helpers.walkTokens Tokens, 'require', (token)->
+					next = @next()
+					next = @next() if next.type is 'Punctuator'
+					return if next.type isnt 'String'
+					output = helpers.newParsedToken()
+					output.target = next.value.removeAll(REGEX.quotes)
+
+					return output if @next().value isnt ','
+					return output if (next=@next()).value isnt 'string'
+					output.conditions = output.removeAll(REGEX.squareBrackets).split(REGEX.commaSeparated)
+
+					return output if @next().value isnt ','
+					return output if (next=@next()).value isnt 'string'
+					output.defaultMember = next.value.removeAll(REGEX.quotes)
+
+					return output if @next().value isnt ','
+					return output if (next=@next()).value isnt 'string'
+					output.members = helpers.parseMembersString next.value.removeAll(REGEX.quotes)
+
+					return output
+
+
+				statements.forEach (statement)=>
+					targetSplit = statement.target.split('$')
+					statement.id = md5(statement.target)
+					statement.target = targetSplit[0]
+					statement.extract = targetSplit[1]
+					statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
+					statement.source = @
+					@importStatements.push(statement) unless @statements.find(id:statement.id)
+
 
 
 			when @fileExt is 'pug' or @fileExt is 'jade'
 				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = {range:[], source:@}
-					statement.target = helpers.cleanImportPath(target.value)
+					statement.target = target.value.removeAll(REGEX.quotes)
 					statement.priorContent = priorContent
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
@@ -287,7 +300,7 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = {range:[], source:@}
-					statement.target = helpers.cleanImportPath(target.value)
+					statement.target = target.value.removeAll(REGEX.quotes)
 					statement.priorContent = priorContent
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
@@ -301,26 +314,29 @@ class File
 		content = @contentPostInlinement or @contentPostNormalization
 		lines = new LinesAndColumns(content)
 		
-		for statement in inlineImports
-			targetContent = do ()=>
-				targetContent = statement.target.content
-				
-				if statement.target.contentLines.length <= 1
-					return targetContent
-				else
-					loc = lines.locationForIndex(statement.range[0])
-					contentLine = content.slice(statement.range[0] - loc.column, statement.range[1])
-					priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
-					hasPriorLetters = contentLine.length - priorWhitespace.length > statement.range[1]-statement.range[0]
-
-					if not priorWhitespace
+		Promise.resolve(inlineImports).bind(@)
+			.map (statement)-> @task.scanImports(statement.target).return(statement)
+			.map (statement)-> [statement, statement.traget.content]
+			.map ([statement, targetContent])->
+				targetContent = do ()=>
+					targetContent = statement.target.content
+					
+					if statement.target.contentLines.length <= 1
 						return targetContent
 					else
-						targetContent
-							.split '\n'
-							.map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
-							.join '\n'
-			
+						loc = lines.locationForIndex(statement.range[0])
+						contentLine = content.slice(statement.range[0] - loc.column, statement.range[1])
+						priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
+						hasPriorLetters = contentLine.length - priorWhitespace.length > statement.range[1]-statement.range[0]
+
+						if not priorWhitespace
+							return targetContent
+						else
+							targetContent
+								.split '\n'
+								.map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
+								.join '\n'
+				
 			@inlineImportRanges.push [statement.range[0], statement.range[0]+targetContent.length]
 			content =
 				content.slice(0, statement.range[0]) +
