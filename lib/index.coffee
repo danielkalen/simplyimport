@@ -1,12 +1,9 @@
-require('array-includes').shim()
-require('object.entries').shim()
 require('./sugar')
-stackTraceFilter = require('stack-filter')
-stackTraceFilter.filters.push('bluebird', 'escodegen', 'esprima')
+require('stack-filter').filters.push('bluebird', 'escodegen', 'esprima')
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs-extra'
 Task = require './task'
-regEx = require './regex'
+REGEX = require './constants/regex'
 helpers = require './helpers'
 RegExp::test = do ()-> # RegExp::test function patch to reset index after each test
 	origTestFn = RegExp::test
@@ -31,6 +28,7 @@ SimplyImport.compile = (input, options, state={})->
 		.then task.processFile
 		.then task.scanImports
 		.then task.calcImportTree
+		.then ()-> task.entryFile
 		.then task.insertInlineImports
 		.then task.compile
 
@@ -58,7 +56,7 @@ SimplyImport.scanImports = (input, options, state={})->
 					else
 						importStats = {}
 						entireLine = subjectFile.contentLines[lineRefs[childIndex]]
-						entireLine.replace regEx.import, (entireLine, priorContent='', spacing='', conditions)->
+						entireLine.replace REGEX.import, (entireLine, priorContent='', spacing='', conditions)->
 							importStats = {entireLine, priorContent, spacing, conditions, path:childPath}
 						
 						return importStats
@@ -114,7 +112,7 @@ SimplyImport.scanImports = (input, options, state={})->
 # 					else
 # 						importStats = {}
 # 						entireLine = subjectFile.contentLines[lineRefs[childIndex]]
-# 						entireLine.replace regEx.import, (entireLine, priorContent='', spacing='', conditions)->
+# 						entireLine.replace REGEX.import, (entireLine, priorContent='', spacing='', conditions)->
 # 							importStats = {entireLine, priorContent, spacing, conditions, path:childPath}
 						
 # 						return importStats

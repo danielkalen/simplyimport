@@ -11,14 +11,15 @@ Parser = require 'esprima'
 LinesAndColumns = require 'lines-and-columns'
 sourcemapConvert = require 'convert-source-map'
 sourcemapRegex = sourcemapConvert.commentRegex
-REGEX = require './regex'
 helpers = require './helpers'
-consoleLabels = require './consoleLabels'
+REGEX = require './constants/regex'
+EXTENSIONS = require './constants/extensions'
 
 
 class File
 	constructor: (@task, state)->
 		extend(@, state)
+		@ID = ++@task.currentID
 		@importedCount = 0
 		@importStatements = []
 		@importStatements.es6 = []
@@ -29,9 +30,10 @@ class File
 		@lineRefs = []
 		@orderRefs = []
 		@ignoreRanges = []
+		@fileExtOriginal = @fileExt
 		@contentOriginal = @content
-		@contentLines = @content.split(REGEX.newLine)
-		@ID = ++@task.currentID
+		@contentLines = @content.lines()
+		@options.transform ?= []
 		
 		if @isEntry or @isExternalEntry
 			
@@ -87,7 +89,10 @@ class File
 		@content = content
 
 	saveContentMilestone: (milestone)->
-		@[milestone] = @content
+		if @task.options.debug
+			@[milestone] = @content
+		else
+			@content
 
 
 	determineType: ()->
@@ -101,7 +106,7 @@ class File
 		@content.replace REGEX.customImport, (entireLine, priorContent='', importKeyword, conditions, whitespace='', childPath, trailingContent='', offset)=>
 			statement = {range:[], source:@}
 			statement.conditions = conditions.split(REGEX.commaSeparated) if conditions
-			statement.target = childPath.removeAll(REGEX.quotes)
+			statement.target = childPath.removeAll(REGEX.quotes).trim()
 			statement.range[0] = offset + priorContent.length
 			statement.range[1] = statement.range[0] + importKeyword.length + (if conditions then 2 else 0) + whitespace.length + childPath.length
 			
@@ -109,13 +114,13 @@ class File
 
 
 	findES6Imports: ()->
-		@content.replace REGEX.es6Import, (entireLine, importKeyword, metadata, defaultMember='', members='', childPath, offset)=>
+		@content.replace REGEX.es6Import, (entireLine, priorContent='', importKeyword, metadata, defaultMember='', members='', childPath, offset)=>
 			statement = {range:[], source:@}
 			statement.members = if members then members
 			statement.defaultMember = defaultMember
-			statement.target = childPath.removeAll(REGEX.quotes)
-			statement.range[0] = offset
-			statement.range[1] = offset + entireLine.length
+			statement.target = childPath.removeAll(REGEX.quotes).trim()
+			statement.range[0] = offset + priorContent.length
+			statement.range[1] = statement.range[0] + (entireLine.length-priorContent.length)
 			
 			@importStatements.es6.push(statement)
 
@@ -158,6 +163,7 @@ class File
 
 
 	applyAllTransforms: (content=@content, force=@isEntry)-> if @type is 'module' or force
+		@allTransforms = [].concat @options.transform, @task.options.globalTransform#, @pkgTransform
 		Promise.resolve(content).bind(@)
 			.then @applySpecificTransforms
 			.then(@applyPkgTransforms if @isEntry or @isExternalEntry)
@@ -167,9 +173,14 @@ class File
 	applySpecificTransforms: (content)->
 		Promise.resolve(content).bind(@)
 			.then (content)->
-				transforms = @options.transform or []
-				transforms.unshift('tsify') if @fileExt is 'tn' and not transforms.includes('tsify')
-				transforms.unshift('coffeeify') if @fileExt is 'coffee' and not transforms.includes('coffeeify')
+				transforms = @options.transform
+				forceTransform = switch
+					when @fileExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'tsify'
+					when @fileExt is 'coffee'	and not @allTransforms.includes('coffeeify')	then 'coffeeify'
+					when @fileExt is 'cson'		and not @allTransforms.includes('csonify') 		then 'csonify'
+					when @fileExt is 'yml'		and not @allTransforms.includes('yamlify') 		then 'yamlify'
+				
+				transforms.unshift(forceTransform) if forceTransform
 				promiseBreak(content) if not transforms.length
 				return [content, transforms]
 			
@@ -217,10 +228,10 @@ class File
 				Promise.resolve()
 					.then ()=> getStream streamify(content).pipe(transformer.fn(filePath, transformOpts, @))
 					.then (content)=>
-						if transformer.name is 'coffeeify' or transformer.name is 'tsify'
-							@fileExt = 'js'
-							@filePath = helpers.changeExtension(@filePath, 'js')
-							@filePathSimple = helpers.changeExtension(@filePathSimple, 'js')
+						if @fileExt isnt @fileExtOriginal
+							@filePath = helpers.changeExtension(@filePath, @fileExt)
+						else if transformer.name.includes(/coffeeify|tsify/)
+							@filePath = helpers.changeExtension(@filePath, @fileExt='js')
 
 						sourceComment = content.match(sourcemapRegex)
 						if sourceComment
@@ -234,20 +245,25 @@ class File
 
 
 	tokenize: (content)->
-		# @shouldGenAST = @shouldGenAST or 
-		# 	@fileExt is 'js' and (
-		# 		@importStatements.custom.length or
-		# 		@importStatements.es6.length or
-		# 		REGEX.commonImport.test(@content) or
-		# 		REGEX.es6export.test(@content) or
-		# 		REGEX.commonExport.test(@content)
-		# 	)
+		unless EXTENSIONS.nonJS.includes(@fileExt)
+			try
+				@Tokens = Parser.tokenize(content, range:true)
+				@Tokens.forEach (token, index)-> token.index = index
+			catch err
+				@task.emit 'TokenizeError', @, err
 
-		try
-			@Tokens = Parser.tokenize(content, range:true)
-			@Tokens.forEach (token, index)-> token.index = index
-		catch err
-			@task.emit 'TokenizeError', @, err
+		return content
+
+
+
+	genAST: (content)->
+		if @fileExt is 'js' and not @AST
+			try
+				@AST = Parser.parse(content, loc:true, source:@filePathRel)
+			catch err
+				@task.emit 'ASTParseError', @, err
+
+		return content
 
 
 
@@ -260,19 +276,19 @@ class File
 					next = @next() if next.type is 'Punctuator'
 					return if next.type isnt 'String'
 					output = helpers.newParsedToken()
-					output.target = next.value.removeAll(REGEX.quotes)
+					output.target = next.value.removeAll(REGEX.quotes).trim()
 
 					return output if @next().value isnt ','
 					return output if (next=@next()).value isnt 'string'
-					output.conditions = output.removeAll(REGEX.squareBrackets).split(REGEX.commaSeparated)
+					output.conditions = output.removeAll(REGEX.squareBrackets).trim().split(REGEX.commaSeparated)
 
 					return output if @next().value isnt ','
 					return output if (next=@next()).value isnt 'string'
-					output.defaultMember = next.value.removeAll(REGEX.quotes)
+					output.defaultMember = next.value.removeAll(REGEX.quotes).trim()
 
 					return output if @next().value isnt ','
 					return output if (next=@next()).value isnt 'string'
-					output.members = helpers.parseMembersString next.value.removeAll(REGEX.quotes)
+					output.members = helpers.parseMembersString next.value.removeAll(REGEX.quotes).trim()
 
 					return output
 
@@ -292,7 +308,7 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = {range:[], source:@}
-					statement.target = target.value.removeAll(REGEX.quotes)
+					statement.target = target.value.removeAll(REGEX.quotes).trim()
 					statement.priorContent = priorContent
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
@@ -303,7 +319,7 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = {range:[], source:@}
-					statement.target = target.value.removeAll(REGEX.quotes)
+					statement.target = target.value.removeAll(REGEX.quotes).trim()
 					statement.priorContent = priorContent
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
@@ -313,24 +329,24 @@ class File
 		return @importStatements
 
 
-	insertInlineImports: (inlineImports)->
-		content = @contentPostInlinement or @contentPostNormalization
+	insertInlineImports: ()->
+		content = @content
 		lines = new LinesAndColumns(content)
 		
-		Promise.resolve(inlineImports).bind(@)
-			.map (statement)-> @task.scanImports(statement.target).return(statement)
-			.map (statement)-> [statement, statement.traget.content]
-			.map ([statement, targetContent])->
+		Promise.bind(@)
+			.then ()-> @importStatements.filter (statement)-> statement.type is 'inline'
+			.map (statement)->
+				range = statement.range
 				targetContent = do ()=>
 					targetContent = statement.target.content
 					
 					if statement.target.contentLines.length <= 1
 						return targetContent
 					else
-						loc = lines.locationForIndex(statement.range[0])
-						contentLine = content.slice(statement.range[0] - loc.column, statement.range[1])
+						loc = lines.locationForIndex(range[0])
+						contentLine = content.slice(range[0] - loc.column, range[1])
 						priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
-						hasPriorLetters = contentLine.length - priorWhitespace.length > statement.range[1]-statement.range[0]
+						hasPriorLetters = contentLine.length - priorWhitespace.length > range[1]-range[0]
 
 						if not priorWhitespace
 							return targetContent
@@ -340,13 +356,11 @@ class File
 								.map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
 								.join '\n'
 				
-			@inlineImportRanges.push [statement.range[0], statement.range[0]+targetContent.length]
-			content =
-				content.slice(0, statement.range[0]) +
-				targetContent +
-				content.slice(statement.range[1])
+				@inlineImportRanges.push [range[0], range[0]+targetContent.length]
+				content = content.insert(targetContent, range[0])
 
-		return content
+			.then ()-> content
+
 
 
 

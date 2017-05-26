@@ -9,15 +9,13 @@ extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
 helpers = require './helpers'
 File = require './file'
-labels = require './consoleLabels'
-ALLOWED_EXTENSIONS = ['js','ts','coffee','json','sass','scss','css','html','jade','pug']
+LABELS = require './constants/consoleLabels'
+EXTENSIONS = require './constants/extensions'
 
 class Task extends require('events')
 	constructor: (options, @entryInput, @isScanOnly)->
 		@currentID = -1
 		@importStatements = []
-		# @imports = Object.create(null)
-		# @importRefs = Object.create(null)
 		@cache = Object.create(null)
 		@requiredGlobals = {}
 		
@@ -31,8 +29,10 @@ class Task extends require('events')
 		
 		super
 		@.on 'requiredGlobal', (varName)=> @requiredGlobals[varName] = true
-		@.on 'TokenizeError', (file, err)=> unless @isScanOnly
-			console.warn "#{labels.warn} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		@.on 'TokenizeError', (file, err)=>
+			console.warn "#{LABELS.warn} Failed to tokenize #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		@.on 'ASTParseError', (file, err)=> unless @isScanOnly
+			console.warn "#{LABELS.warn} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
 
 
 	resolveEntryPackage: ()->
@@ -54,7 +54,7 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then ()->
 				extname = PATH.extname(input).slice(1).toLowerCase()
-				if extname and ALLOWED_EXTENSIONS.includes(extname)
+				if extname and EXTENSIONS.all.includes(extname)
 					promiseBreak(input)
 				else
 					PATH.parse(input)
@@ -100,6 +100,7 @@ class Task extends require('events')
 				filePathSimple = helpers.simplifyPath(filePath)
 				filePathRel = filePath.replace(@entryFile.context, '')
 				fileExt = PATH.extname(filePath).toLowerCase().slice(1)
+				fileExt = 'yml' if fileExt is 'yaml'
 				suppliedPath = input
 				return {filePath, filePathSimple, filePathRel, context, contextRel, suppliedPath, fileExt}
 
@@ -186,6 +187,7 @@ class Task extends require('events')
 			.then file.ES6ImportsToCommonJS
 			.then file.saveContentMilestone.bind(file, 'contentPostNormalization')
 			.then file.tokenize
+			.then file.genAST
 			.return(file)
 
 
@@ -198,39 +200,50 @@ class Task extends require('events')
 			.map (statement)->
 				Promise.bind(@)
 					.then ()-> @initFile(statement.target, file)
+					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
 					.return(statement)
 			
-			# .tap (importStatements)-> @insertInlineImports(file, importStatements)
-			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
+			
 			.filter (statement)-> not statement.target.scanned
 			.map (statement)-> @scanImports(statement.target)
 			.catch promiseBreak.end
 			.return(@importStatements)
 
 
-	# insertInlineImports: (file, importStatements)->
-	# 	inlineImports = importStatements.filter (statement)-> statement.target.type is 'inline'
-		
-	# 	if inlineImports.length
-	# 		Promise.resolve(inlineImports).bind(file)
-	# 			.then file.insertInlineImports
-	# 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
-	# 			.then ()=>
-	# 				Promise.resolve(file.contentPostInlinement).bind(file)
-	# 					.then file.applyAllTransforms
-	# 					.then(file.attemptASTGen if attemptASTGen)
-	# 					.then file.collectImports
-	# 					.return(file)
-					
-					
-
-
 
 	calcImportTree: ()->
 		Promise.bind(@)
-			.then ()-> @imports = @importStatements.groupBy('target.hash')
+			.then ()->
+				@imports = @importStatements.groupBy('target.hash')
+
+			.then ()->
+				Object.forEach @imports, (statements)-> switch
+					when statements.length > 1
+						statements.forEach (statement)-> statement.type = 'module'
+
+					when statements.some((statement)-> helpers.isMixedExtStatement(statement))
+						statements.forEach (statement)-> statement.type = 'module'
+
+					else
+						statements.forEach (statement)-> statement.type = statement.target.type
+
+			.then ()-> @imports
+
+
+
+	insertInlineImports: (file)-> unless file.insertedInline
+		file.insertedInline = true
+		
+		Promise.resolve(file.importStatements).bind(file)
+			.map (statement)=> @insertInlineImports(statement.target)
+			.then file.insertInlineImports
+			.then file.saveContent
+			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
+			.return(file)
+					
+					
 
 
 	compile: (file)->
@@ -238,6 +251,7 @@ class Task extends require('events')
 			.then file.applyAllTransforms
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
+			.then file.genAST
 
 
 

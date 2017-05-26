@@ -4,16 +4,17 @@ fs = Promise.promisifyAll require 'fs-extra'
 Path = require 'path'
 chalk = require 'chalk'
 coffeeAST = require('decaffeinate-parser').parse
-acorn = require 'acorn'
+# acorn = require 'acorn'
 escodegen = require 'escodegen'
 findPkgJson = require 'read-pkg-up'
-regEx = require './regex'
-consoleLabels = require './consoleLabels'
+REGEX = require './constants/regex'
+LABELS = require './constants/consoleLabels'
+EXTENSIONS = require './constants/extensions'
 EMPTY_FILE_END = Path.join('node_modules','browser-resolve','empty.js')
 EMPTY_FILE = Path.resolve(__dirname,'..',EMPTY_FILE_END)
 globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
 coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
-coreModuleShims = require('./coreShims')(EMPTY_FILE)
+coreModuleShims = require('./constants/coreShims')(EMPTY_FILE)
 
 
 
@@ -30,14 +31,28 @@ helpers =
 	simplifyPath: (targetPath)->
 		targetPath.replace process.cwd()+'/', ''
 
-	cleanImportPath: (targetPath)->
-		targetPath
-			.replace /['"]/g, '' # Remove quotes form pathname
-			.replace /[;\s]+$/, '' # Remove whitespace from the end of the string
-
 	changeExtension: (filePath, extension)->
 		filePath = filePath.replace(/\.\w+?$/,'')
 		return "#{filePath}.#{extension}"
+
+	isMixedExtStatement: (statement)->
+		source = statement.source.fileExt
+		target = statement.target.fileExt
+		sourceRelated = helpers.relatedExtensions(source)
+		targetRelated = helpers.relatedExtensions(target)
+		return  source isnt target and
+				(
+					sourceRelated isnt targetRelated or
+					target is 'js' # and source is a transpiled type (e.g. coffeescript, typescript)
+				) and
+				sourceRelated isnt EXTENSIONS.data
+
+	relatedExtensions: (ext)-> switch
+		when EXTENSIONS.js.includes(ext) then EXTENSIONS.js
+		when EXTENSIONS.css.includes(ext) then EXTENSIONS.css
+		when EXTENSIONS.html.includes(ext) then EXTENSIONS.html
+		when EXTENSIONS.data.includes(ext) then EXTENSIONS.data
+		else EXTENSIONS.none
 
 	testForComments: (line, isCoffee)->
 		hasSingleLineComment = line.includes(if isCoffee then '#' else '//')
@@ -47,11 +62,11 @@ helpers =
 
 	
 	testForOuterString: (line)->
-		insideQuotes = line.match(regEx.stringContents)
+		insideQuotes = line.match(REGEX.stringContents)
 		
 		if insideQuotes
 			importSyntax = do ()->
-				word = if regEx.import.test(line) then 'import' else 'require'
+				word = if REGEX.import.test(line) then 'import' else 'require'
 				new RegExp("\\b#{word}\\b")
 			
 			for quote in insideQuotes
@@ -82,7 +97,7 @@ helpers =
 			AST = coffeeAST(string).body
 			return AST.statements.length is 1
 		catch
-			return string.split(regEx.newLine).length is 1
+			return string.split(REGEX.newLine).length is 1
 
 
 	testIfIsIgnored: (ignoreRanges, targetIndex)->
@@ -161,22 +176,22 @@ helpers =
 
 	escapeBackticks: (content)->
 		content
-			.replace regEx.preEscapedBackTicks, '`'
-			.replace regEx.backTicks, '\\`'
+			.replace REGEX.preEscapedBackTicks, '`'
+			.replace REGEX.backTicks, '\\`'
 
 
 
 	formatJsContentForCoffee: (jsContent)->
 		jsContent
-			.replace regEx.escapedNewLine, ''
-			.replace regEx.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
+			.replace REGEX.escapedNewLine, ''
+			.replace REGEX.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
 				"#{spacing}`#{helpers.escapeBackticks(content)}`"
 
 
 	wrapInClosure: (content, isCoffee, asFunc, debugRef)->
 		if isCoffee
 			debugRef = " ##{debugRef}" if debugRef
-			arrow = if regEx.thisKeyword.test(content) then '=>' else '->'
+			arrow = if REGEX.thisKeyword.test(content) then '=>' else '->'
 			fnSignatureStart = if asFunc then "()#{arrow}" else "do ()#{arrow}"
 			fnSignatureEnd = ''
 		else
@@ -266,7 +281,7 @@ helpers =
 			return false
 
 		when err = require('syntax-error')(content, filePath)
-			console.error(consoleLabels.warn, err)
+			console.error(LABELS.warn, err)
 			return content
 
 		else

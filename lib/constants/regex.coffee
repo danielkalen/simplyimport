@@ -79,8 +79,11 @@ REGEX =
 
 	es6import: ///
 		(
-			import					# import keyword
-			\s+						# whitespace after import keyword
+			[\ \t\r=]* 			# prior whitespace
+		)
+		(
+			import				# import keyword
+			\s+					# whitespace after import keyword
 		)
 		(
 			(?:
