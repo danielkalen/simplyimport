@@ -13,7 +13,7 @@ LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 
 class Task extends require('events')
-	constructor: (options, @entryInput, @isScanOnly)->
+	constructor: (options, @entryInput)->
 		@currentID = -1
 		@importStatements = []
 		@cache = Object.create(null)
@@ -28,11 +28,20 @@ class Task extends require('events')
 			@options.isCoffee ?= PATH.extname(@entryInput).toLowerCase() is '.coffee'
 		
 		super
-		@.on 'requiredGlobal', (varName)=> @requiredGlobals[varName] = true
+		@.on 'requiredGlobal', (varName)=>
+			@requiredGlobals[varName] = true
+		
 		@.on 'TokenizeError', (file, err)=>
 			console.warn "#{LABELS.warn} Failed to tokenize #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
-		@.on 'ASTParseError', (file, err)=> unless @isScanOnly
-			console.warn "#{LABELS.warn} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		
+		@.on 'ASTParseError', (file, err)=>
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		
+		@.on 'ParseError', (file, err)=>
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		
+		@.on 'ExtractError', (file, key, err)=>
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
 
 
 	resolveEntryPackage: ()->
@@ -219,15 +228,23 @@ class Task extends require('events')
 				@imports = @importStatements.groupBy('target.hash')
 
 			.then ()->
-				Object.forEach @imports, (statements)-> switch
-					when statements.length > 1
-						statements.forEach (statement)-> statement.type = 'module'
+				Object.values(@imports)
+			
+			.map (statements)->
+				if statement.length > 1 or
+					statements.some((statement)-> helpers.isMixedExtStatement(statement))
+						targetType = 'module'
 
-					when statements.some((statement)-> helpers.isMixedExtStatement(statement))
-						statements.forEach (statement)-> statement.type = 'module'
-
-					else
-						statements.forEach (statement)-> statement.type = statement.target.type
+				Promise.map statements, (statement)=>
+					statement.type = targetType or statement.target.type
+					
+					if statement.extract and statement.target.fileExt isnt 'json'
+						Promise.bind(statement.target)
+							.then statement.target.applyAllTransforms
+							.then statement.target.saveContent
+							.then ()=>
+								if not EXTENSIONS.data.includes(statement.target.fileExt)
+									@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
 			.then ()-> @imports
 
@@ -246,8 +263,19 @@ class Task extends require('events')
 					
 
 
-	compile: (file)->
+	compileFile: (file)->
 		Promise.bind(file)
+			.then file.applyAllTransforms
+			.then file.saveContent
+			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
+			.then file.genAST
+
+	
+	compile: ()->
+		Promise.bind(@)
+			.then @calcImportTree
+			.return @entryFile
+			.then @insertInlineImports
 			.then file.applyAllTransforms
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')

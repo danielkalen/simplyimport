@@ -10,7 +10,7 @@ extend = require 'extend'
 Parser = require 'esprima'
 LinesAndColumns = require 'lines-and-columns'
 sourcemapConvert = require 'convert-source-map'
-sourcemapRegex = sourcemapConvert.commentRegex
+# sourcemapRegex = sourcemapConvert.commentRegex
 helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
@@ -30,6 +30,7 @@ class File
 		@lineRefs = []
 		@orderRefs = []
 		@ignoreRanges = []
+		@extracts = Object.create(null)
 		@fileExtOriginal = @fileExt
 		@contentOriginal = @content
 		@contentLines = @content.lines()
@@ -233,10 +234,10 @@ class File
 						else if transformer.name.includes(/coffeeify|tsify/)
 							@filePath = helpers.changeExtension(@filePath, @fileExt='js')
 
-						sourceComment = content.match(sourcemapRegex)
-						if sourceComment
-							@sourceMap = sourceComment
-							content = sourcemap.removeComments(content)
+						# sourceComment = content.match(sourcemapRegex)
+						# if sourceComment
+						# 	@sourceMap = sourceComment
+						# 	content = sourcemap.removeComments(content)
 
 						return content
 				
@@ -247,7 +248,7 @@ class File
 	tokenize: (content)->
 		unless EXTENSIONS.nonJS.includes(@fileExt)
 			try
-				@Tokens = Parser.tokenize(content, range:true)
+				@Tokens = Parser.tokenize(content, range:true, sourceType:'module')
 				@Tokens.forEach (token, index)-> token.index = index
 			catch err
 				@task.emit 'TokenizeError', @, err
@@ -259,7 +260,7 @@ class File
 	genAST: (content)->
 		if @fileExt is 'js' and not @AST
 			try
-				@AST = Parser.parse(content, loc:true, source:@filePathRel)
+				@AST = Parser.parse(content, loc:true, source:@filePathRel, sourceType:'module')
 			catch err
 				@task.emit 'ASTParseError', @, err
 
@@ -329,6 +330,45 @@ class File
 		return @importStatements
 
 
+
+	collectExports: (Tokens=@Tokens)->
+		if Tokens
+			@collectedExports = true
+			statements = helpers.walkTokens Tokens, 'require', (token)->
+				next = @next()
+				next = @next() if next.type is 'Punctuator'
+				return if next.type isnt 'String'
+				output = helpers.newParsedToken()
+				output.target = next.value.removeAll(REGEX.quotes).trim()
+
+				return output if @next().value isnt ','
+				return output if (next=@next()).value isnt 'string'
+				output.conditions = output.removeAll(REGEX.squareBrackets).trim().split(REGEX.commaSeparated)
+
+				return output if @next().value isnt ','
+				return output if (next=@next()).value isnt 'string'
+				output.defaultMember = next.value.removeAll(REGEX.quotes).trim()
+
+				return output if @next().value isnt ','
+				return output if (next=@next()).value isnt 'string'
+				output.members = helpers.parseMembersString next.value.removeAll(REGEX.quotes).trim()
+
+				return output
+
+
+				statements.forEach (statement)=>
+					targetSplit = statement.target.split('$')
+					statement.id = md5(statement.target)
+					statement.target = targetSplit[0]
+					statement.extract = targetSplit[1]
+					statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
+					statement.source = @
+					@importStatements.push(statement) unless @statements.find(id:statement.id)
+
+
+		return @importStatements
+
+
 	insertInlineImports: ()->
 		content = @content
 		lines = new LinesAndColumns(content)
@@ -338,8 +378,8 @@ class File
 			.map (statement)->
 				range = statement.range
 				targetContent = do ()=>
-					targetContent = statement.target.content
-					
+					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
+
 					if statement.target.contentLines.length <= 1
 						return targetContent
 					else
@@ -360,6 +400,24 @@ class File
 				content = content.insert(targetContent, range[0])
 
 			.then ()-> content
+
+
+	replaceImportStatements: ()->
+
+
+	replaceExportStatements: ()->
+
+
+	extract: (key)->
+		try
+			@parsed ?= JSON.parse(@content)
+		catch err
+			@task.emit 'ParseError', @, err
+
+		if not Object.has(@parsed, key)
+			@task.emit 'ExtractError', @, new Error "requested key '#{key}' not found"
+		else
+			Object.get(@parsed, key)
 
 
 

@@ -27,14 +27,11 @@ SimplyImport.compile = (input, options, state={})->
 		.then task.initEntryFile
 		.then task.processFile
 		.then task.scanImports
-		.then task.calcImportTree
-		.then ()-> task.entryFile
-		.then task.insertInlineImports
 		.then task.compile
 
 
 SimplyImport.scanImports = (input, options, state={})->
-	task = new Task(options, input, true)
+	task = new Task(options, input)
 
 	Promise.bind(task)
 		.then task.resolveEntryPackage
