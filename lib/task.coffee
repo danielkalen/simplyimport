@@ -11,6 +11,7 @@ helpers = require './helpers'
 File = require './file'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
+PRELUDE = require './constants/prelude'
 
 class Task extends require('events')
 	constructor: (options, @entryInput)->
@@ -274,8 +275,8 @@ class Task extends require('events')
 	compile: ()->
 		Promise.bind(@)
 			.then @calcImportTree
-			.return @entryFile
-			.then @insertInlineImports
+			.then @insertInlineImports.bind(@, @entryFile)
+			.then ()->
 			.then file.applyAllTransforms
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
