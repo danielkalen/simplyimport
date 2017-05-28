@@ -1,7 +1,9 @@
 REGEX = 
+	es6memberAlias: /\s+as\s+/
 	quotes: /['"]/
-	commaSeparated: /,\s?/
+	commaSeparated: /,\s*/
 	squareBrackets: /[\[\]]/
+	curlyBrackets: /[\{\}]/
 	stringContents: /".+?"|'.+?'/g
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
@@ -129,6 +131,9 @@ REGEX =
 
 
 	es6export: ///^
+		(
+			[\ \t\r=]* 			# prior whitespace
+		)
 		export
 		\s+
 		(?:
@@ -139,7 +144,7 @@ REGEX =
 			(\S+)? 											# item label
 		)?
 		(.*) 												# trailing content
-	$///m
+	$///gm
 
 	commonExport: ///^
 		(.+[\ \t\r]|.+\;|)								# prior content

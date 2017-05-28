@@ -16,9 +16,10 @@ PRELUDE = require './constants/prelude'
 class Task extends require('events')
 	constructor: (options, @entryInput)->
 		@currentID = -1
+		@files = []
 		@importStatements = []
 		@cache = Object.create(null)
-		@requiredGlobals = {}
+		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
 		@options.context ?= if @options.isStream then process.cwd() else helpers.getNormalizedDirname(@entryInput)
@@ -29,8 +30,15 @@ class Task extends require('events')
 			@options.isCoffee ?= PATH.extname(@entryInput).toLowerCase() is '.coffee'
 		
 		super
-		@.on 'requiredGlobal', (varName)=>
-			@requiredGlobals[varName] = true
+		@attachListeners()
+
+	
+	attachListeners: ()->
+		@.on 'requiredGlobal', (file, varName)=>
+			if varName.statsWith('__')
+				file.requiredGlobals[varName] = true
+			else
+				@requiredGlobals[varName] = true
 		
 		@.on 'TokenizeError', (file, err)=>
 			console.warn "#{LABELS.warn} Failed to tokenize #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
@@ -41,7 +49,13 @@ class Task extends require('events')
 		@.on 'ParseError', (file, err)=>
 			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
 		
-		@.on 'ExtractError', (file, key, err)=>
+		@.on 'ExtractError', (file, err)=>
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		
+		@.on 'TokenError', (file, err)=>
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+		
+		@.on 'GeneralError', (file, err)=>
 			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
 
 
@@ -57,7 +71,6 @@ class Task extends require('events')
 					@entryInput = pkgFile.browser[@entryInput] if typeof pkgFile.browser is 'object' and pkgFile.browser[@entryInput]
 
 			.catch ()->
-
 
 
 	resolveFilePath: (input)->
@@ -122,6 +135,7 @@ class Task extends require('events')
 			.catch promiseBreak.end
 			.then (content)->
 				@entryFile = new File @, {
+					ID: ++@currentID
 					isEntry: true
 					content: content
 					hash: md5(content)
@@ -135,6 +149,9 @@ class Task extends require('events')
 					filePathRel: '/main.js'
 					fileExt: if @options.isCoffee then 'coffee' else 'js'
 				}
+
+			.tap (file)->
+				@files.push file
 
 
 	initFile: (input, importer)->
@@ -156,6 +173,7 @@ class Task extends require('events')
 
 			.tap (config)-> promiseBreak(@cache[config.hash]) if @cache[config.hash]
 			.tap (config)->
+				config.ID = ++@currentID
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
 				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
@@ -180,8 +198,10 @@ class Task extends require('events')
 			.then (config)->
 				new File(@, config)
 
+			.tap (file)->
+				@files.push file
+			
 			.catch promiseBreak.end
-
 
 
 	processFile: (file)-> unless file.processed
@@ -191,19 +211,12 @@ class Task extends require('events')
 			.then file.collectRequiredGlobals
 			.then file.collectIgnoreRanges
 			.then file.determineType
-			.then file.findCustomImports
-			.then file.findES6Imports
-			.then file.customImportsToCommonJS
-			.then file.ES6ImportsToCommonJS
-			.then file.saveContentMilestone.bind(file, 'contentPostNormalization')
 			.then file.tokenize
-			.then file.genAST
-			.return(file)
-
+			.return(file))
 
 
 	scanImports: (file, depth=Infinity, currentDepth=0)->
-		file.scanned = true
+		file.scannedImports = true
 		Promise.bind(@)
 			.then ()-> file.collectImports()
 			.tap (imports)-> @importStatements.push(imports...)
@@ -216,10 +229,27 @@ class Task extends require('events')
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
 			
-			.filter (statement)-> not statement.target.scanned
+			.filter (statement)-> not statement.target.scannedImports
 			.map (statement)-> @scanImports(statement.target)
 			.catch promiseBreak.end
 			.return(@importStatements)
+
+
+	scanExports: (file)->
+		file.scannedExports = true
+		Promise.bind(@)
+			.then ()-> file.collectExports()
+			.filter (statement)-> statement.target isnt statement.source
+			.map (statement)->
+				Promise.bind(@)
+					.then ()-> @initFile(statement.target, file)
+					.then (childFile)-> @processFile(childFile)
+					.then (childFile)-> statement.target = childFile
+					.return(statement)
+						
+			.filter (statement)-> not statement.target.scannedExports
+			.map (statement)-> @scanExports(statement.target).then ()=> @scanImports(statement.target)
+			.return(@importStatements
 
 
 
@@ -232,7 +262,12 @@ class Task extends require('events')
 				Object.values(@imports)
 			
 			.map (statements)->
-				if statement.length > 1 or
+				statements.slice().forEach (statement)-> if statement.conditions
+					if not statement.conditions.every((condition)-> process.env[condition])
+						statement.removed = true
+						statements.remove(statement)
+
+				if statements.unique('id').length > 1 or
 					statements.some((statement)-> helpers.isMixedExtStatement(statement))
 						targetType = 'module'
 
@@ -244,14 +279,15 @@ class Task extends require('events')
 							.then statement.target.applyAllTransforms
 							.then statement.target.saveContent
 							.then ()=>
-								if not EXTENSIONS.data.includes(statement.target.fileExt)
+								if statement.target.fileExt isnt 'json'
 									@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
 			.then ()-> @imports
 
 
 
-	insertInlineImports: (file)-> unless file.insertedInline
+	insertInlineImports: (file)->
+		return file if file.insertedInline
 		file.insertedInline = true
 		
 		Promise.resolve(file.importStatements).bind(file)
@@ -270,17 +306,18 @@ class Task extends require('events')
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.then file.genAST
+			.then file.adjustASTLocations
 
 	
 	compile: ()->
 		Promise.bind(@)
 			.then @calcImportTree
 			.then @insertInlineImports.bind(@, @entryFile)
+			.return @files
+			.filter (file)-> file.type isnt 'inline'
+			.map @compileFile
 			.then ()->
-			.then file.applyAllTransforms
-			.then file.saveContent
-			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
-			.then file.genAST
+				bundleFile = PRELUDE.bundle()
 
 
 

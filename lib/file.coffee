@@ -21,15 +21,15 @@ class File
 		extend(@, state)
 		@ID = ++@task.currentID
 		@importedCount = 0
+		@exportStatements = []
 		@importStatements = []
-		@importStatements.es6 = []
-		@importStatements.custom = []
 		@inlineImportRanges = []
 		@badImports = []
 		@importMemberRefs = []
 		@lineRefs = []
 		@orderRefs = []
 		@ignoreRanges = []
+		@requiredGlobals = Object.create(null)
 		@extracts = Object.create(null)
 		@fileExtOriginal = @fileExt
 		@contentOriginal = @content
@@ -63,10 +63,10 @@ class File
 
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle
-		@task.emit('requiredGlobal', 'global') if REGEX.vars.global.test(@content) and not REGEX.globalCheck.test(@content)
-		@task.emit('requiredGlobal', 'process') if REGEX.vars.process.test(@content) and not REGEX.processRequire.test(@content) and not REGEX.processDec.test(@content)
-		@task.emit('requiredGlobal', '__dirname') if REGEX.vars.__dirname.test(@content)
-		@task.emit('requiredGlobal', '__filename') if REGEX.vars.__filename.test(@content)
+		@task.emit('requiredGlobal',@,'global') if REGEX.vars.global.test(@content) and not REGEX.globalCheck.test(@content)
+		@task.emit('requiredGlobal',@,'process') if REGEX.vars.process.test(@content) and not REGEX.processRequire.test(@content) and not REGEX.processDec.test(@content)
+		@task.emit('requiredGlobal',@,'__dirname') if REGEX.vars.__dirname.test(@content)
+		@task.emit('requiredGlobal',@,'__filename') if REGEX.vars.__filename.test(@content)
 		return
 
 
@@ -97,70 +97,10 @@ class File
 
 
 	determineType: ()->
-		if not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content)
-			@type = 'inline'
-		else
-			@type = 'module'
-
-
-	findCustomImports: ()->
-		@content.replace REGEX.customImport, (entireLine, priorContent='', importKeyword, conditions, whitespace='', childPath, trailingContent='', offset)=>
-			statement = {range:[], source:@}
-			statement.conditions = conditions.split(REGEX.commaSeparated) if conditions
-			statement.target = childPath.removeAll(REGEX.quotes).trim()
-			statement.range[0] = offset + priorContent.length
-			statement.range[1] = statement.range[0] + importKeyword.length + (if conditions then 2 else 0) + whitespace.length + childPath.length
-			
-			@importStatements.custom.push(statement)
-
-
-	findES6Imports: ()->
-		@content.replace REGEX.es6Import, (entireLine, priorContent='', importKeyword, metadata, defaultMember='', members='', childPath, offset)=>
-			statement = {range:[], source:@}
-			statement.members = if members then members
-			statement.defaultMember = defaultMember
-			statement.target = childPath.removeAll(REGEX.quotes).trim()
-			statement.range[0] = offset + priorContent.length
-			statement.range[1] = statement.range[0] + (entireLine.length-priorContent.length)
-			
-			@importStatements.es6.push(statement)
-
-
-	customImportsToCommonJS: ()->
-		replacementOffset = 0
-		for statement in @importStatements.custom
-			body = "'#{statement.target}'"
-			body += ", [#{statement.conditions.join(',')}]" if statement.conditions
-			commonSyntax = "require(#{body})"
-			@content = @content.slice(0,statement.range[0]) + commonSyntax + @content.slice(statement.range[1])
-			
-			# Update offsets
-			originalSyntaxLength = statement.range[0]+statement.range[1]
-			statement.range[0] -= replacementOffset
-			statement.range[1] = statement.range[0] + commonSyntax.length
-			syntaxLengthDiff = originalSyntaxLength - commonSyntax.length
-			replacementOffset += syntaxLengthDiff
-
-		return
-
-
-	ES6ImportsToCommonJS: ()->
-		replacementOffset = 0
-		for statement in @importStatements.es6
-			body = "'#{statement.target}', null"
-			body += ", #{if statement.defaultMember then '"'+statement.defaultMember+'"' else 'null'}"
-			body += ", #{if statement.members then statement.members else 'null'}"
-			commonSyntax = "require(#{body})"
-			@content = @content.slice(0,statement.range[0]) + commonSyntax + @content.slice(statement.range[1])
-			
-			# Update offsets
-			originalSyntaxLength = statement.range[0]+statement.range[1]
-			statement.range[0] -= replacementOffset
-			statement.range[1] = statement.range[0] + commonSyntax.length
-			syntaxLengthDiff = originalSyntaxLength - commonSyntax.length
-			replacementOffset += syntaxLengthDiff			
-
-		return
+		@type = switch
+			when @isEntry then 'module'
+			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
+			else 'module'
 
 
 	applyAllTransforms: (content=@content, force=@isEntry)-> if @type is 'module' or force
@@ -258,43 +198,33 @@ class File
 
 
 	genAST: (content)->
-		if @fileExt is 'js' and not @AST
-			try
-				@AST = Parser.parse(content, loc:true, source:@filePathRel, sourceType:'module')
-			catch err
-				@task.emit 'ASTParseError', @, err
+		try
+			@AST = Parser.parse(content, loc:true, range:true, source:@filePathRel, sourceType:'module')
+		catch err
+			@task.emit 'ASTParseError', @, err
 
 		return content
 
 
+	adjustASTLocations: ()->
 
-	collectImports: (Tokens=@Tokens)->
+
+	collectImports: (tokens=@Tokens)->
 		switch
-			when Tokens
+			when tokens
 				@collectedImports = true
-				statements = helpers.walkTokens Tokens, 'require', (token)->
-					next = @next()
-					next = @next() if next.type is 'Punctuator'
-					return if next.type isnt 'String'
-					output = helpers.newParsedToken()
-					output.target = next.value.removeAll(REGEX.quotes).trim()
+				try
+					requires = helpers.collectRequires(tokens)
+					imports = helpers.collectImports(tokens)
+				catch err
+					if err.name is 'TokenError'
+						@task.emit('TokenError', @, err)
+					else
+						@task.emit('GeneralError', @, err)
 
-					return output if @next().value isnt ','
-					return output if (next=@next()).value isnt 'string'
-					output.conditions = output.removeAll(REGEX.squareBrackets).trim().split(REGEX.commaSeparated)
+					return
 
-					return output if @next().value isnt ','
-					return output if (next=@next()).value isnt 'string'
-					output.defaultMember = next.value.removeAll(REGEX.quotes).trim()
-
-					return output if @next().value isnt ','
-					return output if (next=@next()).value isnt 'string'
-					output.members = helpers.parseMembersString next.value.removeAll(REGEX.quotes).trim()
-
-					return output
-
-
-				statements.forEach (statement)=>
+				imports.concat(requires).forEach (statement)=>
 					targetSplit = statement.target.split('$')
 					statement.id = md5(statement.target)
 					statement.target = targetSplit[0]
@@ -330,43 +260,30 @@ class File
 		return @importStatements
 
 
-
-	collectExports: (Tokens=@Tokens)->
-		if Tokens
+	collectExports: (tokens=@Tokens)->
+		if tokens
 			@collectedExports = true
-			statements = helpers.walkTokens Tokens, 'require', (token)->
-				next = @next()
-				next = @next() if next.type is 'Punctuator'
-				return if next.type isnt 'String'
-				output = helpers.newParsedToken()
-				output.target = next.value.removeAll(REGEX.quotes).trim()
+			try
+				imports = helpers.collectExports(tokens)
+			catch err
+				if err.name is 'TokenError'
+					@task.emit('TokenError', @, err)
+				else
+					@task.emit('GeneralError', @, err)
 
-				return output if @next().value isnt ','
-				return output if (next=@next()).value isnt 'string'
-				output.conditions = output.removeAll(REGEX.squareBrackets).trim().split(REGEX.commaSeparated)
+				return
 
-				return output if @next().value isnt ','
-				return output if (next=@next()).value isnt 'string'
-				output.defaultMember = next.value.removeAll(REGEX.quotes).trim()
-
-				return output if @next().value isnt ','
-				return output if (next=@next()).value isnt 'string'
-				output.members = helpers.parseMembersString next.value.removeAll(REGEX.quotes).trim()
-
-				return output
+			statements.forEach (statement)=>
+				statement.id = md5(statement.target)
+				statement.target = targetSplit[0]
+				statement.extract = targetSplit[1]
+				statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
+				statement.source = @
+				statement.target ?= @
+				@exportStatements.push(statement) unless @statements.find(id:statement.id)
 
 
-				statements.forEach (statement)=>
-					targetSplit = statement.target.split('$')
-					statement.id = md5(statement.target)
-					statement.target = targetSplit[0]
-					statement.extract = targetSplit[1]
-					statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
-					statement.source = @
-					@importStatements.push(statement) unless @statements.find(id:statement.id)
-
-
-		return @importStatements
+		return @exportStatements
 
 
 	insertInlineImports: ()->

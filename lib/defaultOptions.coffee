@@ -7,7 +7,7 @@ module.exports =
 	'preventGlobalLeaks': true
 	'includePathComments': false
 	'compileCoffeeChildren': false
-	'conditions': []
 	'transform': []
 	'globalTransform': []
 	'fileSpecific': {}
+	'umd': ''

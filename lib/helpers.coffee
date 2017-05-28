@@ -12,8 +12,6 @@ LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 EMPTY_FILE_END = Path.join('node_modules','browser-resolve','empty.js')
 EMPTY_FILE = Path.resolve(__dirname,'..',EMPTY_FILE_END)
-globalDec = 'typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}'
-coreModulesUnsupported = ['child_process', 'cluster', 'dgram', 'dns', 'fs', 'module', 'net', 'readline', 'repl', 'tls']
 coreModuleShims = require('./constants/coreShims')(EMPTY_FILE)
 
 
@@ -131,9 +129,7 @@ helpers =
 			return {}
 		else
 			output = {}
-			membersString = membersString
-				.replace /^\{\s*/, ''
-				.replace /\s*\}$/, ''
+			membersString = membersString.removeAll(REGEX.curlyBrackets).trim()
 
 			if membersString.startsWith('*')
 				output['!*!'] = membersString.split(/\s+as\s+/)[1]
@@ -158,34 +154,6 @@ helpers =
 			.join ', '
 
 		return "{#{output}}"
-
-
-	genUniqueVar: ()->
-		"_sim_#{Math.floor((1+Math.random()) * 100000).toString(16)}"
-
-
-	addSpacingToString: (string, spacing, offset)->
-		lines = string.split '\n'
-		linesToSpace = if offset then lines.slice(offset) else lines
-		spacedOutLines = linesToSpace.map (line)-> spacing+line
-		offsettedOutLines = if offset then lines.slice(0, offset) else []
-		
-		offsettedOutLines.concat(spacedOutLines).join('\n')
-
-
-
-	escapeBackticks: (content)->
-		content
-			.replace REGEX.preEscapedBackTicks, '`'
-			.replace REGEX.backTicks, '\\`'
-
-
-
-	formatJsContentForCoffee: (jsContent)->
-		jsContent
-			.replace REGEX.escapedNewLine, ''
-			.replace REGEX.fileContent, (entire, spacing, content)-> # Wraps standard javascript code with backtics so coffee script could be properly compiled.
-				"#{spacing}`#{helpers.escapeBackticks(content)}`"
 
 
 	wrapInClosure: (content, isCoffee, asFunc, debugRef)->
@@ -273,40 +241,6 @@ helpers =
 					return _s$m;\
 				};\ _s$m=_s$m({},{},{});
 			"
-
-
-	modToReturnLastStatement: (content, filePath)-> switch
-		when not filePath.endsWith('js')
-			return "return #{content}" if filePath.endsWith('json')
-			return false
-
-		when err = require('syntax-error')(content, filePath)
-			console.error(LABELS.warn, err)
-			return content
-
-		else
-			AST = acorn.parse(content, {allowReserved:true, allowReturnOutsideFunction:true})
-			lastStatement = AST.body[AST.body.length-1]
-
-			switch
-				when AST.body.length is 1 and lastStatement.type is 'ExpressionStatement' and lastStatement.start is 0
-					return 'ExpressionStatement'
-				
-				else switch lastStatement.type
-					when 'ReturnStatement'
-						return content
-					
-					when 'ExpressionStatement'
-						AST.body[AST.body.length-1] = escodegen.ReturnStatement(lastStatement.expression)
-						return escodegen.generate(AST)
-					
-					when 'VariableDeclaration'
-						lastDeclarationID = lastStatement.declarations.slice(-1)[0].id
-						AST.body.push escodegen.ReturnStatement(lastDeclarationID)
-						return escodegen.generate(AST)
-
-					else return content
-
 
 
 	resolveModulePath: (moduleName, basedir, basefile, pkgFile)-> Promise.resolve().then ()->
@@ -406,10 +340,7 @@ helpers =
 		transformer[1] not instanceof Array
 
 
-	isCoreModule: (moduleName)->
-		coreModulesUnsupported.includes(moduleName)
-
-	helpers.newParsedToken = ()->
+	newImportStatement: ()->
 		id: null
 		range: null
 		tokenRange: null
@@ -419,24 +350,181 @@ helpers =
 		conditions: null
 		defaultMember: null
 		members: null
+		alias: null
+
+	newExportStatement: ()->
+		range: null
+		tokenRange: null
+		source: null
+		target: null
+		members: null
+		keyword: null
+		identifier: null
 
 
 	walkTokens: (tokens, valueToStopAt, cb)->
-		results = []
-		api =
-			index: 0
-			next: ()-> tokens[++@index] or {}
-
-		for token,index in tokens when token.value is valueToStopAt
-			result = cb.call(api, token, api.index=index)
-			if result
-				result.tokenRange = [index, api.index]
-				results.push(result)
-
-		return results
+		walker = new TokenWalker(tokens, cb)
+		walker.invoke(token, i) for token,i in tokens when token.value is valueToStopAt
+		return walker.finish()
 
 
+	collectRequires: (tokens)->
+		@walkTokens tokens, 'require', ()->
+			@next()
+			@next() if @current.type is 'Punctuator'
+			return if @current.type isnt 'String'
+			output = helpers.newImportStatement()
+			output.target = @current.value.removeAll(REGEX.quotes).trim()
 
+			return output if @next().value isnt ','
+			return output if @next().value isnt 'string'
+			output.conditions = @current.value.removeAll(REGEX.squareBrackets).trim().split(REGEX.commaSeparated)
+
+			return output if @next().value isnt ','
+			return output if @next().value isnt 'string'
+			output.members ?= {}
+			output.members.default = @current.value.removeAll(REGEX.quotes).trim()
+
+			return output if @next().value isnt ','
+			return output if @next().value isnt 'string'
+			output.members ?= {}
+			members = @current.value.removeAll(REGEX.quotes).trim()
+
+			if members.startsWith '*'
+				split = members.split(REGEX.es6membersAlias)
+				output.alias = split[1]
+			else
+				members.split(/,\s*/).forEach (memberSignature)->
+					split = memberSignature.split(REGEX.es6membersAlias)
+					output.members[split[0]] = split[1] or split[0]
+
+			return output
+
+
+	collectImports: (tokens)->
+		@walkTokens tokens, 'import', ()->
+			output = helpers.newImportStatement()
+
+			while @next().type isnt 'String' then switch
+				when @current.type is 'Punctuator'
+					@handleMemebers(output)
+
+				when @current.type is 'Identifier' and @current.value isnt 'from'
+					@handleDefault(output)
+
+			if @current.type is 'String'
+				output.target = @current.value.removeAll(REGEX.quotes).trim()
+
+			return output
+
+
+	collectExports: (tokens)->
+		@walkTokens tokens, 'export', ()->
+			output = helpers.newImportStatement()
+			@next()
+
+			switch @current.type
+				when 'Punctuator'
+					@handleMemebers(output)
+					@next() if @current.value is 'as'
+					throw @newError() if @current.value isnt 'from' or @next().type isnt 'String'
+					
+					output.members = Object.invert(output.members) if output.members
+					output.target = @current.value.removeAll(REGEX.quotes).trim()
+				
+				when 'Keyword'
+					if @current.value is 'default'
+						isDefault = true
+						output.members = {}
+						@next()
+					
+					if @current.type is 'Keyword'
+						output.keyword = @current.value
+						@next()
+
+					if @current.type is 'Identifier'
+						output.identifier = @current.value
+						output.members.default = @current.value if isDefault
+						
+				else throw @newError()
+
+			return output
+
+
+
+class TokenWalker
+	constructor: (@tokens, @callback)->
+		@index = 0
+		@current = null
+		@results = []
+
+	next: ()->
+		@current = @tokens[++@index] or {}
+
+	nextUntil: (stopAt, invalidValue, invalidType)->
+		pieces = []
+		while @next().value isnt stopAt
+			pieces.push(@current)
+			
+			if @current.value is invalidValue or @current.type is invalidType
+				throw @newError()
+
+		return pieces
+
+
+	invoke: (@current, index)->
+		@index = index
+		result = @callback(@current, @index)
+
+		if result
+			result.tokenRange = [index, @index]
+			@results.push(result)
+		
+		return
+
+
+	finish: ()->
+		delete @current
+		delete @results
+		delete @callback
+		return @results
+
+
+	newError: ()->
+		err = new Error "unexpected #{@current.type} '#{@current.value}' at offset #{@current.range[0]}"
+		err.name = 'TokenError'
+		return err
+
+
+	storeMembers: (store)->
+		items = @nextUntil '}', 'from', 'String'
+
+		items.reduce (store, token, index)->
+			if token.type is 'Identifier' and token.value isnt 'as'
+				if items[index-1].value is 'as'
+					store[items[index-2].value] = token.value
+				else
+					store[token.value] = token.value
+			return store
+		
+		, store
+
+
+	handleMemebers: (output)->
+		switch @current.value
+			when '*'
+				if @next().value is 'as'
+					output.alias = @current.value
+
+			when '{'
+				@storeMembers(output.members ?= {})
+
+			when '['
+				output.conditions = @nextUntil(']', 'from', 'String').map('value').exclude(',')
+	
+
+	handleDefault: (output)->
+		output.members.default = @current.value
 
 
 
