@@ -29,6 +29,7 @@ SimplyImport.compile = (input, options, state={})->
 		.then task.initEntryFile
 		.then task.processFile
 		.then task.scanImports
+		.then ()-> task.entryFile
 		.then task.scanExports
 		.then task.compile
 

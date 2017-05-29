@@ -11,7 +11,7 @@
 # require('sugar/array/flatten')
 # require('sugar/array/from')
 require('sugar/array/groupBy')
-require('sugar/array/includes')
+require('sugar/polyfills/array/includes')
 # require('sugar/array/inGroups')
 # require('sugar/array/inGroupsOf')
 # require('sugar/array/intersect')

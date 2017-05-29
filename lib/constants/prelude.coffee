@@ -21,7 +21,7 @@ exports.module = ()-> """
 """
 
 exports.moduleGlobals = (args, values)-> """
-	(function(#{args.join(,)}){
+	(function(#{args.join(',')}){
 
 	}).call(#{['this'].concat(values).join(',')})
 """

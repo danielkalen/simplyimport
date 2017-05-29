@@ -14,7 +14,7 @@ coffeeCompiler = require 'coffee-script'
 Streamify = require 'streamify-string'
 Browserify = require 'browserify'
 Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
-regEx = require '../lib/regex'
+regEx = require '../lib/constants/regex'
 exec = require('child_process').exec
 stackTraceFilter = require('stack-filter')
 stackTraceFilter.filters.push('bluebird')

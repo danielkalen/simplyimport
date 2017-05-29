@@ -42,22 +42,22 @@ class Task extends require('events')
 				@requiredGlobals[varName] = true
 		
 		@.on 'TokenizeError', (file, err)=>
-			console.warn "#{LABELS.warn} Failed to tokenize #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+			console.warn "#{LABELS.warn} Failed to tokenize #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
 		
 		@.on 'ASTParseError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
 		
 		@.on 'ParseError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
 		
 		@.on 'ExtractError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
 		
 		@.on 'TokenError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
 		
 		@.on 'GeneralError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter')(err.stack)
+			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
 
 
 	resolveEntryPackage: ()->
@@ -215,7 +215,7 @@ class Task extends require('events')
 			.then file.collectIgnoreRanges
 			.then file.determineType
 			.then file.tokenize
-			.return(file))
+			.return(file)
 
 
 	scanImports: (file, depth=Infinity, currentDepth=0)->
@@ -252,7 +252,7 @@ class Task extends require('events')
 						
 			.filter (statement)-> not statement.target.scannedExports
 			.map (statement)-> @scanExports(statement.target).then ()=> @scanImports(statement.target)
-			.return(@importStatements
+			.return(@importStatements)
 
 
 
