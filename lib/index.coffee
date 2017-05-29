@@ -1,7 +1,7 @@
 require('./sugar')
 require('stack-filter').filters.push('bluebird', 'escodegen', 'esprima')
 Promise = require 'bluebird'
-fs = Promise.promisifyAll require 'fs-extra'
+Parser = require 'esprima'
 Task = require './task'
 REGEX = require './constants/regex'
 helpers = require './helpers'
@@ -12,6 +12,8 @@ RegExp::test = do ()-> # RegExp::test function patch to reset index after each t
 		@lastIndex = 0
 		return result
 
+Parser.parseExpr = (expr, opts)->
+	Parser.parse(expr, opts).body[0].expression
 
 
 

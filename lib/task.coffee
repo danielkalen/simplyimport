@@ -7,6 +7,7 @@ globMatch = require 'micromatch'
 chalk = require 'chalk'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
+Parser = require 'esprima'
 helpers = require './helpers'
 File = require './file'
 LABELS = require './constants/consoleLabels'
@@ -289,16 +290,18 @@ class Task extends require('events')
 					someExtract = statements.some(s -> s.extract)
 					allExtract = someExtract and statements.every(s -> s.extract)
 					
-					if statements.length > 1 and someExtract
+					if statements.length > 1
 						if allExtract
 							extracts = statements.map('extract').unique()
-							newData = new ()-> @[key] = file.extract(key) for key in extracts; @
-						else
+							file.content = JSON.stringify new ()-> @[key] = file.extract(key) for key in extracts; @
+						else if someExtract
 							extracts = statements.filter(extract:/./).map('extract').unique()
 							file.parsed[key] = file.extract(key) for key in extracts
-							newData = file.parsed
-					
-						file.content = JSON.stringify(newData)
+							file.content = JSON.stringify file.parsed
+
+						file.content = "module.exports = #{file.content}"
+
+
 						
 			
 			.then ()-> @imports
@@ -315,7 +318,7 @@ class Task extends require('events')
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
 			.return(file)
-					
+
 					
 
 
@@ -340,8 +343,58 @@ class Task extends require('events')
 			.filter (file)-> file.type isnt 'inline'
 			.map @compileFile
 			.then ()->
-				bundleFile = PRELUDE.bundle()
+				bundleAST = do ()=>
+					returnResult = if @options.umd then PRELUDE.umd(@options.umd) else PRELUDE.returnResult()
+					args = []
+					values = []
+					if @requiredGlobals.global
+						args.push 'global'
+						values.push PRELUDE.globalDec()
+					
+					return Parser.parse PRELUDE.bundle(args, values, returnResult)
 
+				loader = Parser.parse(PRELUDE.loader()).body[0]
+				modules = loader.declarations[0].init.arguments[0].properties
+				
+				@files.sortBy('ID').forEach (file)-> modules.push
+					type: 'Property'
+					kind: 'init'
+					computed: false
+					method: false
+					shorthand: false
+					key:
+						type: 'Literal'
+						value: file.ID
+						raw: String(file.ID)
+				
+					value: do ()->
+						module = Parser.parseExpr "(#{PRELUDE.module()})"
+						fnBody = module.callee.object.body.body
+						returnExports = fnBody.pop()
+						
+						if Object.keys(file.requiredGlobals).length
+							args = []; values = []
+							
+							if file.requiredGlobals.__filename
+								args.push '__filename'
+								values.push file.filePathRel
+							
+							if file.requiredGlobals.__dirname
+								args.push '__dirname'
+								values.push file.contextRel
+							
+							wrapper = Parser.parseExpr PRELUDE.moduleGlobals(args, values)
+							fnBody.push wrapper
+							fnBody = wrapper.callee.object.body.body
+						
+						fnBody.push file.AST.body...
+						module.push returnExports
+						return moudle
+
+				bundleAST.body[0].expression.callee.object.body.unshift(loader)
+				return bundleAST
+
+			.then (ast)-> require('escodegen').generate(ast)
 
 
 

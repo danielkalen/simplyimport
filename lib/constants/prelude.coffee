@@ -1,9 +1,11 @@
-exports.bundle = ()-> """
-(function(){}).call(this)
+exports.bundle = (args, values, returnResult)-> """
+(function(#{args.join(',')}){
+	#{returnResult}
+}).call(#{['this'].concat(values).join(',')})
 """
 
 exports.loader = ()-> """
-var _s$m = (function(modules,cache,loaded,_s$m){
+var _s$m = (function(modules,cache,loaded){
 	return function(r,module){
 		return loaded[r] ? cache[r]
 					: (loaded[r]=1, module={exports: cache[r]={}}, cache[r]=modules[r]( module,cache[r] ));
@@ -16,6 +18,12 @@ exports.module = ()-> """
 	function(module, exports){
 		return module.exports;
 	}
+"""
+
+exports.moduleGlobals = (args, values)-> """
+	(function(#{args.join(,)}){
+
+	}).call(#{['this'].concat(values).join(',')})
 """
 
 exports.globalDec = ()-> """

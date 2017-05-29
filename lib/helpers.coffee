@@ -3,7 +3,6 @@ resolveModule = Promise.promisify require('browser-resolve')
 fs = Promise.promisifyAll require 'fs-extra'
 Path = require 'path'
 chalk = require 'chalk'
-# acorn = require 'acorn'
 escodegen = require 'escodegen'
 findPkgJson = require 'read-pkg-up'
 REGEX = require './constants/regex'
@@ -15,7 +14,7 @@ coreModuleShims = require('./constants/coreShims')(EMPTY_FILE)
 
 
 
-escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
+# escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
 
 moduleResolveError = (err)-> err.message.startsWith('Cannot find module')
 
