@@ -91,7 +91,7 @@ class Task extends require('events')
 				if not inputPathMatches.length
 					return promiseBreak(input)
 				else
-					exactMatch = inputPathMatches.find (targetPath)-> targetPath is params.base
+					exactMatch = inputPathMatches.find(params.base)
 					fileMatch = inputPathMatches.find (targetPath)->
 						fileNameSplit = targetPath.replace(params.base, '').split('.')
 						return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
@@ -119,13 +119,14 @@ class Task extends require('events')
 			.catch promiseBreak.end
 			.then (filePath)->
 				context = helpers.getNormalizedDirname(filePath)
-				contextRel = context.replace(@entryFile.context, '')
+				contextRel = context.replace(@entryFile.context+'/', '')
 				filePathSimple = helpers.simplifyPath(filePath)
-				filePathRel = filePath.replace(@entryFile.context, '')
+				filePathRel = filePath.replace(@entryFile.context+'/', '')
 				fileExt = PATH.extname(filePath).toLowerCase().slice(1)
 				fileExt = 'yml' if fileExt is 'yaml'
+				fileBase = PATH.basename(filePath)
 				suppliedPath = input
-				return {filePath, filePathSimple, filePathRel, context, contextRel, suppliedPath, fileExt}
+				return {filePath, filePathSimple, filePathRel, fileBase, fileExt, context, contextRel, suppliedPath}
 
 
 	initEntryFile: ()->
@@ -148,6 +149,7 @@ class Task extends require('events')
 					filePathSimple: '*ENTRY*'
 					filePathRel: '/main.js'
 					fileExt: if @options.isCoffee then 'coffee' else 'js'
+					fileBase: 'main.js'
 				}
 
 			.tap (file)->
@@ -267,9 +269,8 @@ class Task extends require('events')
 						statement.removed = true
 						statements.remove(statement)
 
-				if statements.unique('id').length > 1 or
-					statements.some((statement)-> helpers.isMixedExtStatement(statement))
-						targetType = 'module'
+				if statements.unique('id').length > 1 or statements.some(helpers.isMixedExtStatement)
+					targetType = 'module'
 
 				Promise.map statements, (statement)=>
 					statement.type = targetType or statement.target.type
@@ -282,17 +283,35 @@ class Task extends require('events')
 								if statement.target.fileExt isnt 'json'
 									@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
+			.then ()->
+				@files.filter(isDataType:true).map (file)->
+					statements = @imports[file.hash]
+					someExtract = statements.some(s -> s.extract)
+					allExtract = someExtract and statements.every(s -> s.extract)
+					
+					if statements.length > 1 and someExtract
+						if allExtract
+							extracts = statements.map('extract').unique()
+							newData = new ()-> @[key] = file.extract(key) for key in extracts; @
+						else
+							extracts = statements.filter(extract:/./).map('extract').unique()
+							file.parsed[key] = file.extract(key) for key in extracts
+							newData = file.parsed
+					
+						file.content = JSON.stringify(newData)
+						
+			
 			.then ()-> @imports
 
 
 
-	insertInlineImports: (file)->
+	replaceInlineImports: (file)->
 		return file if file.insertedInline
 		file.insertedInline = true
 		
 		Promise.resolve(file.importStatements).bind(file)
-			.map (statement)=> @insertInlineImports(statement.target)
-			.then file.insertInlineImports
+			.map (statement)=> @replaceInlineImports(statement.target)
+			.then file.replaceInlineImports
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
 			.return(file)
@@ -302,6 +321,10 @@ class Task extends require('events')
 
 	compileFile: (file)->
 		Promise.bind(file)
+			.then file.replaceImportStatements
+			.then file.saveContent
+			.then file.replaceExportStatements
+			.then file.saveContent
 			.then file.applyAllTransforms
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
@@ -312,7 +335,7 @@ class Task extends require('events')
 	compile: ()->
 		Promise.bind(@)
 			.then @calcImportTree
-			.then @insertInlineImports.bind(@, @entryFile)
+			.then @replaceInlineImports.bind(@, @entryFile)
 			.return @files
 			.filter (file)-> file.type isnt 'inline'
 			.map @compileFile

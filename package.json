@@ -44,6 +44,7 @@
   "dependencies": {
     "@danielkalen/browserify-zlib": "^0.1.5",
     "assert": "^1.4.1",
+    "astw": "^2.2.0",
     "bluebird": "^3.4.7",
     "browser-resolve": "^1.11.2",
     "browserify-zlib": "^0.1.4",

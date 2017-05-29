@@ -3,7 +3,6 @@ resolveModule = Promise.promisify require('browser-resolve')
 fs = Promise.promisifyAll require 'fs-extra'
 Path = require 'path'
 chalk = require 'chalk'
-coffeeAST = require('decaffeinate-parser').parse
 # acorn = require 'acorn'
 escodegen = require 'escodegen'
 findPkgJson = require 'read-pkg-up'
@@ -58,45 +57,6 @@ helpers =
 
 		return hasSingleLineComment or hasDocBlockComment
 
-	
-	testForOuterString: (line)->
-		insideQuotes = line.match(REGEX.stringContents)
-		
-		if insideQuotes
-			importSyntax = do ()->
-				word = if REGEX.import.test(line) then 'import' else 'require'
-				new RegExp("\\b#{word}\\b")
-			
-			for quote in insideQuotes
-				return true if importSyntax.test(quote)
-		
-		return false
-
-
-	testConditions: (allowedConditions, conditionsString)->
-		return true if allowedConditions.length is 1 and allowedConditions[0] is '*'
-		conditions = conditionsString.split(/,\s?/).filter (nonEmpty)-> nonEmpty
-
-		for condition in conditions
-			return false if not allowedConditions.includes(condition)
-
-		return true
-
-
-	testIfIsExportMap: (string)->
-		if objContents=string.match(/^\{(.+?)\};?$/)?[1]
-			return not objContents.includes(':')
-
-		return false
-
-
-	testIfCoffeeIsExpression: (string)->
-		try
-			AST = coffeeAST(string).body
-			return AST.statements.length is 1
-		catch
-			return string.split(REGEX.newLine).length is 1
-
 
 	testIfIsIgnored: (ignoreRanges, targetIndex)->
 		for range in ignoreRanges
@@ -109,38 +69,12 @@ helpers =
 		return moduleName.startsWith('/') or moduleName.includes('./')
 
 
-
-	commentOut: (line, isCoffee)->
-		comment = if isCoffee then '#' else '//'
-		line.replace /import/, (entire)-> "#{comment} #{entire}"
-
-
-
 	getDirListing: (dirPath, fromCache)->
 		if dirListingCache[dirPath]? and fromCache
 			return Promise.resolve dirListingCache[dirPath]
 		else
 			fs.readdirAsync(dirPath).then (listing)->
 				return dirListingCache[dirPath] = listing
-
-
-	parseMembersString: (membersString)->
-		if not membersString
-			return {}
-		else
-			output = {}
-			membersString = membersString.removeAll(REGEX.curlyBrackets).trim()
-
-			if membersString.startsWith('*')
-				output['!*!'] = membersString.split(/\s+as\s+/)[1]
-
-			else #if membersString.startsWith('{')
-				members = membersString.split(/,\s*/)
-				members.forEach (memberSignature)->
-					member = memberSignature.split(/\s+as\s+/)
-					output[member[0]] = member[1] or member[0] # alias
-
-			return output
 
 
 	normalizeExportMap: (mappingString)->
@@ -340,23 +274,55 @@ helpers =
 		transformer[1] not instanceof Array
 
 
+	randomVar: ()->
+		"_s#{Math.floor((1+Math.random()) * 100000).toString(16)}"
+
+
+	prepareMultilineReplacement: (sourceContent, targetContent, lines, range)->
+		if targetContent.lines().length <= 1
+			return targetContent
+		else
+			loc = lines.locationForIndex(range[0])
+			contentLine = sourceContent.slice(range[0] - loc.column, range[1])
+			priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
+			hasPriorLetters = contentLine.length - priorWhitespace.length > range[1]-range[0]
+
+			if not priorWhitespace
+				return targetContent
+			else
+				targetContent
+					.split '\n'
+					.map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
+					.join '\n'
+
+
+	accumulateRangeOffset: (pos, ranges)->
+		offset = 0
+		for range in ranges
+			break if range[0] <= pos
+			offset += range[2]
+
+		return offset
+
+
 	newImportStatement: ()->
-		id: null
+		# id: null
 		range: null
 		tokenRange: null
 		source: null
 		target: null
 		extract: null
 		conditions: null
-		defaultMember: null
 		members: null
 		alias: null
 
 	newExportStatement: ()->
+		# id: null
 		range: null
 		tokenRange: null
 		source: null
 		target: null
+		default: null
 		members: null
 		keyword: null
 		identifier: null
@@ -420,7 +386,7 @@ helpers =
 
 	collectExports: (tokens)->
 		@walkTokens tokens, 'export', ()->
-			output = helpers.newImportStatement()
+			output = helpers.newExportStatement()
 			@next()
 
 			switch @current.type
@@ -434,8 +400,7 @@ helpers =
 				
 				when 'Keyword'
 					if @current.value is 'default'
-						isDefault = true
-						output.members = {}
+						output.default = true
 						@next()
 					
 					if @current.type is 'Keyword'
@@ -444,7 +409,8 @@ helpers =
 
 					if @current.type is 'Identifier'
 						output.identifier = @current.value
-						output.members.default = @current.value if isDefault
+					else if @current.value isnt '='
+						@prev()
 						
 				else throw @newError()
 
@@ -457,6 +423,9 @@ class TokenWalker
 		@index = 0
 		@current = null
 		@results = []
+
+	prev: ()->
+		@current = @tokens[--@index]
 
 	next: ()->
 		@current = @tokens[++@index] or {}
@@ -517,7 +486,7 @@ class TokenWalker
 					output.alias = @current.value
 
 			when '{'
-				@storeMembers(output.members ?= {})
+				@storeMembers(output.members ?= Object.create(null))
 
 			when '['
 				output.conditions = @nextUntil(']', 'from', 'String').map('value').exclude(',')

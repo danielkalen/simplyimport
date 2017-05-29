@@ -10,7 +10,7 @@ extend = require 'extend'
 Parser = require 'esprima'
 LinesAndColumns = require 'lines-and-columns'
 sourcemapConvert = require 'convert-source-map'
-# sourcemapRegex = sourcemapConvert.commentRegex
+sourcemapRegex = sourcemapConvert.commentRegex
 helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
@@ -20,20 +20,17 @@ class File
 	constructor: (@task, state)->
 		extend(@, state)
 		@ID = ++@task.currentID
-		@importedCount = 0
 		@exportStatements = []
 		@importStatements = []
-		@inlineImportRanges = []
-		@badImports = []
-		@importMemberRefs = []
-		@lineRefs = []
-		@orderRefs = []
+		@replacedRanges = imports:[], exports:[], inlines:[]
+		# @badImports = []
+		# @importMemberRefs = []
+		# @lineRefs = []
+		# @orderRefs = []
 		@ignoreRanges = []
 		@requiredGlobals = Object.create(null)
-		@extracts = Object.create(null)
 		@fileExtOriginal = @fileExt
 		@contentOriginal = @content
-		@contentLines = @content.lines()
 		@options.transform ?= []
 		
 		if @isEntry or @isExternalEntry
@@ -102,8 +99,10 @@ class File
 			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
 			else 'module'
 
+		@isDataType = true if EXTENSIONS.data.includes(@fileExt)
 
-	applyAllTransforms: (content=@content, force=@isEntry)-> if @type is 'module' or force
+
+	applyAllTransforms: (content=@content)->
 		@allTransforms = [].concat @options.transform, @task.options.globalTransform#, @pkgTransform
 		Promise.resolve(content).bind(@)
 			.then @applySpecificTransforms
@@ -174,10 +173,10 @@ class File
 						else if transformer.name.includes(/coffeeify|tsify/)
 							@filePath = helpers.changeExtension(@filePath, @fileExt='js')
 
-						# sourceComment = content.match(sourcemapRegex)
-						# if sourceComment
-						# 	@sourceMap = sourceComment
-						# 	content = sourcemap.removeComments(content)
+						sourceComment = content.match(sourcemapRegex)
+						if sourceComment
+							@sourceMap = sourceComment
+							content = sourcemap.removeComments(content)
 
 						return content
 				
@@ -198,8 +197,9 @@ class File
 
 
 	genAST: (content)->
+		content = "(#{content})" if @fileExt is 'json'
 		try
-			@AST = Parser.parse(content, loc:true, range:true, source:@filePathRel, sourceType:'module')
+			@AST = Parser.parse(content, range:true, source:@filePathRel, sourceType:'module')
 		catch err
 			@task.emit 'ASTParseError', @, err
 
@@ -207,6 +207,9 @@ class File
 
 
 	adjustASTLocations: ()->
+		# lines = 
+		# require('astw')(@AST) (node)=>
+		# 	if 
 
 
 	collectImports: (tokens=@Tokens)->
@@ -226,12 +229,12 @@ class File
 
 				imports.concat(requires).forEach (statement)=>
 					targetSplit = statement.target.split('$')
-					statement.id = md5(statement.target)
+					# statement.id = md5(statement.target)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
 					statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
 					statement.source = @
-					@importStatements.push(statement) unless @statements.find(id:statement.id)
+					@importStatements.push(statement)
 
 
 
@@ -274,55 +277,114 @@ class File
 				return
 
 			statements.forEach (statement)=>
-				statement.id = md5(statement.target)
+				# statement.id = md5(statement.target)
 				statement.target = targetSplit[0]
 				statement.extract = targetSplit[1]
 				statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
 				statement.source = @
 				statement.target ?= @
-				@exportStatements.push(statement) unless @statements.find(id:statement.id)
+				@exportStatements.push(statement)
 
 
 		return @exportStatements
 
 
-	insertInlineImports: ()->
+	replaceInlineImports: ()->
 		content = @content
 		lines = new LinesAndColumns(content)
 		
 		Promise.bind(@)
 			.then ()-> @importStatements.filter (statement)-> statement.type is 'inline'
 			.map (statement)->
-				range = statement.range
-				targetContent = do ()=>
-					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-
-					if statement.target.contentLines.length <= 1
-						return targetContent
-					else
-						loc = lines.locationForIndex(range[0])
-						contentLine = content.slice(range[0] - loc.column, range[1])
-						priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
-						hasPriorLetters = contentLine.length - priorWhitespace.length > range[1]-range[0]
-
-						if not priorWhitespace
-							return targetContent
-						else
-							targetContent
-								.split '\n'
-								.map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
-								.join '\n'
+				range = @offsetRange(statement.range)
 				
-				@inlineImportRanges.push [range[0], range[0]+targetContent.length]
-				content = content.insert(targetContent, range[0])
+				replacement = do ()=>
+					return '' if statement.removed
+					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
+					return helpers.prepareMultilineReplacement(content, targetContent, lines, range)
+				
+				@replacedRanges.inlines.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
 			.then ()-> content
 
 
-	replaceImportStatements: ()->
+	replaceImportStatements: (content)->
+		for statement in @importStatements when statement.type is 'module'
+			range = @offsetRange(statement.range)
+			
+			replacement = do ()=>
+				return '' if statement.removed
+				if not statement.members and not statement.alias
+					replacement = "_s$m(#{statement.target.ID})"
+					if statement.extract
+						replacement += "['#{statement.extract}']"
+				else
+					alias = statement.alias or helpers.randomVar()
+					replacement = "var #{alias} = _s$m(#{statement.target.ID})"
+
+					if statement.members
+						nonDefault = Object.exclude(statement.members, 'default')
+
+						if statement.members.default
+							replacement += "\nvar #{statement.members.default} = #{alias}['default']"
+
+						for key,keyAlias of nonDefault
+							replacement += "\nvar #{keyAlias} = #{alias}['#{key}']"
+
+				replacement = "`#{replacement}`" if @fileExt is 'coffee' or @fileExt is 'iced'
+				return helpers.prepareMultilineReplacement(content, replacement, lines, range)
+			
+			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
+
+		return content
 
 
-	replaceExportStatements: ()->
+	replaceExportStatements: (content)->
+		for statement in @exportStatements
+			range = @offsetRange(statement.range)
+			
+			replacement = do ()=>
+				replacement = ''
+				if statement.target isnt statement.source
+					alias = helpers.randomVar()
+					replacement = "var #{alias} = _s$m(#{statement.target.ID})"
+
+					if statement.members
+						for keyAlias,key of statement.members
+							replacement += "\nexports['#{keyAlias}'] = #{alias}['#{key}']"
+					else
+						key = helpers.randomVar()
+						replacement += "\nvar #{key};for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}]"
+
+				else
+					if statement.members
+						for keyAlias,key of statement.members
+							replacement += "\nexports['#{keyAlias}'] = #{key}"
+					else
+						replacement += '\n'
+						if statement.keyword and isDec=statement.keyword.includes(/var|let|const/)
+							replacement += "#{statement.keyword} #{statement.identifier} = "
+						
+						if statement.default
+							replacement += "exports['default'] = "
+						else if statement.identifier
+							replacement += "exports['#{statement.identifier}'] = "
+
+						if statement.keyword and not isDec # function or class
+							replacement += "#{statement.keyword} "
+							if statement.identifier
+								replacement += statement.identifier
+				
+
+				replacement = "`#{replacement}`" if @fileExt is 'coffee' or @fileExt is 'iced'
+				return helpers.prepareMultilineReplacement(content, replacement, lines, range)
+			
+			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
+
+		return content
 
 
 	extract: (key)->
@@ -331,10 +393,20 @@ class File
 		catch err
 			@task.emit 'ParseError', @, err
 
-		if not Object.has(@parsed, key)
+		if not @parsed[key] and not Object.has(@parsed, key)
 			@task.emit 'ExtractError', @, new Error "requested key '#{key}' not found"
 		else
-			Object.get(@parsed, key)
+			result = @parsed[key] or Object.get(@parsed, key)
+			return if typeof result is 'object' then JSON.stringify(result) else String(result)
+
+
+	offsetRange: (range)->
+		offset = 
+		helpers.accumulateRangeOffset(range[0], @replacedRanges.inlines) +
+		helpers.accumulateRangeOffset(range[0], @replacedRanges.imports) +
+		helpers.accumulateRangeOffset(range[0], @replacedRanges.exports)
+
+		return if not offset then range else [range[0]+offset, range[1]+offset]
 
 
 
