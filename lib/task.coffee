@@ -27,7 +27,6 @@ class Task extends require('events')
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
-		@options.context ?= if @options.isStream then process.cwd() else helpers.getNormalizedDirname(@entryInput)
 		@options.context ?= if @options.src then process.cwd() else helpers.getNormalizedDirname(@entryInput)
 		if @options.src
 			@options.ext ?= 'js'
