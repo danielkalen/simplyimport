@@ -23,10 +23,6 @@ class File
 		@exportStatements = []
 		@importStatements = []
 		@replacedRanges = imports:[], exports:[], inlines:[]
-		# @badImports = []
-		# @importMemberRefs = []
-		# @lineRefs = []
-		# @orderRefs = []
 		@ignoreRanges = []
 		@requiredGlobals = Object.create(null)
 		@fileExtOriginal = @fileExt
@@ -41,6 +37,14 @@ class File
 
 		return @task.cache[@filePath] = @task.cache[@hash] = @
 
+
+	checkSyntaxErrors: ()->
+		if @fileExt is 'js'
+			content = @content.replace REGEX.es6import, (entire,prior='',meta,trailing='')->
+				"#{prior}importPlaceholder()#{trailing}"
+			
+			if err = require('syntax-error')(content, @filePath)
+				@task.emit 'SyntaxError', @, err
 
 
 	checkIfIsThirdPartyBundle: ()->
@@ -214,6 +218,19 @@ class File
 		# 	if 
 
 
+	collectForceInlineImports: ()->
+		@content.replace REGEX.inlineImport, (entireLine, priorContent='', keyword, childPath, trailingContent='', offset)=>
+			statement = helpers.newImportStatement()
+			statement.source = @
+			statement.target = childPath.removeAll(REGEX.quotes).trim()
+			statement.range[0] = offset + priorContent.length
+			statement.range[1] = offset + (entireLine.length - trailingContent.length)
+			statement.type = 'inline-forced'
+			@importStatements.push(statement)
+		
+		return @importStatements
+
+
 	collectImports: (tokens=@Tokens)->
 		switch
 			when tokens
@@ -236,7 +253,8 @@ class File
 					# statement.id = md5(statement.target)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
-					statement.range = [tokens[statement.tokenRange[0]].range[0], tokens[statement.tokenRange[1]].range[1]]
+					statement.range[0] = tokens[statement.tokenRange[0]].range[0]
+					statement.range[1] = tokens[statement.tokenRange[1]].range[1]
 					statement.source = @
 					@importStatements.push(statement)
 
@@ -245,22 +263,24 @@ class File
 			when @fileExt is 'pug' or @fileExt is 'jade'
 				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, priorContent='', keyword, childPath, offset)=>
-					statement = {range:[], source:@}
-					statement.target = target.value.removeAll(REGEX.quotes).trim()
-					statement.priorContent = priorContent
+					statement = helpers.newImportStatement()
+					statement.source = @
+					statement.target = childPath.removeAll(REGEX.quotes).trim()
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
+					statement.type = 'inline-forced'
 					@importStatements.push(statement)
 
 
 			when @fileExt is 'sass' or @fileExt is 'scss'
 				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, priorContent='', keyword, childPath, offset)=>
-					statement = {range:[], source:@}
-					statement.target = target.value.removeAll(REGEX.quotes).trim()
-					statement.priorContent = priorContent
+					statement = helpers.newImportStatement()
+					statement.source = @
+					statement.target = childPath.removeAll(REGEX.quotes).trim()
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
+					statement.type = 'inline-forced'
 					@importStatements.push(statement)
 
 
@@ -293,17 +313,21 @@ class File
 		return @exportStatements
 
 
-	replaceInlineImports: ()->
+	replaceForceInlineImports: ()->
+		@replaceInlineImports('inline-forced')
+
+
+	replaceInlineImports: (targetType='inline')->
 		content = @content
 		lines = new LinesAndColumns(content)
 		
 		Promise.bind(@)
-			.then ()-> @importStatements.filter (statement)-> statement.type is 'inline'
+			.then ()-> @importStatements.filter (statement)-> statement.type is targetType
 			.map (statement)->
+				@replacedRanges.inlines.sortBy('0') if targetType is 'inline' # Sort needed because inline-forced imports could be before/after regular imports and could therefore mess up the ranges order
 				range = @offsetRange(statement.range)
 				
 				replacement = do ()=>
-					return '' if statement.removed
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
 					return helpers.prepareMultilineReplacement(content, targetContent, lines, range)
 				

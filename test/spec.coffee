@@ -1,5 +1,4 @@
 global.Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.CI or true
 fs = require 'fs-jetpack'
 helpers = require './helpers'
 path = require 'path'
@@ -27,7 +26,8 @@ SimplyImport = require '../'
 # mocha.Runner::fail = (test, err)->
 # 	err.stack = stackTraceFilter.filter(err.stack).join('\n')
 # 	origFail.call(@, test, err)
-
+sample = ()-> path.join __dirname,'samples',arguments...
+temp = ()-> path.join __dirname,'temp',arguments...
 tempFile = (fileNames...)->
 	path.join 'test','temp',path.join(fileNames...)
 
@@ -35,8 +35,8 @@ debugFile = (fileNames...)->
 	path.join 'test','debug',path.join(fileNames...)
 
 
-importAndRunAsScript = (content, filename='script.js')->
-	SimplyImport(src:content).then (compiledResult)->
+importAndRunAsScript = (opts, filename='script.js')->
+	SimplyImport(opts).then (compiledResult)->
 		Promise.resolve()
 			.then ()-> (new vm.Script(compiledResult, {filename:filename})).runInThisContext()
 			.return(compiledResult)
@@ -49,11 +49,11 @@ importAndRunAsScript = (content, filename='script.js')->
 			
 
 suite "SimplyImport", ()->
-	suiteTeardown ()-> fs.removeAsync(path.join 'test','temp')
-	suiteSetup ()-> fs.dirAsync(path.join 'test','temp','output').then ()->
+	suiteTeardown ()-> fs.removeAsync(temp())
+	suiteSetup ()-> fs.dirAsync(temp('output')).then ()->
 		Promise.all [
-			fs.writeAsync(path.join('test','temp','someFile.js'), 'abc123')
-			fs.writeAsync(path.join('test','temp','someFile2.js'), 'def456')
+			fs.writeAsync temp('someFile.js'), 'abc123'
+			fs.writeAsync temp('someFile2.js'), 'def456'
 		]
 		
 
@@ -63,7 +63,7 @@ suite "SimplyImport", ()->
 
 	suite "VanillaJS", ()->
 		test "Unquoted imports that have whitespace after them should not make any difference", ()->
-			SimplyImport(src:"import 'test/temp/someFile.js'\t").then (result)->
+			SimplyImport(src:"importInline 'test/temp/someFile.js'\t").then (result)->
 				expect(result).to.equal "abc123\t"
 			
 

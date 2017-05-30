@@ -10,7 +10,6 @@ REGEX =
 	firstWord: /^(\S+)/
 	# singleBracketEnd: /^[^\(]*\)/
 	# useStrict: /["']use strict["'];\n\n/
-	ignoreStatement: /simplyimport:ignore/g
 	# newLine: /\r?\n/
 	# startingNewLine: /^\n+/
 	initialWhitespace: /^[ \t]+/
@@ -32,21 +31,11 @@ REGEX =
 		__filename: /\b\_\_filename\b/
 		# require: /\brequire[\(\s]/
 	
+	ignoreStatement: /simplyimport:ignore/g
+	ifStartStatement: /simplyimport:if\s+(.+)/mg
+	ifEndStatement: /simplyimport:end/mg
 
-	# fileContent: ///^
-	# 	(\s*)					# Whitespace
-	# 	(
-	# 		(?:\w|\W)+			# All content
-	# 	)
-	# ///
-
-	# escapedNewLine: ///
-	# 	\\						# Escape literal
-	# 	\n 						# Newline
-	# ///g
-
-
-	customImport: ///^
+	inlineImport: ///^
 		(
 			.*					# prior content
 			[\ \t\r=]+			# prior space (excluding new line)
@@ -55,44 +44,84 @@ REGEX =
 			\W?					# no letters
 		)
 		(
-			import					# import keyword
-			\s+						# whitespace after import keyword
-		)
-		(?:\[(.+)\])?			# conditionals
-		(
-			\s*						# whitespace after conditional
-		)
-		(?!
-			\{.+\}
-				|
-			\ from
+			importInline		# import keyword
+			\s+					# whitespace after import keyword
 		)
 		(\S+?)					# filepath
 		(\).*?|\s*?)			# trailing whitespace/parentheses
 	$///gm
 
+
+	# customImport: ///^
+	# 	(?:
+	# 		.*					# prior content
+	# 		[\ \t\r=]+			# prior space (excluding new line)
+	# 		\W?					# no letters
+	# 			|				# or if above aren't present
+	# 		\W?					# no letters
+	# 	)
+	# 	(
+	# 		import					# import keyword
+	# 		\s+						# whitespace after import keyword
+	# 	)
+	# 	(?:\[(.+)\])?			# conditionals
+	# 	(
+	# 		\s*						# whitespace after conditional
+	# 	)
+	# 	(?!
+	# 		\{.+\}
+	# 			|
+	# 		\ from
+	# 	)
+	# 	(\S+?)					# filepath
+	# 	(\).*?|\s*?)			# trailing whitespace/parentheses
+	# $///gm
+
+	# es6import: ///
+	# 	(
+	# 		[\ \t\r=]* 			# prior whitespace
+	# 	)
+	# 	(
+	# 		import				# import keyword
+	# 		\s+					# whitespace after import keyword
+	# 	)
+	# 	(
+	# 		(?:
+	# 			([^\*,\{\s]+) 	# default member
+	# 			,?\ ?			# trailing comma
+	# 		)?
+	# 		(
+	# 			\*\ as\ \S+		# all members
+	# 				|
+	# 			\{.+\} 			# specific members
+	# 		)?
+	# 		\ from
+	# 		\s*					# whitespace after members
+	# 	)
+	# 	(\S+?)					# filepath
+	# $///gm
+
 	es6import: ///
 		(
-			[\ \t\r=]* 			# prior whitespace
+			.*?					# prior content
 		)
-		(
-			import				# import keyword
-			\s+					# whitespace after import keyword
-		)
+		import					# import keyword
+		\s+						# whitespace after import keyword
 		(
 			(?:
-				([^\*,\{\s]+) 	# default member
+				[^\*,\{\s]+ 	# default member
 				,?\ ?			# trailing comma
 			)?
-			(
+			(?:
 				\*\ as\ \S+		# all members
 					|
 				\{.+\} 			# specific members
 			)?
 			\ from
 			\s*					# whitespace after members
-		)
-		(\S+?)					# filepath
+		)?
+		\S+?					# filepath
+		(\).*?|\s*?)			# trailing whitespace/parentheses
 	$///gm
 
 

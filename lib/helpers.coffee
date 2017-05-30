@@ -256,8 +256,9 @@ helpers =
 
 	newImportStatement: ()->
 		# id: null
-		range: null
-		tokenRange: null
+		type: ''
+		range: []
+		tokenRange: []
 		source: null
 		target: null
 		extract: null
@@ -267,8 +268,8 @@ helpers =
 
 	newExportStatement: ()->
 		# id: null
-		range: null
-		tokenRange: null
+		range: []
+		tokenRange: []
 		source: null
 		target: null
 		default: null
@@ -290,10 +291,6 @@ helpers =
 			return if @current.type isnt 'String'
 			output = helpers.newImportStatement()
 			output.target = @current.value.removeAll(REGEX.quotes).trim()
-
-			return output if @next().value isnt ','
-			return output if @next().value isnt 'string'
-			output.conditions = @current.value.removeAll(REGEX.squareBrackets).trim().split(REGEX.commaSeparated)
 
 			return output if @next().value isnt ','
 			return output if @next().value isnt 'string'
@@ -402,7 +399,8 @@ class TokenWalker
 
 
 		if result
-			result.tokenRange = [index, @index]
+			result.tokenRange[0] = index
+			result.tokenRange[1] = @index
 			@results.push(result)
 		
 		return

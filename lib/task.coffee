@@ -61,6 +61,11 @@ class Task extends require('events')
 		@.on 'TokenError', (file, err)=>
 			throw formatError "#{LABELS.error} Bad token #{chalk.dim file.filePathSimple}", err
 		
+		@.on 'SyntaxError', (file, err)=>
+			err.message = err.annotated.lines().slice(1, -1).append('',0).join('\n')
+			Error.captureStackTrace(err)
+			throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.filePathSimple+':'+err.line+':'+err.column}", err
+		
 		@.on 'GeneralError', (file, err)=>
 			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.filePathSimple}", err
 
@@ -162,6 +167,12 @@ class Task extends require('events')
 	processFile: (file)-> unless file.processed
 		file.processed = true
 		Promise.bind(file)
+			.then ()=> @scanForceInlineImports(file)
+			.then ()=> @replaceForceInlineImports(file)
+			.then file.applyAllTransforms
+			.then file.saveContent
+			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
+			.then file.checkSyntaxErrors
 			.then file.checkIfIsThirdPartyBundle
 			.then file.collectRequiredGlobals
 			.then file.collectIgnoreRanges
@@ -170,10 +181,29 @@ class Task extends require('events')
 			.return(file)
 
 
+	scanForceInlineImports: (file)->
+		file.scannedForceInlineImports = true
+		Promise.bind(@)
+			.then ()-> file.collectForceInlineImports()
+			.tap (imports)-> @importStatements.push(imports...)
+			.map (statement)->
+				Promise.bind(@)
+					.then ()-> @initFile(statement.target, file)
+					.then (childFile)-> @processFile(childFile)
+					.then (childFile)-> statement.target = childFile
+					.return(statement)
+			
+			.filter (statement)-> not statement.target.scannedForceInlineImports
+			.map (statement)-> @scanForceInlineImports(statement.target)
+			.catch promiseBreak.end
+			.return(@importStatements)
+
+
 	scanImports: (file, depth=Infinity, currentDepth=0)->
 		file.scannedImports = true
 		Promise.bind(@)
 			.then ()-> file.collectImports()
+			.filter (statement)-> statement.type isnt 'inline-forced'
 			.tap (imports)-> @importStatements.push(imports...)
 			.map (statement)->
 				Promise.bind(@)
@@ -185,7 +215,7 @@ class Task extends require('events')
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
 			
 			.filter (statement)-> not statement.target.scannedImports
-			.map (statement)-> @scanImports(statement.target)
+			.map (statement)-> @scanImports(statement.target, depth, currentDepth)
 			.catch promiseBreak.end
 			.return(@importStatements)
 
@@ -217,6 +247,7 @@ class Task extends require('events')
 				Object.values(@imports)
 			
 			.map (statements)->
+				statements = statements.filter (statement)-> statement.type isnt 'inline-forced'
 				statements.slice().forEach (statement)-> if statement.conditions
 					if not statement.conditions.every((condition)-> process.env[condition])
 						statement.removed = true
@@ -229,12 +260,7 @@ class Task extends require('events')
 					statement.type = targetType or statement.target.type
 					
 					if statement.extract and statement.target.fileExt isnt 'json'
-						Promise.bind(statement.target)
-							.then statement.target.applyAllTransforms
-							.then statement.target.saveContent
-							.then ()=>
-								if statement.target.fileExt isnt 'json'
-									@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
+						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
 			.then ()->
 				@files.filter(isDataType:true).map (file)->
@@ -260,12 +286,25 @@ class Task extends require('events')
 
 
 
+	replaceForceInlineImports: (file)->
+		return file if file.insertedForceInline
+		file.insertedForceInline = true
+		
+		Promise.resolve(file.importStatements).bind(file)
+			.map (statement)=> @replaceForceInlineImports(statement.target)
+			.then file.replaceForceInlineImports
+			.then file.saveContent
+			.then file.saveContentMilestone.bind(file, 'contentPostForceInlinement')
+
+
+
 	replaceInlineImports: (file)->
 		return file if file.insertedInline
 		file.insertedInline = true
 		
 		Promise.resolve(file.importStatements).bind(file)
 			.map (statement)=> @replaceInlineImports(statement.target)
+			.return(null)
 			.then file.replaceInlineImports
 			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
@@ -280,9 +319,6 @@ class Task extends require('events')
 			.then file.saveContent
 			.then file.replaceExportStatements
 			.then file.saveContent
-			.then file.applyAllTransforms
-			.then file.saveContent
-			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.then file.genAST
 			.then file.adjustASTLocations
 			.return(file)
