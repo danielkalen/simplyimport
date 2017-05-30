@@ -1,14 +1,14 @@
 Promise = require 'bluebird'
-promiseBreak = require 'p-break'
+promiseBreak = require 'promise-break'
 replaceAsync = require 'string-replace-async'
 streamify = require 'streamify-string'
 getStream = require 'get-stream'
-PATH = require 'path'
+Path = require 'path'
 md5 = require 'md5'
 chalk = require 'chalk'
 extend = require 'extend'
-Parser = require 'esprima'
-LinesAndColumns = require 'lines-and-columns'
+Parser = require './external/parser'
+LinesAndColumns = require('lines-and-columns').default
 sourcemapConvert = require 'convert-source-map'
 sourcemapRegex = sourcemapConvert.commentRegex
 helpers = require './helpers'
@@ -84,6 +84,7 @@ class File
 
 
 	saveContent: (content)->
+		throw new Error("content is undefined") if content is undefined
 		@content = content
 
 	saveContentMilestone: (milestone)->
@@ -125,7 +126,7 @@ class File
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
+				@applyTransforms(content, transforms, Path.resolve(@pkgFile.dirPath,'node_modules'))
 
 			.catch promiseBreak.end
 
@@ -139,7 +140,7 @@ class File
 			
 			.then (transforms)-> [content, transforms]
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
+				@applyTransforms(content, transforms, Path.resolve(@pkgFile.dirPath,'node_modules'))
 
 			.catch promiseBreak.end
 
@@ -152,7 +153,7 @@ class File
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms, PATH.resolve(@pkgFile.dirPath,'node_modules'))
+				@applyTransforms(content, transforms, Path.resolve(@pkgFile.dirPath,'node_modules'))
 
 			.catch promiseBreak.end
 
@@ -162,7 +163,7 @@ class File
 		Promise.resolve(transforms)
 			.map (transform)-> helpers.resolveTransformer(transform, useFullPath)
 			.reduce((content, transformer)=>
-				filePath = if useFullPath then @filePath else PATH.basename(@filePath)
+				filePath = if useFullPath then @filePath else Path.basename(@filePath)
 				transformOpts = extend {_flags:@task.options}, transformer.opts
 			
 				Promise.resolve()
@@ -184,15 +185,16 @@ class File
 
 
 
-	tokenize: (content)->
+	tokenize: ()->
 		unless EXTENSIONS.nonJS.includes(@fileExt)
 			try
-				@Tokens = Parser.tokenize(content, range:true, sourceType:'module')
-				@Tokens.forEach (token, index)-> token.index = index
+				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
 			catch err
 				@task.emit 'TokenizeError', @, err
+			
+			@Tokens.forEach (token, index)-> token.index = index
 
-		return content
+		return @content
 
 
 
@@ -216,9 +218,11 @@ class File
 		switch
 			when tokens
 				@collectedImports = true
+				lines = new LinesAndColumns(@content)
+				
 				try
-					requires = helpers.collectRequires(tokens)
-					imports = helpers.collectImports(tokens)
+					requires = helpers.collectRequires(tokens, lines)
+					imports = helpers.collectImports(tokens, lines)
 				catch err
 					if err.name is 'TokenError'
 						@task.emit('TokenError', @, err)
@@ -232,7 +236,7 @@ class File
 					# statement.id = md5(statement.target)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
-					statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
+					statement.range = [tokens[statement.tokenRange[0]].range[0], tokens[statement.tokenRange[1]].range[1]]
 					statement.source = @
 					@importStatements.push(statement)
 
@@ -267,7 +271,7 @@ class File
 		if tokens
 			@collectedExports = true
 			try
-				imports = helpers.collectExports(tokens)
+				statements = helpers.collectExports(tokens)
 			catch err
 				if err.name is 'TokenError'
 					@task.emit('TokenError', @, err)
@@ -391,7 +395,7 @@ class File
 		try
 			@parsed ?= JSON.parse(@content)
 		catch err
-			@task.emit 'ParseError', @, err
+			@task.emit 'DataParseError', @, err
 
 		if not @parsed[key] and not Object.has(@parsed, key)
 			@task.emit 'ExtractError', @, new Error "requested key '#{key}' not found"

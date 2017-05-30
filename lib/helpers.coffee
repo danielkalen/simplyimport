@@ -1,6 +1,6 @@
 Promise = require 'bluebird'
 resolveModule = Promise.promisify require('browser-resolve')
-fs = Promise.promisifyAll require 'fs-extra'
+fs = require 'fs-jetpack'
 Path = require 'path'
 chalk = require 'chalk'
 escodegen = require 'escodegen'
@@ -69,11 +69,11 @@ helpers =
 
 
 	getDirListing: (dirPath, fromCache)->
-		if dirListingCache[dirPath]? and fromCache
-			return Promise.resolve dirListingCache[dirPath]
+		if fromCache and helpers.getDirListing.cache[dirPath]?
+			return helpers.getDirListing.cache[dirPath]
 		else
-			fs.readdirAsync(dirPath).then (listing)->
-				return dirListingCache[dirPath] = listing
+			Promise.resolve(fs.listAsync(dirPath))
+				.tap (listing)-> helpers.getDirListing.cache[dirPath] = listing
 
 
 	normalizeExportMap: (mappingString)->
@@ -327,14 +327,14 @@ helpers =
 		identifier: null
 
 
-	walkTokens: (tokens, valueToStopAt, cb)->
-		walker = new TokenWalker(tokens, cb)
+	walkTokens: (tokens, lines, valueToStopAt, cb)->
+		walker = new TokenWalker(tokens, lines, cb)
 		walker.invoke(token, i) for token,i in tokens when token.value is valueToStopAt
 		return walker.finish()
 
 
-	collectRequires: (tokens)->
-		@walkTokens tokens, 'require', ()->
+	collectRequires: (tokens, lines)->
+		@walkTokens tokens, lines, 'require', ()->
 			@next()
 			@next() if @current.type is 'Punctuator'
 			return if @current.type isnt 'String'
@@ -366,9 +366,13 @@ helpers =
 			return output
 
 
-	collectImports: (tokens)->
-		@walkTokens tokens, 'import', ()->
+	collectImports: (tokens, lines)->
+		@walkTokens tokens, lines, 'import', ()->
 			output = helpers.newImportStatement()
+			if @next().type is 'String'
+				@prev()
+			else
+				throw @newError()
 
 			while @next().type isnt 'String' then switch
 				when @current.type is 'Punctuator'
@@ -383,8 +387,8 @@ helpers =
 			return output
 
 
-	collectExports: (tokens)->
-		@walkTokens tokens, 'export', ()->
+	collectExports: (tokens, lines)->
+		@walkTokens tokens, lines, 'export', ()->
 			output = helpers.newExportStatement()
 			@next()
 
@@ -418,7 +422,7 @@ helpers =
 
 
 class TokenWalker
-	constructor: (@tokens, @callback)->
+	constructor: (@tokens, @lines, @callback)->
 		@index = 0
 		@current = null
 		@results = []
@@ -444,6 +448,7 @@ class TokenWalker
 		@index = index
 		result = @callback(@current, @index)
 
+
 		if result
 			result.tokenRange = [index, @index]
 			@results.push(result)
@@ -452,15 +457,18 @@ class TokenWalker
 
 
 	finish: ()->
+		results = @results
 		delete @current
 		delete @results
 		delete @callback
-		return @results
+		return results
 
 
 	newError: ()->
-		err = new Error "unexpected #{@current.type} '#{@current.value}' at offset #{@current.range[0]}"
+		loc = @lines.locationForIndex(@current.range[0])
+		err = new Error "unexpected #{@current.type} '#{@current.value}' at line #{loc.line+1}:#{loc.column}"
 		err.name = 'TokenError'
+		err.stack = err.stack.lines().slice(1).join('\n')
 		return err
 
 
@@ -492,11 +500,13 @@ class TokenWalker
 	
 
 	handleDefault: (output)->
+		console.log @tokens
+		# output.members ?= {}
 		output.members.default = @current.value
 
 
 
 
 
-dirListingCache = {}
+helpers.getDirListing.cache = {}
 module.exports = helpers

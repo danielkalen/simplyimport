@@ -1,21 +1,25 @@
 Promise = require 'bluebird'
-promiseBreak = require 'p-break'
-PATH = require 'path'
+promiseBreak = require 'promise-break'
+Path = require 'path'
 md5 = require 'md5'
 fs = require 'fs-jetpack'
 globMatch = require 'micromatch'
 chalk = require 'chalk'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
-Parser = require 'esprima'
+astBuilders = require('ast-types').builders
+formatError = require './external/formatError'
+Parser = require './external/parser'
 helpers = require './helpers'
 File = require './file'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
-PRELUDE = require './constants/prelude'
 
 class Task extends require('events')
-	constructor: (options, @entryInput)->
+	constructor: (options)->
+		options = file:options if typeof options is 'string'
+		throw new Error("either options.file or options.src must be provided") if not options.file and not options.src
+		@entryInput = options.file or options.src
 		@currentID = -1
 		@files = []
 		@importStatements = []
@@ -24,11 +28,13 @@ class Task extends require('events')
 		
 		@options = extendOptions(options)
 		@options.context ?= if @options.isStream then process.cwd() else helpers.getNormalizedDirname(@entryInput)
-		if @options.isStream
-			@options.suppliedPath = PATH.resolve('main.'+ if @options.isCoffee then 'coffee' else 'js')
+		@options.context ?= if @options.src then process.cwd() else helpers.getNormalizedDirname(@entryInput)
+		if @options.src
+			@options.ext ?= 'js'
+			@options.suppliedPath = Path.resolve("entry.#{@options.ext}")
 		else
-			@options.suppliedPath = @entryInput = PATH.resolve(@entryInput)
-			@options.isCoffee ?= PATH.extname(@entryInput).toLowerCase() is '.coffee'
+			@options.ext = Path.extname(@entryInput).replace('.','') or 'js'
+			@options.suppliedPath = @entryInput = Path.resolve(@entryInput)
 		
 		super
 		@attachListeners()
@@ -42,22 +48,22 @@ class Task extends require('events')
 				@requiredGlobals[varName] = true
 		
 		@.on 'TokenizeError', (file, err)=>
-			console.warn "#{LABELS.warn} Failed to tokenize #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
+			throw formatError "#{LABELS.error} Failed to tokenize #{chalk.dim file.filePathSimple}", err
 		
 		@.on 'ASTParseError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
+			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", err
 		
-		@.on 'ParseError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
+		@.on 'DataParseError', (file, err)=>
+			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", err
 		
 		@.on 'ExtractError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
+			throw formatError "#{LABELS.error} Extraction error in #{chalk.dim file.filePathSimple}", err
 		
 		@.on 'TokenError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
+			throw formatError "#{LABELS.error} Bad token #{chalk.dim file.filePathSimple}", err
 		
 		@.on 'GeneralError', (file, err)=>
-			console.warn "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", require('stack-filter').filter(err.stack)
+			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.filePathSimple}", err
 
 
 	resolveEntryPackage: ()->
@@ -68,23 +74,23 @@ class Task extends require('events')
 				helpers.resolvePackagePaths(result.pkg, result.path)
 				@options.pkgFile = pkgFile = result.pkg
 				
-				unless @options.isStream
+				unless @options.src
 					@entryInput = pkgFile.browser[@entryInput] if typeof pkgFile.browser is 'object' and pkgFile.browser[@entryInput]
 
 			.catch ()->
 
 
-	resolveFilePath: (input)->
+	resolveFilePath: (input, useDirCache)->
 		Promise.bind(@)
 			.then ()->
-				extname = PATH.extname(input).slice(1).toLowerCase()
+				extname = Path.extname(input).slice(1).toLowerCase()
 				if extname and EXTENSIONS.all.includes(extname)
 					promiseBreak(input)
 				else
-					PATH.parse(input)
+					Path.parse(input)
 			
 			.then (params)->
-				helpers.getDirListing(params.dir, @options.dirCache).then (list)-> [params, list]
+				helpers.getDirListing(params.dir, useDirCache).then (list)-> [params, list]
 			
 			.then ([params, dirListing])->
 				inputPathMatches = dirListing.filter (targetPath)-> targetPath.includes(params.base)
@@ -98,12 +104,12 @@ class Task extends require('events')
 						return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
 
 					if fileMatch
-						promiseBreak PATH.join(params.dir, fileMatch)
+						promiseBreak Path.join(params.dir, fileMatch)
 					else #if exactMatch
 						return params
 			
 			.then (params)->
-				resolvedPath = PATH.join(params.dir, params.base)
+				resolvedPath = Path.join(params.dir, params.base)
 				fs.inspectAsync(resolvedPath).then (stats)->
 					if stats.type isnt 'dir'
 						promiseBreak(resolvedPath)
@@ -111,11 +117,11 @@ class Task extends require('events')
 						return params
 
 			.then (params)->
-				helpers.getDirListing(PATH.join(params.dir, params.base), @options.dirCache).then (list)-> [params, list]
+				helpers.getDirListing(Path.join(params.dir, params.base), useDirCache).then (list)-> [params, list]
 
 			.then ([params, dirListing])->
 				indexFile = dirListing.find (file)-> file.includes('index')
-				return PATH.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
+				return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
 
 			.catch promiseBreak.end
 			.then (filePath)->
@@ -123,16 +129,16 @@ class Task extends require('events')
 				contextRel = context.replace(@entryFile.context+'/', '')
 				filePathSimple = helpers.simplifyPath(filePath)
 				filePathRel = filePath.replace(@entryFile.context+'/', '')
-				fileExt = PATH.extname(filePath).toLowerCase().slice(1)
+				fileExt = Path.extname(filePath).toLowerCase().slice(1)
 				fileExt = 'yml' if fileExt is 'yaml'
-				fileBase = PATH.basename(filePath)
+				fileBase = Path.basename(filePath)
 				suppliedPath = input
 				return {filePath, filePathSimple, filePathRel, fileBase, fileExt, context, contextRel, suppliedPath}
 
 
 	initEntryFile: ()->
 		Promise.bind(@)
-			.then ()-> promiseBreak(@entryInput) if @options.isStream
+			.then ()-> promiseBreak(@entryInput) if @options.src
 			.then ()-> fs.readAsync(@entryInput)
 			.catch promiseBreak.end
 			.then (content)->
@@ -143,14 +149,14 @@ class Task extends require('events')
 					hash: md5(content)
 					options: @options.pkgFile.simplyimport?.main or {}
 					pkgFile: @options.pkgFile
-					suppliedPath: if @options.isStream then '' else @entryInput
+					suppliedPath: if @options.src then '' else @entryInput
 					context: @options.context
 					contextRel: '/'
 					filePath: @options.suppliedPath
-					filePathSimple: '*ENTRY*'
-					filePathRel: '/main.js'
-					fileExt: if @options.isCoffee then 'coffee' else 'js'
-					fileBase: 'main.js'
+					filePathSimple: helpers.simplifyPath(@options.suppliedPath)
+					filePathRel: '/entry.js'
+					fileExt: @options.ext
+					fileBase: 'entry.js'
 				}
 
 			.tap (file)->
@@ -167,7 +173,7 @@ class Task extends require('events')
 				pkgFile = module.pkg
 				return module.file
 			
-			.then @resolveFilePath
+			.then (input)-> @resolveFilePath(input, pkgFile is importer.pkgFile)
 			.tap (config)-> promiseBreak(@cache[config.filePath]) if @cache[config.filePath]
 			.tap (config)->
 				fs.readAsync(config.filePath).then (content)->
@@ -270,7 +276,7 @@ class Task extends require('events')
 						statement.removed = true
 						statements.remove(statement)
 
-				if statements.unique('id').length > 1 or statements.some(helpers.isMixedExtStatement)
+				if statements.length > 1 or statements.some(helpers.isMixedExtStatement)
 					targetType = 'module'
 
 				Promise.map statements, (statement)=>
@@ -323,7 +329,7 @@ class Task extends require('events')
 
 
 	compileFile: (file)->
-		Promise.bind(file)
+		Promise.resolve(file.content).bind(file)
 			.then file.replaceImportStatements
 			.then file.saveContent
 			.then file.replaceExportStatements
@@ -333,68 +339,38 @@ class Task extends require('events')
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.then file.genAST
 			.then file.adjustASTLocations
+			.return(file)
 
 	
 	compile: ()->
+		B = astBuilders
+		
 		Promise.bind(@)
 			.then @calcImportTree
 			.then @replaceInlineImports.bind(@, @entryFile)
-			.return @files
-			.filter (file)-> file.type isnt 'inline'
-			.map @compileFile
 			.then ()->
-				bundleAST = do ()=>
-					returnResult = if @options.umd then PRELUDE.umd(@options.umd) else PRELUDE.returnResult()
-					args = []
-					values = []
-					if @requiredGlobals.global
-						args.push 'global'
-						values.push PRELUDE.globalDec()
-					
-					return Parser.parse PRELUDE.bundle(args, values, returnResult)
+				@importStatements
+					.filter(type:'module')
+					.unique('target')
+					.map('target')
+					.append(@entryFile, 0)
+			
+			.map @compileFile
+			.then (files)->
+				if files.length is 1
+					return promiseBreak(@entryFile.content)
 
-				loader = Parser.parse(PRELUDE.loader()).body[0]
-				modules = loader.declarations[0].init.arguments[0].properties
+				bundle = builders.bundle(@options.umd, @requiredGlobals)
+				{loader, modules} = builders.loader()
 				
-				@files.sortBy('ID').forEach (file)-> modules.push
-					type: 'Property'
-					kind: 'init'
-					computed: false
-					method: false
-					shorthand: false
-					key:
-						type: 'Literal'
-						value: file.ID
-						raw: String(file.ID)
-				
-					value: do ()->
-						module = Parser.parseExpr "(#{PRELUDE.module()})"
-						fnBody = module.callee.object.body.body
-						returnExports = fnBody.pop()
-						
-						if Object.keys(file.requiredGlobals).length
-							args = []; values = []
-							
-							if file.requiredGlobals.__filename
-								args.push '__filename'
-								values.push file.filePathRel
-							
-							if file.requiredGlobals.__dirname
-								args.push '__dirname'
-								values.push file.contextRel
-							
-							wrapper = Parser.parseExpr PRELUDE.moduleGlobals(args, values)
-							fnBody.push wrapper
-							fnBody = wrapper.callee.object.body.body
-						
-						fnBody.push file.AST.body...
-						module.push returnExports
-						return moudle
+				files.sortBy('ID').forEach (file)->
+					modules.push builders.moduleProp(file)
 
-				bundleAST.body[0].expression.callee.object.body.unshift(loader)
-				return bundleAST
+				bundle.body[0].expression.callee.object.body.unshift(loader)
+				return bundle
 
 			.then (ast)-> require('escodegen').generate(ast)
+			.catch promiseBreak.end
 
 
 
@@ -427,7 +403,7 @@ extendOptions = (suppliedOptions)->
 
 normalizeTransformOpts = (transform)->
 	transform = [].concat(transform) if transform and not Array.isArray(transform)
-	if transform.length is 2 and typeof transform[0] is 'string' and require('is-plain-obj')(transform[1])
+	if transform.length is 2 and typeof transform[0] is 'string' and Object.isObject(transform[1])
 		transform = [transform]
 
 	return transform

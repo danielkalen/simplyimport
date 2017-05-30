@@ -1,7 +1,6 @@
 require('./sugar')
-require('stack-filter').filters.push('bluebird', 'escodegen', 'esprima')
 Promise = require 'bluebird'
-Parser = require 'esprima'
+formatError = require './external/formatError'
 Task = require './task'
 REGEX = require './constants/regex'
 helpers = require './helpers'
@@ -12,17 +11,15 @@ RegExp::test = do ()-> # RegExp::test function patch to reset index after each t
 		@lastIndex = 0
 		return result
 
-Parser.parseExpr = (expr, opts)->
-	Parser.parse(expr, opts).body[0].expression
-
-
+Promise.onPossiblyUnhandledRejection (err, promise)->
+	console.error formatError(err)
 
 SimplyImport = ()->
 	SimplyImport.compile(arguments...)
 
 
-SimplyImport.compile = (input, options, state={})->
-	task = new Task(options, input)
+SimplyImport.compile = (options)->
+	task = new Task(options)
 
 	Promise.bind(task)
 		.then task.resolveEntryPackage
@@ -34,8 +31,8 @@ SimplyImport.compile = (input, options, state={})->
 		.then task.compile
 
 
-SimplyImport.scanImports = (input, options, state={})->
-	task = new Task(options, input)
+SimplyImport.scanImports = (options)->
+	task = new Task(options)
 
 	Promise.bind(task)
 		.then task.resolveEntryPackage

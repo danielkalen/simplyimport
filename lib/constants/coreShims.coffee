@@ -1,3 +1,4 @@
+Promise = require 'bluebird'
 path = require 'path'
 resolveModule = Promise.promisify require('browser-resolve')
 basedir = 'basedir':path.resolve(__dirname,'..')
