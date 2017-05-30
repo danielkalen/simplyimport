@@ -1,5 +1,5 @@
 global.Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.CI or true
+Promise.config longStackTraces:true if process.env.CI
 promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
@@ -14,17 +14,8 @@ task 'test', ()->
 		.then (installed)-> promiseBreak() if installed
 		.then ()-> installModules(testModules)
 		.catch promiseBreak.end
-		.then ()->
-			mocha = new (require 'mocha')
-				ui: 'tdd'
-				bail: not process.env.CI
-				timeout: 8000
-				slow: 1500
-				userColors: true
+		.then runTests
 
-			mocha.addFile Path.join('test','spec.coffee')
-			mocha.run (failures)->
-				process.on 'exit', ()-> process.exit(failures)
 
 
 task 'coverage', ()->
@@ -40,10 +31,28 @@ task 'coverage', ()->
 			coffeeCoverage.register
 				instrumentor: 'istanbul'
 				basePath: process.cwd()
-				exclude: ['/test','/scripts','/node_modules','/.git','/.config','/covreage']
+				exclude: ['/test','/scripts','/node_modules','/.git','/.config','/coverage']
 				covreageVar: covreageVar
-				writeOnExit: if coverageVar? then Path.resolve('coverage','coverage-coffee.json')
+				writeOnExit: if coverageVar? then Path.resolve('coverage','coverage-coffee.json') else null
 				initAll: true
+
+			runTests()
+
+		.then ()->
+			istanbul = require 'istanbul'
+			Report = istanbul.Report
+			collector = new istanbul.Collector
+			reporter = new istanbul.Reporter
+				dir: Path.resolve('coverage')
+				root: Path.resolve()
+				formats: ['html', 'lcov']
+
+			collector.add fs.read(Path.resolve('coverage','coverage-coffee.json'), 'json')
+			new Promise (resolve, reject)->
+				reporter.write collector, false, (err)->
+					if err then reject(err) else resolve()
+
+		.then ()-> console.log 'Done'
 
 
 
@@ -54,7 +63,16 @@ installModules = ()-> new Promise (resolve, reject)->
 	install.on 'close', resolve
 
 
+runTests = ()->
+	mocha = new (require 'mocha')
+		ui: 'tdd'
+		bail: not process.env.CI
+		timeout: 8000
+		slow: 1500
+		userColors: true
 
-
+	mocha.addFile Path.join('test','spec.coffee')
+	mocha.run (failures)->
+		process.on 'exit', ()-> process.exit(failures)
 
 

@@ -8,12 +8,7 @@ REGEX =
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
-	# singleBracketEnd: /^[^\(]*\)/
-	# useStrict: /["']use strict["'];\n\n/
-	# newLine: /\r?\n/
-	# startingNewLine: /^\n+/
 	initialWhitespace: /^[ \t]+/
-	# thisKeyword: /\bthis\b|\@/
 	requireArg: /\brequire[,\)]/
 	processRequire: /\brequire[\(\s]['"]process['"]\)?/
 	processDec: /\bprocess\s?=\s?/
@@ -31,9 +26,8 @@ REGEX =
 		__filename: /\b\_\_filename\b/
 		# require: /\brequire[\(\s]/
 	
-	ignoreStatement: /simplyimport:ignore/g
-	ifStartStatement: /simplyimport:if\s+(.+)/mg
-	ifEndStatement: /simplyimport:end/mg
+	ifStartStatement: /simplyimport:if\s+(.+)/g
+	ifEndStatement: /simplyimport:end/g
 
 	inlineImport: ///^
 		(

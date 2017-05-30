@@ -22,11 +22,12 @@ class File
 		@ID = ++@task.currentID
 		@exportStatements = []
 		@importStatements = []
-		@replacedRanges = imports:[], exports:[], inlines:[]
-		@ignoreRanges = []
+		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
+		@conditionals = []
 		@requiredGlobals = Object.create(null)
 		@fileExtOriginal = @fileExt
 		@contentOriginal = @content
+		@linesOriginal = new LinesAndColumns(@content)
 		@options.transform ?= []
 		
 		if @isEntry or @isExternalEntry
@@ -71,20 +72,79 @@ class File
 		return
 
 
-	collectIgnoreRanges: ()-> if @options.scan isnt false
-		currentRange = null
-		@content.replace REGEX.ignoreStatement, (m, charIndex)=>
-			if currentRange
-				currentRange.end = charIndex
-				@ignoreRanges.push(currentRange)
-				currentRange = null
-			else
-				currentRange = start:charIndex
-			return
-		
-		if currentRange
-			currentRange.end = @content.length
-			@ignoreRanges.push(currentRange)
+	collectConditionals: ()->
+		Promise.bind(@)
+			.then ()->
+				starts = []
+				ends = []
+
+				@content.replace REGEX.ifStartStatement, (e, logic, offset)=>
+					starts.push [offset, logic.trim()]
+				
+				@content.replace REGEX.ifEndStatement, (e, offset)=>
+					ends.push [offset]
+
+				starts.forEach (start)=>
+					end = ends.find (end)-> end[0] > start[0]
+					end ?= [@content.length - 1]
+					@conditionals.push 
+						range: [start[0], end[0]]
+						start: @linesOriginal.locationForIndex(start[0]).line
+						end: @linesOriginal.locationForIndex(end[0]).line
+						match: do ()=>
+							# matchTotal = true
+							rules = []
+							file = @
+							jsString = ''
+							tokens = Parser.tokenize(start[1])
+							
+							helpers.walkTokens tokens, @linesOriginal, null, (token)->
+								switch token.type
+									when 'Identifier'
+										value = process.env[token.value]
+										jsString += " process.env['#{token.value}']"
+
+									when 'String','Literal'
+										jsString += " #{token.value}"
+
+									when 'Punctuator'
+										jsString += ' ' + switch token.value
+											when '=' then '=='
+											when '!=' then '!='
+											when '||','|' then '||'
+											when '&&','&' then '&&'
+
+									else file.task.emit 'ConditionalError', file, token, [start[0], end[0]]
+
+							return require('vm').runInNewContext(jsString)
+
+			.tap ()-> promiseBreak() if not @conditionals.length
+			.then ()->
+				linesToRemove = []
+				@conditionals.forEach (conditional)=>
+					if conditional.match
+						linesToRemove.push conditional.start
+						linesToRemove.push conditional.end
+					else
+						linesToRemove.push [conditional.start..conditional.end]...
+					return
+				
+				return new ()-> @[index]=true for index in linesToRemove; @
+
+			.then (linesToRemove)->
+				outputLines = []
+				@content.lines (line, index)=>
+					if not linesToRemove[index]
+						outputLines.push(line)
+					else
+						index = @linesOriginal.indexForLocation line:index, column:0
+						@replacedRanges.push [index, index, line.length]
+
+				return outputLines.join('\n')
+
+			.then @saveContent
+			.then @saveContentMilestone.bind(@, 'contentPostConditionals')
+			.catch promiseBreak.end
 
 
 	saveContent: (content)->
@@ -140,7 +200,7 @@ class File
 			.tap (transform)-> promiseBreak(content) if not transform
 			.filter (transform)->
 				name = if typeof transform is 'string' then transform else transform[0]
-				return name.toLowerCase() isnt 'simplyimportify'
+				return not name.toLowerCase().includes 'simplyimport/compat'
 			
 			.then (transforms)-> [content, transforms]
 			.spread (content, transforms)->
@@ -342,7 +402,6 @@ class File
 			range = @offsetRange(statement.range)
 			
 			replacement = do ()=>
-				return '' if statement.removed
 				if not statement.members and not statement.alias
 					replacement = "_s$m(#{statement.target.ID})"
 					if statement.extract

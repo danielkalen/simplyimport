@@ -7,7 +7,6 @@ globMatch = require 'micromatch'
 chalk = require 'chalk'
 extend = require 'extend'
 findPkgJson = require 'read-pkg-up'
-astBuilders = require('ast-types').builders
 formatError = require './external/formatError'
 Parser = require './external/parser'
 helpers = require './helpers'
@@ -27,13 +26,13 @@ class Task extends require('events')
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
-		@options.context ?= if @options.src then process.cwd() else helpers.getNormalizedDirname(@entryInput)
-		if @options.src
-			@options.ext ?= 'js'
-			@options.suppliedPath = Path.resolve("entry.#{@options.ext}")
-		else
+		@options.context ?= if @options.file then helpers.getNormalizedDirname(@entryInput) else process.cwd()
+		if @options.file
 			@options.ext = Path.extname(@entryInput).replace('.','') or 'js'
 			@options.suppliedPath = @entryInput = Path.resolve(@entryInput)
+		else
+			@options.ext ?= 'js'
+			@options.suppliedPath = Path.resolve("entry.#{@options.ext}")
 		
 		super
 		@attachListeners()
@@ -167,6 +166,7 @@ class Task extends require('events')
 	processFile: (file)-> unless file.processed
 		file.processed = true
 		Promise.bind(file)
+			.then file.collectConditionals
 			.then ()=> @scanForceInlineImports(file)
 			.then ()=> @replaceForceInlineImports(file)
 			.then file.applyAllTransforms
@@ -175,7 +175,6 @@ class Task extends require('events')
 			.then file.checkSyntaxErrors
 			.then file.checkIfIsThirdPartyBundle
 			.then file.collectRequiredGlobals
-			.then file.collectIgnoreRanges
 			.then file.determineType
 			.then file.tokenize
 			.return(file)
@@ -298,9 +297,14 @@ class Task extends require('events')
 
 
 
-	replaceInlineImports: (file)->
+	replaceInlineImports: (file, skipModules)->
 		return file if file.insertedInline
 		file.insertedInline = true
+		targetStatements =
+			if skipModules
+				file.importStatements.filter(type:'inline')
+			else
+				file.importStatements
 		
 		Promise.resolve(file.importStatements).bind(file)
 			.map (statement)=> @replaceInlineImports(statement.target)
@@ -324,12 +328,11 @@ class Task extends require('events')
 			.return(file)
 
 	
-	compile: ()->
-		B = astBuilders
-		
+	compile: ()->		
 		Promise.bind(@)
 			.then @calcImportTree
-			.then @replaceInlineImports.bind(@, @entryFile)
+			.return @entryFile
+			.then @replaceInlineImports
 			.then ()->
 				@importStatements
 					.filter(type:'module')
@@ -340,7 +343,7 @@ class Task extends require('events')
 			.map @compileFile
 			.then (files)->
 				if files.length is 1
-					return promiseBreak(@entryFile.content)
+					return promiseBreak(@entryFile.AST)
 
 				bundle = builders.bundle(@options.umd, @requiredGlobals)
 				{loader, modules} = builders.loader()
@@ -351,8 +354,8 @@ class Task extends require('events')
 				bundle.body[0].expression.callee.object.body.unshift(loader)
 				return bundle
 
-			.then (ast)-> require('escodegen').generate(ast)
 			.catch promiseBreak.end
+			.then (ast)-> Parser.generate(ast)
 
 
 

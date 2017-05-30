@@ -280,7 +280,10 @@ helpers =
 
 	walkTokens: (tokens, lines, valueToStopAt, cb)->
 		walker = new TokenWalker(tokens, lines, cb)
-		walker.invoke(token, i) for token,i in tokens when token.value is valueToStopAt
+		
+		for token,i in tokens when (if valueToStopAt? then token.value is valueToStopAt else true)
+			walker.invoke(token, i)
+		
 		return walker.finish()
 
 
