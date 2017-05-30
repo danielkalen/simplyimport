@@ -79,61 +79,6 @@ class Task extends require('events')
 			.catch ()->
 
 
-	resolveFilePath: (input, useDirCache)->
-		Promise.bind(@)
-			.then ()->
-				extname = Path.extname(input).slice(1).toLowerCase()
-				if extname and EXTENSIONS.all.includes(extname)
-					promiseBreak(input)
-				else
-					Path.parse(input)
-			
-			.then (params)->
-				helpers.getDirListing(params.dir, useDirCache).then (list)-> [params, list]
-			
-			.then ([params, dirListing])->
-				inputPathMatches = dirListing.filter (targetPath)-> targetPath.includes(params.base)
-
-				if not inputPathMatches.length
-					return promiseBreak(input)
-				else
-					exactMatch = inputPathMatches.find(params.base)
-					fileMatch = inputPathMatches.find (targetPath)->
-						fileNameSplit = targetPath.replace(params.base, '').split('.')
-						return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
-
-					if fileMatch
-						promiseBreak Path.join(params.dir, fileMatch)
-					else #if exactMatch
-						return params
-			
-			.then (params)->
-				resolvedPath = Path.join(params.dir, params.base)
-				fs.inspectAsync(resolvedPath).then (stats)->
-					if stats.type isnt 'dir'
-						promiseBreak(resolvedPath)
-					else
-						return params
-
-			.then (params)->
-				helpers.getDirListing(Path.join(params.dir, params.base), useDirCache).then (list)-> [params, list]
-
-			.then ([params, dirListing])->
-				indexFile = dirListing.find (file)-> file.includes('index')
-				return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
-
-			.catch promiseBreak.end
-			.then (filePath)->
-				context = helpers.getNormalizedDirname(filePath)
-				contextRel = context.replace(@entryFile.context+'/', '')
-				filePathSimple = helpers.simplifyPath(filePath)
-				filePathRel = filePath.replace(@entryFile.context+'/', '')
-				fileExt = Path.extname(filePath).toLowerCase().slice(1)
-				fileExt = 'yml' if fileExt is 'yaml'
-				fileBase = Path.basename(filePath)
-				suppliedPath = input
-				return {filePath, filePathSimple, filePathRel, fileBase, fileExt, context, contextRel, suppliedPath}
-
 
 	initEntryFile: ()->
 		Promise.bind(@)
@@ -172,7 +117,9 @@ class Task extends require('events')
 				pkgFile = module.pkg
 				return module.file
 			
-			.then (input)-> @resolveFilePath(input, pkgFile is importer.pkgFile)
+			.then (input)->
+				helpers.resolveFilePath(input, @entryFile.context, pkgFile is importer.pkgFile)
+			
 			.tap (config)-> promiseBreak(@cache[config.filePath]) if @cache[config.filePath]
 			.tap (config)->
 				fs.readAsync(config.filePath).then (content)->

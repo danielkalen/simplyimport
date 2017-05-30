@@ -1,4 +1,5 @@
 Promise = require 'bluebird'
+promiseBreak = require 'promise-break'
 resolveModule = Promise.promisify require('browser-resolve')
 fs = require 'fs-jetpack'
 Path = require 'path'
@@ -12,11 +13,6 @@ EMPTY_FILE_END = Path.join('node_modules','browser-resolve','empty.js')
 EMPTY_FILE = Path.resolve(__dirname,'..',EMPTY_FILE_END)
 coreModuleShims = require('./constants/coreShims')(EMPTY_FILE)
 
-
-
-# escodegen.ReturnStatement = (argument)-> {type:'ReturnStatement', argument}
-
-moduleResolveError = (err)-> err.message.startsWith('Cannot find module')
 
 
 
@@ -50,21 +46,15 @@ helpers =
 		when EXTENSIONS.data.includes(ext) then EXTENSIONS.data
 		else EXTENSIONS.none
 
-	testForComments: (line, isCoffee)->
-		hasSingleLineComment = line.includes(if isCoffee then '#' else '//')
-		hasDocBlockComment = /^(?:\s+\*|\*)/.test(line)
 
-		return hasSingleLineComment or hasDocBlockComment
-
-
-	testIfIsIgnored: (ignoreRanges, targetIndex)->
+	isIgnored: (ignoreRanges, targetIndex)->
 		for range in ignoreRanges
 			return true if range.start < targetIndex < range.end
 
 		return false
 
 
-	testIfIsLocalModule: (moduleName)->
+	isLocalModule: (moduleName)->
 		return moduleName.startsWith('/') or moduleName.includes('./')
 
 
@@ -76,111 +66,69 @@ helpers =
 				.tap (listing)-> helpers.getDirListing.cache[dirPath] = listing
 
 
-	normalizeExportMap: (mappingString)->
-		output = mappingString
-			.replace /^\{\s*/, ''
-			.replace /\s*\}$/, ''
-			.split /,\s*/
-			.map (memberSignature)->
-				member = memberSignature.split(/\s+as\s+/)
-				"'#{member[1] or member[0]}':#{member[0]}" # alias
-			.join ', '
+	resolveFilePath: (input, entryContext, useDirCache)->
+		Promise.resolve()
+			.then ()->
+				extname = Path.extname(input).slice(1).toLowerCase()
+				if extname and EXTENSIONS.all.includes(extname)
+					promiseBreak(input)
+				else
+					Path.parse(input)
+			
+			.then (params)->
+				helpers.getDirListing(params.dir, useDirCache).then (list)-> [params, list]
+			
+			.then ([params, dirListing])->
+				inputPathMatches = dirListing.filter (targetPath)-> targetPath.includes(params.base)
 
-		return "{#{output}}"
+				if not inputPathMatches.length
+					return promiseBreak(input)
+				else
+					exactMatch = inputPathMatches.find(params.base)
+					fileMatch = inputPathMatches.find (targetPath)->
+						fileNameSplit = targetPath.replace(params.base, '').split('.')
+						return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
 
+					if fileMatch
+						promiseBreak Path.join(params.dir, fileMatch)
+					else #if exactMatch
+						return params
+			
+			.then (params)->
+				resolvedPath = Path.join(params.dir, params.base)
+				fs.inspectAsync(resolvedPath).then (stats)->
+					if stats.type isnt 'dir'
+						promiseBreak(resolvedPath)
+					else
+						return params
 
-	wrapInClosure: (content, isCoffee, asFunc, debugRef)->
-		if isCoffee
-			debugRef = " ##{debugRef}" if debugRef
-			arrow = if REGEX.thisKeyword.test(content) then '=>' else '->'
-			fnSignatureStart = if asFunc then "()#{arrow}" else "do ()#{arrow}"
-			fnSignatureEnd = ''
-		else
-			debugRef = " //#{debugRef}" if debugRef
-			fnSignatureStart = if asFunc then 'function(){' else '(function(){'
-			fnSignatureEnd = if asFunc then '}' else '}).call(this)'
+			.then (params)->
+				helpers.getDirListing(Path.join(params.dir, params.base), useDirCache).then (list)-> [params, list]
 
-		"#{fnSignatureStart}#{debugRef}\n\
-			#{@addSpacingToString content, '\t'}\n\
-		#{fnSignatureEnd}
-		"
+			.then ([params, dirListing])->
+				indexFile = dirListing.find (file)-> file.includes('index')
+				return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
 
-
-	wrapInGlobalsClosure: (content, file)->
-		requiredGlobals = file.requiredGlobals.filter (item)-> item isnt 'process'
-		return content if not requiredGlobals.length
-		
-		values = requiredGlobals.map (name)-> switch name
-			when '__dirname' then "'#{file.contextRel}'"
-			when '__filename' then "'#{file.filePathRel}'"
-			when 'global' then (if file.isCoffee then "`#{globalDec}`" else globalDec)
-		
-		if file.isCoffee
-			args = requiredGlobals.map (name, index)-> "#{name}=#{values[index]}"
-			argValues = args.join(',')
-			"do (#{argValues})=>\n\
-				#{@addSpacingToString content, '\t'}\n\
-			"
-		else
-			args = requiredGlobals.join(',')
-			values = values.join(',')
-			";(function(#{args}){\n\
-				#{@addSpacingToString content, '\t'}\n\
-			}).call(this, #{values})
-			"
-
-
-
-	wrapInExportsClosure: (content, isCoffee, asFunc, debugRef)->
-		if isCoffee
-			debugRef = " ##{debugRef}" if debugRef
-			fnSignature = if asFunc then '(exports)->' else "do (exports={})=>"
-			"#{fnSignature}#{debugRef}\n\
-				\t`var module = {exports:exports}`\n\
-				#{@addSpacingToString content, '\t'}\n\
-				\treturn module.exports
-			"
-		else
-			debugRef = " //#{debugRef}" if debugRef
-			fnSignatureStart = if asFunc then 'function(exports){' else '(function(exports){'
-			fnSignatureEnd = if asFunc then '}' else '}).call(this, {})'
-			"#{fnSignatureStart}#{debugRef}\n\
-				\tvar module = {exports:exports};\n\
-				#{@addSpacingToString content, '\t'}\n\
-				\treturn module.exports;\n\
-			#{fnSignatureEnd}
-			"
+			.catch promiseBreak.end
+			.then (filePath)->
+				context = helpers.getNormalizedDirname(filePath)
+				contextRel = context.replace(entryContext+'/', '')
+				filePathSimple = helpers.simplifyPath(filePath)
+				filePathRel = filePath.replace(entryContext+'/', '')
+				fileExt = Path.extname(filePath).toLowerCase().slice(1)
+				fileExt = 'yml' if fileExt is 'yaml'
+				fileBase = Path.basename(filePath)
+				suppliedPath = input
+				return {filePath, filePathSimple, filePathRel, fileBase, fileExt, context, contextRel, suppliedPath}
 
 
-	wrapInLoaderClosure: (assignments, spacing, isCoffee)->
-		if isCoffee
-			assignments = @addSpacingToString assignments.join('\n'), spacing
-			loader = "\
-				_s$m=(m,c,l,_s$m)->\n\
-					#{spacing}_s$m=(r)->\
-						if l[r] then c[r] else `(l[r]=1,c[r]={},c[r]=m[r](c[r]))`\n\
-					#{assignments}\n\
-					#{spacing}_s$m\n\
-				_s$m=_s$m({},{},{});"
-		else
-			assignments = assignments.join('\n')
-			loader = "\
-				var _s$m=function(m,c,l,_s$m){\
-					_s$m=function(r){\
-						return l[r] ? c[r]\
-									: (l[r]=1,c[r]={},c[r]=m[r](c[r]));\
-					};\n\
-					#{assignments}\n\
-					return _s$m;\
-				};\ _s$m=_s$m({},{},{});
-			"
 
 
 	resolveModulePath: (moduleName, basedir, basefile, pkgFile)-> Promise.resolve().then ()->
 		fullPath = Path.resolve(basedir, moduleName)
 		output = 'file':fullPath
 		
-		if helpers.testIfIsLocalModule(moduleName)
+		if helpers.isLocalModule(moduleName)
 			if pkgFile and typeof pkgFile.browser is 'object'
 				replacedPath = pkgFile.browser[fullPath]
 				replacedPath ?= pkgFile.browser[fullPath+'.js']
@@ -212,8 +160,10 @@ helpers =
 						
 						return output
 
-				.catch moduleResolveError, (err)-> #return output
-					helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile)
+				.catch(
+					(err)-> err.message.startsWith('Cannot find module')
+					()-> helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile)
+				)
 
 
 	resolvePackagePaths: (pkgFile, pkgPath)->
@@ -233,7 +183,7 @@ helpers =
 					if typeof value is 'string'
 						browserField[key] = value = Path.resolve(pkgFile.dirPath, value)
 
-					if helpers.testIfIsLocalModule(key)
+					if helpers.isLocalModule(key)
 						newKey = Path.resolve(pkgFile.dirPath, key)
 						browserField[newKey] = value
 						delete browserField[key]
@@ -366,8 +316,8 @@ helpers =
 			return output
 
 
-	collectImports: (tokens, lines)->
-		@walkTokens tokens, lines, 'import', ()->
+	collectImports: (tokens, lines, keyword='import')->
+		@walkTokens tokens, lines, keyword, ()->
 			output = helpers.newImportStatement()
 			if @next().type is 'String'
 				@prev()
@@ -386,6 +336,8 @@ helpers =
 
 			return output
 
+	collectInlines: (tokens, lines)->
+		helpers.collectImports(tokens, lines, 'importInline')
 
 	collectExports: (tokens, lines)->
 		@walkTokens tokens, lines, 'export', ()->

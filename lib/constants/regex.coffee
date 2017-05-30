@@ -8,13 +8,13 @@ REGEX =
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
-	singleBracketEnd: /^[^\(]*\)/
-	useStrict: /["']use strict["'];\n\n/
+	# singleBracketEnd: /^[^\(]*\)/
+	# useStrict: /["']use strict["'];\n\n/
 	ignoreStatement: /simplyimport:ignore/g
-	newLine: /\r?\n/
-	startingNewLine: /^\n+/
+	# newLine: /\r?\n/
+	# startingNewLine: /^\n+/
 	initialWhitespace: /^[ \t]+/
-	thisKeyword: /\bthis\b|\@/
+	# thisKeyword: /\bthis\b|\@/
 	requireArg: /\brequire[,\)]/
 	processRequire: /\brequire[\(\s]['"]process['"]\)?/
 	processDec: /\bprocess\s?=\s?/
@@ -33,26 +33,18 @@ REGEX =
 		# require: /\brequire[\(\s]/
 	
 
-	fileContent: ///^
-		(\s*)					# Whitespace
-		(
-			(?:\w|\W)+			# All content
-		)
-	///
+	# fileContent: ///^
+	# 	(\s*)					# Whitespace
+	# 	(
+	# 		(?:\w|\W)+			# All content
+	# 	)
+	# ///
 
-	escapedNewLine: ///
-		\\						# Escape literal
-		\n 						# Newline
-	///g
+	# escapedNewLine: ///
+	# 	\\						# Escape literal
+	# 	\n 						# Newline
+	# ///g
 
-	backTicks: ///
-		`
-	///g
-
-	preEscapedBackTicks: ///
-		\\						# Existing escapement
-		`						# Backtick
-	///g
 
 	customImport: ///^
 		(

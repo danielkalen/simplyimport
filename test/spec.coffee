@@ -1,5 +1,5 @@
 global.Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.CI
+Promise.config longStackTraces:true if process.env.CI or true
 fs = require 'fs-jetpack'
 helpers = require './helpers'
 path = require 'path'
@@ -62,23 +62,27 @@ suite "SimplyImport", ()->
 
 
 	suite "VanillaJS", ()->
-		test.only "Unquoted imports that have whitespace after them should not make any difference", ()->
+		test "Unquoted imports that have whitespace after them should not make any difference", ()->
 			SimplyImport(src:"import 'test/temp/someFile.js'\t").then (result)->
 				expect(result).to.equal "abc123\t"
 			
 
 
-		test.skip "Imports surrounded by parentheses should not make any difference", ()->
-			fs.writeAsync(tempFile('string.js'), "'abc123def'").then ()->
-				SimplyImport("var varResult = (import test/temp/string.js).toUpperCase()", null, {isStream:true}).then (result)->
+		test "Imports surrounded by parentheses should not make any difference", ()->
+			Promise.resolve()
+				.then ()-> fs.writeAsync(tempFile('string.js'), "'abc123def'")
+				.then ()-> SimplyImport(src:"var varResult = (import 'test/temp/string.js').toUpperCase()")
+				.then (result)->
 					eval(result)
 					expect(varResult).to.equal "ABC123DEF"
-					
-					SimplyImport("(import test/temp/string.js).toUpperCase()", null, {isStream:true}).then (result)->
-						expect(eval(result)).to.equal "ABC123DEF"
-					
-						SimplyImport(" (import test/temp/string.js).toUpperCase()", null, {isStream:true}).then (result)->
-							expect(eval(result)).to.equal "ABC123DEF"
+				
+				.then ()-> SimplyImport(src:"(import 'test/temp/string.js').toUpperCase()")
+				.then (result)->
+					expect(eval(result)).to.equal "ABC123DEF"
+			
+				.then ()-> SimplyImport(src:" (import 'test/temp/string.js').toUpperCase()")
+				.then (result)->
+					expect(eval(result)).to.equal "ABC123DEF"
 
 
 
