@@ -71,7 +71,7 @@ runTests = ()->
 		slow: 1500
 		userColors: true
 
-	mocha.addFile Path.join('test','spec.coffee')
+	mocha.addFile Path.join('test','test.coffee')
 	mocha.run (failures)->
 		process.on 'exit', ()-> process.exit(failures)
 

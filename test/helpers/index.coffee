@@ -1,5 +1,6 @@
 module.exports =
-	createModule: require './createModule'
+	lib: require './createLib'
+	module: require './createModule'
 	spacerTransform: require './spacerTransform'
 	lowercaseTransform: require './lowercaseTransform'
 	uppercaseTransform: require './uppercaseTransform'

@@ -5,6 +5,7 @@
 [] implement source maps
 [] implement stream compiler
 [] implement cli import tree outputer
+[] add transform-key support
 [] new cli options
 [] rewrite test suite
 [] write readme

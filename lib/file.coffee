@@ -19,12 +19,13 @@ EXTENSIONS = require './constants/extensions'
 class File
 	constructor: (@task, state)->
 		extend(@, state)
-		@ID = ++@task.currentID
+		@type = @tokens = @AST = @parsed = null
 		@exportStatements = []
 		@importStatements = []
 		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
 		@conditionals = []
 		@requiredGlobals = Object.create(null)
+		@hasThirdPartyRequire = @isThirdPartyBundle = false
 		@fileExtOriginal = @fileExt
 		@contentOriginal = @content
 		@linesOriginal = new LinesAndColumns(@content)
@@ -489,12 +490,38 @@ class File
 
 	offsetRange: (range)->
 		offset = 
+		helpers.accumulateRangeOffset(range[0], @replacedRanges.conditionals) +
 		helpers.accumulateRangeOffset(range[0], @replacedRanges.inlines) +
 		helpers.accumulateRangeOffset(range[0], @replacedRanges.imports) +
 		helpers.accumulateRangeOffset(range[0], @replacedRanges.exports)
 
 		return if not offset then range else [range[0]+offset, range[1]+offset]
 
+
+	destroy: ()->
+		ranges.length = 0 for k,ranges of @replacedRanges
+		@exportStatements.length = 0
+		@importStatements.length = 0
+		@conditionals.length = 0
+		@tokens?.length = 0
+		delete @ID
+		delete @AST
+		delete @tokens
+		delete @exportStatements
+		delete @importStatements
+		delete @conditionals
+		delete @requiredGlobals
+		delete @replacedRanges
+		delete @parsed
+		delete @options
+		delete @linesOriginal
+		delete @pkgTransform
+		delete @task
+		for prop of @ when prop.startsWith('content') or prop.startsWith('file')
+			delete @[prop] if @hasOwnProperty(prop)
+
+
+		return
 
 
 

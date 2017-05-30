@@ -356,6 +356,20 @@ class Task extends require('events')
 
 			.catch promiseBreak.end
 			.then (ast)-> Parser.generate(ast)
+			.tap ()-> setTimeout @destroy.bind(@)
+
+
+	destroy: ()->
+		file.destroy() for file in @files
+		@removeAllListeners()
+		@files.length = 0
+		@importStatements.length = 0
+		delete @files
+		delete @importStatements
+		delete @imports
+		delete @cache
+		delete @options
+		delete @requiredGlobals
 
 
 
