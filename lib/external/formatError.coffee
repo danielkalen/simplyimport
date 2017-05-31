@@ -24,4 +24,4 @@ module.exports.message = (err, prefix)->
 
 
 module.exports.stack = (stack)->
-	filter(err.stack, '  ')
+	filter(stack, '  ')

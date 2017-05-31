@@ -47,15 +47,39 @@ processAndRun = (opts, filename='script.js', context={})->
 
 suite "SimplyImport", ()->
 	suiteTeardown ()-> fs.removeAsync(temp())
-	# suiteSetup ()-> 
-	# 	fs.dirAsync(temp('output')).then ()->
-	# 	Promise.all [
-	# 		fs.writeAsync temp('someFile.js'), 'abc123'
-	# 		fs.writeAsync temp('someFile2.js'), 'def456'
-	# 	]
+	suiteSetup ()-> 
+		Promise.all [
+			fs.writeAsync temp('basicMain.js'), "var abc = require('./basic.js')\nvar def = require('./exportless')"
+			fs.writeAsync temp('basic.js'), "module.exports = 'abc123'"
+			fs.writeAsync temp('exportless.js'), "'def456'"
+		]
+
+	test "SimplyImport() is an alias for SimplyImport.compile()", ()->
+		Promise.resolve()
+			.then ()->
+				Promise.all [
+					SimplyImport(file:temp('basicMain.js'))
+					SimplyImport.compile(file:temp('basicMain.js'))
+				]
+			.then ([bundleA, bundleB])->
+				assert.equal bundleA, bundleB
+
+	test "if passed a string instead of options object the string will be considered as the file path", ()->
+		Promise.resolve()
+			.then ()->
+				Promise.all [
+					SimplyImport(file:temp('basicMain.js'))
+					SimplyImport(temp('basicMain.js'))
+				]
+			.then ([bundleA, bundleB])->
+				assert.equal bundleA, bundleB
+
+	test "if neither options.src and options.file are passed an error will be thrown", ()->
+		expect ()-> SimplyImport({})
+			.to.throw()
 
 
-	test "files without exports will be imported inline", ()->
+	test.skip "files without exports will be imported inline", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib

@@ -58,7 +58,7 @@ helpers =
 		return moduleName.startsWith('/') or moduleName.includes('./')
 
 
-	getDirListing: (dirPath, fromCache)->
+	getDirListing: (dirPath, fromCache)-> Promise.resolve().then ()->
 		if fromCache and helpers.getDirListing.cache[dirPath]?
 			return helpers.getDirListing.cache[dirPath]
 		else
@@ -248,7 +248,7 @@ helpers =
 	accumulateRangeOffset: (pos, ranges)->
 		offset = 0
 		for range in ranges
-			break if range[0] <= pos
+			continue if range[0] > pos
 			offset += range[2]
 
 		return offset

@@ -69,6 +69,10 @@ class Task extends require('events')
 			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.filePathSimple}", err
 
 
+	throw: (err)->
+		throw err unless @options.ignoreErrors
+
+
 	resolveEntryPackage: ()->
 		### istanbul ignore next ###
 		Promise.bind(@)
@@ -328,7 +332,8 @@ class Task extends require('events')
 			.return(file)
 
 	
-	compile: ()->		
+	compile: ()->
+		builders = require('./builders')
 		Promise.bind(@)
 			.then @calcImportTree
 			.return @entryFile
@@ -351,7 +356,7 @@ class Task extends require('events')
 				files.sortBy('ID').forEach (file)->
 					modules.push builders.moduleProp(file)
 
-				bundle.body[0].expression.callee.object.body.unshift(loader)
+				bundle.body[0].expression.callee.object.body.body.unshift(loader)
 				return bundle
 
 			.catch promiseBreak.end

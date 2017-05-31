@@ -399,8 +399,11 @@ class File
 
 
 	replaceImportStatements: (content)->
+		lines = new LinesAndColumns(content)
+		
 		for statement in @importStatements when statement.type is 'module'
 			range = @offsetRange(statement.range)
+			# console.log statement.range, range
 			
 			replacement = do ()=>
 				if not statement.members and not statement.alias
@@ -430,6 +433,7 @@ class File
 
 
 	replaceExportStatements: (content)->
+		lines = new LinesAndColumns(content)
 		for statement in @exportStatements
 			range = @offsetRange(statement.range)
 			

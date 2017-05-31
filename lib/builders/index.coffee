@@ -14,7 +14,7 @@ exports.bundle = (umd, required)->
 
 exports.loader = ()->
 	loader = Parser.parse(stringBuilders.loader()).body[0]
-	modules = loader.declarations[0].init.arguments[0].properties
+	modules = loader.expression.right.arguments[1].properties
 	return {loader, modules}
 
 
@@ -41,7 +41,7 @@ exports.moduleFn = (file)->
 	
 	moduleBody.push file.AST.body...
 	body.push b.returnStatement b.memberExpression(b.identifier('module'), b.identifier('exports'))
-	return b.functionExpression null, [b.identifier('module'), b.identifier('exports')], body
+	return b.functionExpression null, [b.identifier('module'), b.identifier('exports')], b.blockStatement(body)
 
 
 

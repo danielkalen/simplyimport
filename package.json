@@ -36,7 +36,6 @@
     "makeexec": "chmod +x forCoverage/bin",
     "coverage": "npm run build && npm run coverage:run && npm run coverage:badge",
     "coverage:run": "mocha $npm_package_mocha_opts --require coffee-coverage/register-istanbul; istanbul report",
-    "coverage:run": "forCoverage=true istanbul cover --dir coverage/ node_modules/mocha/bin/_mocha -- $npm_package_mocha_opts",
     "coverage:badge": "badge-gen -d ./.config/badges/coverage",
     "test:debug": "mocha $npm_package_mocha_opts --debug-brk --inspect",
     "test": "cake test"
