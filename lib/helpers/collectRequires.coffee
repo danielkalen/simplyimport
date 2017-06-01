@@ -1,3 +1,4 @@
+REGEX = require '../constants/regex'
 helpers = require('./')
 
 module.exports = collectRequires = (tokens, lines)->

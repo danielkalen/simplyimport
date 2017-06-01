@@ -1,3 +1,4 @@
+EXTENSIONS = require '../constants/extensions'
 helpers = require('./')
 
 module.exports = isMixedExtStatement = (statement)->

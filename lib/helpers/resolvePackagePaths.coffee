@@ -1,3 +1,4 @@
+Path = require 'path'
 helpers = require('./')
 
 module.exports = resolvePackagePaths = (pkgFile, pkgPath)->

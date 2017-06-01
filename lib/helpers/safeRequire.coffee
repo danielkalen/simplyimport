@@ -1,4 +1,4 @@
-
+Path = require 'path'
 
 module.exports = safeRequire = (targetPath, basedir)->
 	if basedir

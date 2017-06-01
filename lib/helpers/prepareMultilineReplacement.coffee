@@ -1,4 +1,4 @@
-
+REGEX = require '../constants/regex'
 
 module.exports = prepareMultilineReplacement = (sourceContent, targetContent, lines, range)->
 	if targetContent.lines().length <= 1

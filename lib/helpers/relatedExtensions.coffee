@@ -1,4 +1,4 @@
-
+EXTENSIONS = require '../constants/extensions'
 
 module.exports = relatedExtensions = (ext)-> switch
 	when EXTENSIONS.js.includes(ext) then EXTENSIONS.js

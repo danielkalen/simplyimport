@@ -1,3 +1,4 @@
+Promise = require 'bluebird'
 helpers = require('./')
 
 module.exports = resolveTransformer = (transformer, basedir)-> Promise.resolve().then ()-> switch

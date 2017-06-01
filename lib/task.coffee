@@ -350,7 +350,7 @@ class Task extends require('events')
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader()
 				
-				files.sortBy('ID').forEach (file)->
+				files.sortBy('hash').forEach (file)->
 					modules.push builders.moduleProp(file)
 
 				bundle.body[0].expression.callee.object.body.body.unshift(loader)

@@ -1,4 +1,4 @@
-
+TokenWalker = require './tokenWalker'
 
 module.exports = walkTokens = (tokens, lines, valueToStopAt, cb)->
 	walker = new TokenWalker(tokens, lines, cb)

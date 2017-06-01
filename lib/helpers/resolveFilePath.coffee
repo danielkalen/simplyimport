@@ -1,4 +1,9 @@
+Path = require 'path'
+Promise = require 'bluebird'
+promiseBreak = require 'promise-break'
 helpers = require('./')
+EXTENSIONS = require '../constants/extensions'
+fs = require 'fs-jetpack'
 
 module.exports = resolveFilePath = (input, entryContext, useDirCache)->
 	Promise.resolve()
