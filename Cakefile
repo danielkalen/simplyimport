@@ -4,7 +4,7 @@ promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
 Path = require 'path'
-testModules = ['streamify-string', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify']
+testModules = ['streamify-string', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'smart-extend']
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
 
 

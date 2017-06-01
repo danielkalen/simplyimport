@@ -6,7 +6,7 @@ exports.iife = (args, values, body)-> """
 
 exports.loader = ()-> """
 _s$m = (function(cache,modules){
-	return function(r,module){
+	return function(r){
 		return cache[r] ? cache[r].exports
 						: ( cache[r]={exports:{}}, modules[r](cache[r], cache[r].exports) );
 	};

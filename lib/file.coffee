@@ -1,6 +1,5 @@
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
-replaceAsync = require 'string-replace-async'
 streamify = require 'streamify-string'
 getStream = require 'get-stream'
 Path = require 'path'
@@ -10,7 +9,6 @@ extend = require 'extend'
 Parser = require './external/parser'
 LinesAndColumns = require('lines-and-columns').default
 sourcemapConvert = require 'convert-source-map'
-sourcemapRegex = sourcemapConvert.commentRegex
 helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
@@ -19,6 +17,7 @@ EXTENSIONS = require './constants/extensions'
 class File
 	constructor: (@task, state)->
 		extend(@, state)
+		@IDstr = JSON.stringify(@ID)
 		@type = @tokens = @AST = @parsed = null
 		@exportStatements = []
 		@importStatements = []
@@ -26,7 +25,7 @@ class File
 		@conditionals = []
 		@requiredGlobals = Object.create(null)
 		@hasThirdPartyRequire = @isThirdPartyBundle = false
-		@fileExtOriginal = @fileExt
+		@pathExtOriginal = @pathExt
 		@contentOriginal = @content
 		@linesOriginal = new LinesAndColumns(@content)
 		@options.transform ?= []
@@ -37,15 +36,15 @@ class File
 				@pkgTransform = [@pkgTransform] if helpers.isValidTransformerArray(@pkgTransform)
 
 
-		return @task.cache[@filePath] = @task.cache[@hash] = @
+		return @task.cache[@pathAbs] = @task.cache[@hash] = @
 
 
 	checkSyntaxErrors: ()->
-		if @fileExt is 'js'
+		if @pathExt is 'js'
 			content = @content.replace REGEX.es6import, (entire,prior='',meta,trailing='')->
 				"#{prior}importPlaceholder()#{trailing}"
 			
-			if err = require('syntax-error')(content, @filePath)
+			if err = require('syntax-error')(content, @pathAbs)
 				@task.emit 'SyntaxError', @, err
 
 
@@ -143,7 +142,6 @@ class File
 
 				return outputLines.join('\n')
 
-			.then @saveContent
 			.then @saveContentMilestone.bind(@, 'contentPostConditionals')
 			.catch promiseBreak.end
 
@@ -152,11 +150,8 @@ class File
 		throw new Error("content is undefined") if content is undefined
 		@content = content
 
-	saveContentMilestone: (milestone)->
-		if @task.options.debug
-			@[milestone] = @content
-		else
-			@content
+	saveContentMilestone: (milestone, content)->
+		@[milestone] = @saveContent(content)
 
 
 	determineType: ()->
@@ -165,7 +160,7 @@ class File
 			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
 			else 'module'
 
-		@isDataType = true if EXTENSIONS.data.includes(@fileExt)
+		@isDataType = true if EXTENSIONS.data.includes(@pathExt)
 
 
 	applyAllTransforms: (content=@content)->
@@ -181,10 +176,10 @@ class File
 			.then (content)->
 				transforms = @options.transform
 				forceTransform = switch
-					when @fileExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'tsify'
-					when @fileExt is 'coffee'	and not @allTransforms.includes('coffeeify')	then 'coffeeify'
-					when @fileExt is 'cson'		and not @allTransforms.includes('csonify') 		then 'csonify'
-					when @fileExt is 'yml'		and not @allTransforms.includes('yamlify') 		then 'yamlify'
+					when @pathExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'tsify'
+					when @pathExt is 'coffee'	and not @allTransforms.includes('coffeeify')	then 'coffeeify'
+					when @pathExt is 'cson'		and not @allTransforms.includes('csonify') 		then 'csonify'
+					when @pathExt is 'yml'		and not @allTransforms.includes('yamlify') 		then 'yamlify'
 				
 				transforms.unshift(forceTransform) if forceTransform
 				promiseBreak(content) if not transforms.length
@@ -228,22 +223,18 @@ class File
 		Promise.resolve(transforms)
 			.map (transform)-> helpers.resolveTransformer(transform, useFullPath)
 			.reduce((content, transformer)=>
-				filePath = if useFullPath then @filePath else Path.basename(@filePath)
+				pathAbs = if useFullPath then @pathAbs else Path.basename(@pathAbs)
 				transformOpts = extend {_flags:@task.options}, transformer.opts
 			
 				Promise.resolve()
-					.then ()=> getStream streamify(content).pipe(transformer.fn(filePath, transformOpts, @))
+					.then ()=> getStream streamify(content).pipe(transformer.fn(pathAbs, transformOpts, @))
 					.then (content)=>
-						if @fileExt isnt @fileExtOriginal
-							@filePath = helpers.changeExtension(@filePath, @fileExt)
+						if @pathExt isnt @pathExtOriginal
+							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
 						else if transformer.name.includes(/coffeeify|tsify/)
-							@filePath = helpers.changeExtension(@filePath, @fileExt='js')
+							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt='js')
 
-						sourceComment = content.match(sourcemapRegex)
-						if sourceComment
-							@sourceMap = sourceComment
-							content = sourcemap.removeComments(content)
-
+						@sourceMap ?= sourcemapConvert.fromSource(content)?.sourcemap
 						return content
 				
 			, content)
@@ -251,7 +242,7 @@ class File
 
 
 	tokenize: ()->
-		unless EXTENSIONS.nonJS.includes(@fileExt)
+		unless EXTENSIONS.nonJS.includes(@pathExt)
 			try
 				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
 			catch err
@@ -264,9 +255,9 @@ class File
 
 
 	genAST: (content)->
-		content = "(#{content})" if @fileExt is 'json'
+		content = "(#{content})" if @pathExt is 'json'
 		try
-			@AST = Parser.parse(content, range:true, source:@filePathRel, sourceType:'module')
+			@AST = Parser.parse(content, range:true, source:@pathRel, sourceType:'module')
 		catch err
 			@task.emit 'ASTParseError', @, err
 
@@ -321,7 +312,7 @@ class File
 
 
 
-			when @fileExt is 'pug' or @fileExt is 'jade'
+			when @pathExt is 'pug' or @pathExt is 'jade'
 				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = helpers.newImportStatement()
@@ -333,7 +324,7 @@ class File
 					@importStatements.push(statement)
 
 
-			when @fileExt is 'sass' or @fileExt is 'scss'
+			when @pathExt is 'sass' or @pathExt is 'scss'
 				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, priorContent='', keyword, childPath, offset)=>
 					statement = helpers.newImportStatement()
@@ -407,12 +398,12 @@ class File
 			
 			replacement = do ()=>
 				if not statement.members and not statement.alias
-					replacement = "_s$m(#{statement.target.ID})"
+					replacement = "_s$m(#{statement.target.IDstr})"
 					if statement.extract
 						replacement += "['#{statement.extract}']"
 				else
 					alias = statement.alias or helpers.randomVar()
-					replacement = "var #{alias} = _s$m(#{statement.target.ID})"
+					replacement = "var #{alias} = _s$m(#{statement.target.IDstr})"
 
 					if statement.members
 						nonDefault = Object.exclude(statement.members, 'default')
@@ -423,7 +414,7 @@ class File
 						for key,keyAlias of nonDefault
 							replacement += "\nvar #{keyAlias} = #{alias}['#{key}']"
 
-				replacement = "`#{replacement}`" if @fileExt is 'coffee' or @fileExt is 'iced'
+				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
 				return helpers.prepareMultilineReplacement(content, replacement, lines, range)
 			
 			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
@@ -441,7 +432,7 @@ class File
 				replacement = ''
 				if statement.target isnt statement.source
 					alias = helpers.randomVar()
-					replacement = "var #{alias} = _s$m(#{statement.target.ID})"
+					replacement = "var #{alias} = _s$m(#{statement.target.IDstr})"
 
 					if statement.members
 						for keyAlias,key of statement.members
@@ -470,7 +461,7 @@ class File
 								replacement += statement.identifier
 				
 
-				replacement = "`#{replacement}`" if @fileExt is 'coffee' or @fileExt is 'iced'
+				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
 				return helpers.prepareMultilineReplacement(content, replacement, lines, range)
 			
 			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]

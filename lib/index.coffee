@@ -41,7 +41,7 @@ SimplyImport.scanImports = (options)->
 				.filter (validImport)-> validImport
 				.sort (hashA, hashB)-> subjectFile.orderRefs.findIndex((ref)->ref is hashA) - subjectFile.orderRefs.findIndex((ref)->ref is hashB)
 				.map (childHash, childIndex)->
-					childPath = subjectFile.importRefs[childHash].filePath
+					childPath = subjectFile.importRefs[childHash].pathAbs
 					childPath = childPath.replace opts.context+'/', '' if not opts.withContext
 
 					if opts.pathOnly
@@ -97,7 +97,7 @@ SimplyImport.scanImports = (options)->
 # 				.filter (validImport)-> validImport
 # 				.sort (hashA, hashB)-> subjectFile.orderRefs.findIndex((ref)->ref is hashA) - subjectFile.orderRefs.findIndex((ref)->ref is hashB)
 # 				.map (childHash, childIndex)->
-# 					childPath = subjectFile.importRefs[childHash].filePath
+# 					childPath = subjectFile.importRefs[childHash].pathAbs
 # 					childPath = childPath.replace opts.context+'/', '' if not opts.withContext
 
 # 					if opts.pathOnly
@@ -116,4 +116,4 @@ SimplyImport.scanImports = (options)->
 
 
 module.exports = SimplyImport
-module.exports.defaults = require('./defaultOptions')
+module.exports.defaults = require('./defaults')

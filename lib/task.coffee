@@ -46,27 +46,27 @@ class Task extends require('events')
 				@requiredGlobals[varName] = true
 		
 		@.on 'TokenizeError', (file, err)=>
-			throw formatError "#{LABELS.error} Failed to tokenize #{chalk.dim file.filePathSimple}", err
+			throw formatError "#{LABELS.error} Failed to tokenize #{chalk.dim file.path}", err
 		
 		@.on 'ASTParseError', (file, err)=>
-			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", err
+			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
 		
 		@.on 'DataParseError', (file, err)=>
-			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.filePathSimple}", err
+			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
 		
 		@.on 'ExtractError', (file, err)=>
-			throw formatError "#{LABELS.error} Extraction error in #{chalk.dim file.filePathSimple}", err
+			throw formatError "#{LABELS.error} Extraction error in #{chalk.dim file.path}", err
 		
 		@.on 'TokenError', (file, err)=>
-			throw formatError "#{LABELS.error} Bad token #{chalk.dim file.filePathSimple}", err
+			throw formatError "#{LABELS.error} Bad token #{chalk.dim file.path}", err
 		
 		@.on 'SyntaxError', (file, err)=>
 			err.message = err.annotated.lines().slice(1, -1).append('',0).join('\n')
 			Error.captureStackTrace(err)
-			throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.filePathSimple+':'+err.line+':'+err.column}", err
+			throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
 		@.on 'GeneralError', (file, err)=>
-			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.filePathSimple}", err
+			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.path}", err
 
 
 	throw: (err)->
@@ -95,7 +95,7 @@ class Task extends require('events')
 			.catch promiseBreak.end
 			.then (content)->
 				@entryFile = new File @, {
-					ID: ++@currentID
+					ID: if @options.usePaths then 'entry.js' else ++@currentID
 					isEntry: true
 					content: content
 					hash: md5(content)
@@ -104,11 +104,11 @@ class Task extends require('events')
 					suppliedPath: if @options.src then '' else @entryInput
 					context: @options.context
 					contextRel: '/'
-					filePath: @options.suppliedPath
-					filePathSimple: helpers.simplifyPath(@options.suppliedPath)
-					filePathRel: '/entry.js'
-					fileExt: @options.ext
-					fileBase: 'entry.js'
+					pathAbs: @options.suppliedPath
+					path: helpers.simplifyPath(@options.suppliedPath)
+					pathRel: 'entry.js'
+					pathExt: @options.ext
+					pathBase: 'entry.js'
 				}
 
 			.tap (file)->
@@ -119,7 +119,7 @@ class Task extends require('events')
 		pkgFile = null
 		Promise.bind(@)
 			.then ()->
-				helpers.resolveModulePath(input, importer.context, importer.filePath, importer.pkgFile)
+				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile)
 
 			.then (module)->
 				pkgFile = module.pkg
@@ -128,19 +128,19 @@ class Task extends require('events')
 			.then (input)->
 				helpers.resolveFilePath(input, @entryFile.context, pkgFile is importer.pkgFile)
 			
-			.tap (config)-> promiseBreak(@cache[config.filePath]) if @cache[config.filePath]
+			.tap (config)-> promiseBreak(@cache[config.pathAbs]) if @cache[config.pathAbs]
 			.tap (config)->
-				fs.readAsync(config.filePath).then (content)->
+				fs.readAsync(config.pathAbs).then (content)->
 					config.content = content
 					config.hash = md5(content)
 
 			.tap (config)-> promiseBreak(@cache[config.hash]) if @cache[config.hash]
 			.tap (config)->
-				config.ID = ++@currentID
+				config.ID = if @options.usePaths then config.pathRel else ++@currentID
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
 				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
-				specificOptions = if config.isExternal then extend({}, config.pkgFile.simplyimport, @options.fileSpecific) else @options.fileSpecific
+				specificOptions = if config.isExternal then extend({}, config.pkgFile.simplyimport, @options.specific) else @options.specific
 				
 				config.options = switch
 					when specificOptions[config.suppliedPath] then specificOptions[config.suppliedPath]
@@ -149,9 +149,9 @@ class Task extends require('events')
 						opts = matchBase:true
 						
 						for glob of specificOptions
-							if globMatch.isMatch(config.filePath, glob, opts) or
-								globMatch.isMatch(config.filePath, glob) or
-								globMatch.isMatch(config.filePathSimple, glob) or
+							if globMatch.isMatch(config.pathAbs, glob, opts) or
+								globMatch.isMatch(config.pathAbs, glob) or
+								globMatch.isMatch(config.path, glob) or
 								globMatch.isMatch(config.suppliedPath, glob, opts)
 									matchingGlob = glob
 
@@ -174,7 +174,6 @@ class Task extends require('events')
 			.then ()=> @scanForceInlineImports(file)
 			.then ()=> @replaceForceInlineImports(file)
 			.then file.applyAllTransforms
-			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.then file.checkSyntaxErrors
 			.then file.checkIfIsThirdPartyBundle
@@ -262,7 +261,7 @@ class Task extends require('events')
 				Promise.map statements, (statement)=>
 					statement.type = targetType or statement.target.type
 					
-					if statement.extract and statement.target.fileExt isnt 'json'
+					if statement.extract and statement.target.pathExt isnt 'json'
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
 			.then ()->
@@ -296,7 +295,6 @@ class Task extends require('events')
 		Promise.resolve(file.importStatements).bind(file)
 			.map (statement)=> @replaceForceInlineImports(statement.target)
 			.then file.replaceForceInlineImports
-			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostForceInlinement')
 
 
@@ -314,7 +312,6 @@ class Task extends require('events')
 			.map (statement)=> @replaceInlineImports(statement.target)
 			.return(null)
 			.then file.replaceInlineImports
-			.then file.saveContent
 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
 			.return(file)
 
@@ -350,7 +347,7 @@ class Task extends require('events')
 				if files.length is 1
 					return promiseBreak(@entryFile.AST)
 
-				bundle = builders.bundle(@options.umd, @requiredGlobals)
+				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader()
 				
 				files.sortBy('ID').forEach (file)->
@@ -395,11 +392,11 @@ class Task extends require('events')
 
 ### istanbul ignore next ###
 extendOptions = (suppliedOptions)->
-	options = extend({}, require('./defaultOptions'), suppliedOptions)
+	options = extend({}, require('./defaults'), suppliedOptions)
 	options.conditions = [].concat(options.conditions) if options.conditions and not Array.isArray(options.conditions)
 	options.transform = normalizeTransformOpts(options.transform) if options.transform
 	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
-	for p,specificOpts of options.fileSpecific
+	for p,specificOpts of options.specific
 		specificOpts.transform = normalizeTransformOpts(specificOpts.transform) if specificOpts.transform
 	
 	return options

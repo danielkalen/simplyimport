@@ -25,22 +25,10 @@ passedOptions =
 	'compileCoffeeChildren': args.C or args['compile-coffee-children']
 	'includePathComments': args['include-path-comments']
 
-
-
 helpers.exitWithHelpMessage() if help
 
-
-## ==========================================================================
-## Attempt to fetch the 'simplyimport' field from the CWD package.json
-## ========================================================================== 
-try
-	packageJson = fs.readFileSync(path.resolve('package.json'), encoding:'utf8')
-	passedOptions.fileSpecific = JSON.parse(packageJson).simplyimport;
-
-
-
-
-
+try # Attempt to fetch the 'simplyimport' field from the CWD package.json
+	passedOptions.specific = fs.read('package.json', 'json')['simplyimport:specific']
 
 
 
