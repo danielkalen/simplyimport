@@ -5,48 +5,47 @@ helpers = require('./')
 EXTENSIONS = require '../constants/extensions'
 fs = require 'fs-jetpack'
 
-module.exports = resolveFilePath = (input, entryContext, useDirCache)->
+module.exports = resolveFilePath = (input, entryContext, useCache)->
+	params = Path.parse(input)
+	isFile = false
+	
 	Promise.resolve()
-		.then ()->
-			extname = Path.extname(input).slice(1).toLowerCase()
+		.then ()-> # resovle provided input if it has a valid extension
+			extname = params.ext.slice(1).toLowerCase()
 			if extname and EXTENSIONS.all.includes(extname)
+				isFile = true
 				promiseBreak(input)
-			else
-				Path.parse(input)
-		
-		.then (params)->
-			helpers.getDirListing(params.dir, useDirCache).then (list)-> [params, list]
-		
-		.then ([params, dirListing])->
-			inputPathMatches = dirListing.filter (targetPath)-> targetPath.includes(params.base)
 
-			if not inputPathMatches.length
-				return promiseBreak(input)
-			else
-				exactMatch = inputPathMatches.find(params.base)
-				fileMatch = inputPathMatches.find (targetPath)->
+		.then ()->
+			helpers.getDirListing(params.dir, useCache)
+		
+		.then (dirListing)-> # if the dir has a single match then return it, otherwise find closest match
+			candidates = dirListing.filter (targetPath)-> targetPath.includes(params.base)
+
+			if candidates.length
+				exactMatch = candidates.find(params.base) # Can be dir or file i.e. if provided /path/to/module and /path/to contains 'module.js' or 'module'
+				fileMatch = candidates.find (targetPath)->
 					fileNameSplit = targetPath.replace(params.base, '').split('.')
 					return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
 
 				if fileMatch
-					promiseBreak Path.join(params.dir, fileMatch)
-				else #if exactMatch
-					return params
+					return Path.join(params.dir, fileMatch)
+				else if exactMatch
+					return exactMatch
+
+			return input
 		
-		.then (params)->
-			resolvedPath = Path.join(params.dir, params.base)
-			fs.inspectAsync(resolvedPath).then (stats)->
-				if stats.type isnt 'dir'
-					promiseBreak(resolvedPath)
-				else
-					return params
-
-		.then (params)->
-			helpers.getDirListing(Path.join(params.dir, params.base), useDirCache).then (list)-> [params, list]
-
-		.then ([params, dirListing])->
-			indexFile = dirListing.find (file)-> file.includes('index')
-			return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
+		.catch promiseBreak.end
+		.tap (resolvedPath)-> promiseBreak(resolvedPath) if isFile
+		.then (resolvedPath)->
+			Promise.resolve()
+				.then ()-> fs.inspectAsync(resolvedPath)
+				.tap (stats)-> promiseBreak(input) if not stats
+				.tap (stats)-> promiseBreak(resolvedPath) if stats.type isnt 'dir'
+				.then ()-> helpers.getDirListing(resolvedPath, useCache)
+				.then (dirListing)->
+					indexFile = dirListing.find (file)-> file.includes('index')
+					return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
 
 		.catch promiseBreak.end
 		.then (pathAbs)->

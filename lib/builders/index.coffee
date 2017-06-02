@@ -3,8 +3,14 @@ stringBuilders = require './strings'
 b = require('ast-types').builders
 
 exports.bundle = (task)->
-	body = if task.options.umd then stringBuilders.umd(task.options.umd) else "return _s$m(#{task.entryFile.IDstr})"
-	args = ['_s$m']; values = ['null']
+	args = ['require']; values = ['null']
+	body = switch
+		when task.options.umd
+			stringBuilders.umd(task.options.umd, task.entryFile.idstr)
+		when task.options.returnLoader
+			"return require"
+		else
+			"return require(#{task.entryFile.IDstr})"
 	
 	if task.requiredGlobals.global
 		args.push 'global'
@@ -41,7 +47,12 @@ exports.moduleFn = (file)->
 	
 	moduleBody.push file.AST.body...
 	body.push b.returnStatement b.memberExpression(b.identifier('module'), b.identifier('exports'))
-	return b.functionExpression null, [b.identifier('module'), b.identifier('exports')], b.blockStatement(body)
+	
+	return b.functionExpression(
+		null
+		[b.identifier('require'), b.identifier('module'), b.identifier('exports')]
+		b.blockStatement(body)
+	)
 
 
 

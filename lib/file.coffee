@@ -4,7 +4,6 @@ streamify = require 'streamify-string'
 getStream = require 'get-stream'
 Path = require 'path'
 md5 = require 'md5'
-chalk = require 'chalk'
 extend = require 'extend'
 Parser = require './external/parser'
 LinesAndColumns = require('lines-and-columns').default
@@ -24,7 +23,7 @@ class File
 		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
 		@conditionals = []
 		@requiredGlobals = Object.create(null)
-		@hasThirdPartyRequire = @isThirdPartyBundle = false
+		@isThirdPartyBundle = false
 		@pathExtOriginal = @pathExt
 		@contentOriginal = @content
 		@linesOriginal = new LinesAndColumns(@content)
@@ -36,7 +35,7 @@ class File
 				@pkgTransform = [@pkgTransform] if helpers.isValidTransformerArray(@pkgTransform)
 
 
-		return @task.cache[@pathAbs] = @task.cache[@hash] = @
+		return @task.cache[@pathAbs] = @
 
 
 	checkSyntaxErrors: ()->
@@ -59,9 +58,11 @@ class File
 			REGEX.defineCheck.test(@content) or
 			REGEX.requireCheck.test(@content)
 
-		@hasThirdPartyRequire = @isThirdPartyBundle and
-			not REGEX.requireArg.test(@content) and
-			REGEX.commonImportReal.test(@content)
+		@isThirdPartyBundle = @isThirdPartyBundle or
+			(
+				REGEX.requireArg.test(@content) and
+				REGEX.commonImportReal.test(@content)
+			)
 
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle
@@ -150,6 +151,7 @@ class File
 		throw new Error("content is undefined") if content is undefined
 		@content = content
 
+
 	saveContentMilestone: (milestone, content)->
 		@[milestone] = @saveContent(content)
 
@@ -161,6 +163,11 @@ class File
 			else 'module'
 
 		@isDataType = true if EXTENSIONS.data.includes(@pathExt)
+
+
+	postTransforms: ()->
+		@hashPostTransforms = md5(@contentPostTransforms)
+		@linesPostTransforms = new LinesAndColumns(@contentPostTransforms)
 
 
 	applyAllTransforms: (content=@content)->
@@ -257,17 +264,29 @@ class File
 	genAST: (content)->
 		content = "(#{content})" if @pathExt is 'json'
 		try
-			@AST = Parser.parse(content, range:true, source:@pathRel, sourceType:'module')
+			@AST = Parser.parse(content, range:true, loc:true, tokens:true, comment:true, source:@pathRel, sourceType:'module')
 		catch err
 			@task.emit 'ASTParseError', @, err
 
 		return content
 
 
-	adjustASTLocations: ()->
-		# lines = 
-		# require('astw')(@AST) (node)=>
-		# 	if 
+	genSourceMap: ()->
+		if @sourceMap
+			return @sourceMap
+		
+		else if @AST
+			@sourceMap = JSON.parse Parser.generate(@AST, comment:true, sourceMap:true)
+
+
+	adjustSourceMap: ()-> if @sourceMap
+		return @sourceMap is @contentOriginal is @content
+		output = require('inline-source-map')(file:@pathRel)
+		mappings = require('combine-source-map/lib/mappings-from-map')(@sourceMap)
+		currentOffset = 0
+		
+		# for mapping in mappings
+		# 	mapping
 
 
 	collectForceInlineImports: ()->
@@ -287,11 +306,10 @@ class File
 		switch
 			when tokens
 				@collectedImports = true
-				lines = new LinesAndColumns(@content)
 				
 				try
-					requires = helpers.collectRequires(tokens, lines)
-					imports = helpers.collectImports(tokens, lines)
+					requires = helpers.collectRequires(tokens, @linesPostTransforms)
+					imports = helpers.collectImports(tokens, @linesPostTransforms)
 				catch err
 					if err.name is 'TokenError'
 						@task.emit('TokenError', @, err)
@@ -302,7 +320,6 @@ class File
 
 				imports.concat(requires).forEach (statement)=>
 					targetSplit = statement.target.split('$')
-					# statement.id = md5(statement.target)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
 					statement.range[0] = tokens[statement.tokenRange[0]].range[0]
@@ -343,7 +360,7 @@ class File
 		if tokens
 			@collectedExports = true
 			try
-				statements = helpers.collectExports(tokens)
+				statements = helpers.collectExports(tokens, @linesPostTransforms)
 			catch err
 				if err.name is 'TokenError'
 					@task.emit('TokenError', @, err)
@@ -353,7 +370,6 @@ class File
 				return
 
 			statements.forEach (statement)=>
-				# statement.id = md5(statement.target)
 				statement.target = targetSplit[0]
 				statement.extract = targetSplit[1]
 				statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
@@ -371,7 +387,7 @@ class File
 
 	replaceInlineImports: (targetType='inline')->
 		content = @content
-		lines = new LinesAndColumns(content)
+		lines = @linesPostTransforms or @linesOriginal # the latter will be used when targetType==='inline-forced'
 		
 		Promise.bind(@)
 			.then ()-> @importStatements.filter (statement)-> statement.type is targetType
@@ -390,20 +406,17 @@ class File
 
 
 	replaceImportStatements: (content)->
-		lines = new LinesAndColumns(content)
-		
 		for statement in @importStatements when statement.type is 'module'
 			range = @offsetRange(statement.range)
-			# console.log statement.range, range
 			
 			replacement = do ()=>
 				if not statement.members and not statement.alias
-					replacement = "_s$m(#{statement.target.IDstr})"
+					replacement = "require(#{statement.target.IDstr})"
 					if statement.extract
 						replacement += "['#{statement.extract}']"
 				else
 					alias = statement.alias or helpers.randomVar()
-					replacement = "var #{alias} = _s$m(#{statement.target.IDstr})"
+					replacement = "var #{alias} = require(#{statement.target.IDstr})"
 
 					if statement.members
 						nonDefault = Object.exclude(statement.members, 'default')
@@ -415,7 +428,7 @@ class File
 							replacement += "\nvar #{keyAlias} = #{alias}['#{key}']"
 
 				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
-				return helpers.prepareMultilineReplacement(content, replacement, lines, range)
+				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, range)
 			
 			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
@@ -424,7 +437,6 @@ class File
 
 
 	replaceExportStatements: (content)->
-		lines = new LinesAndColumns(content)
 		for statement in @exportStatements
 			range = @offsetRange(statement.range)
 			
@@ -432,7 +444,7 @@ class File
 				replacement = ''
 				if statement.target isnt statement.source
 					alias = helpers.randomVar()
-					replacement = "var #{alias} = _s$m(#{statement.target.IDstr})"
+					replacement = "var #{alias} = require(#{statement.target.IDstr})"
 
 					if statement.members
 						for keyAlias,key of statement.members
@@ -462,7 +474,7 @@ class File
 				
 
 				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
-				return helpers.prepareMultilineReplacement(content, replacement, lines, range)
+				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, range)
 			
 			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
@@ -509,6 +521,7 @@ class File
 		delete @replacedRanges
 		delete @parsed
 		delete @options
+		delete @linesPostTransforms
 		delete @linesOriginal
 		delete @pkgTransform
 		delete @task

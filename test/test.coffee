@@ -64,6 +64,7 @@ suite "SimplyImport", ()->
 			.then ([bundleA, bundleB])->
 				assert.equal bundleA, bundleB
 
+
 	test "if passed a string instead of options object the string will be considered as the file path", ()->
 		Promise.resolve()
 			.then ()->
@@ -74,12 +75,33 @@ suite "SimplyImport", ()->
 			.then ([bundleA, bundleB])->
 				assert.equal bundleA, bundleB
 
+
 	test "if neither options.src and options.file are passed an error will be thrown", ()->
 		expect ()-> SimplyImport({})
 			.to.throw()
 
 
-	test.skip "files without exports will be imported inline", ()->
+	test "compile command will return a promise by default and a stream if passed a truthy value as 2nd arg", ()->
+		promise = SimplyImport(src:'var abc = 123')
+		stream = SimplyImport(src:'var abc = 123', true)
+		assert.instanceOf promise, Promise, 'is instance of Promise'
+		assert.instanceOf stream, (require 'stream'), 'is instance of Stream'
+
+		promiseResult = ''
+		streamResult = ''
+		promise.then (result)-> promiseResult = result
+		stream.on 'data', (chunk)-> streamResult += chunk.toString()
+		
+		Promise.resolve()
+			.then ()-> require('p-wait-for') (-> promiseResult and streamResult and true or false), 2
+			.timeout(200)
+			.then ()-> assert.equal promiseResult, streamResult
+
+
+	# test ""
+
+
+	test.only "files without exports will be imported inline", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
@@ -101,9 +123,10 @@ suite "SimplyImport", ()->
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result, context})->
-				assert.notIncludes compiled, '_s$m', "module-less bundles shouldn't have a module loader"
+				assert.notInclude compiled, 'require =', "module-less bundles shouldn't have a module loader"
 				assert.equal context.abc, 'ABC'
-				assert.equal context.ABC, 'aBc'
+				assert.equal context.ABC, 'ABC'
+				# assert.equal context.ABC, 'aBc'
 				assert.equal context.def, 'dEf'
 				assert.equal context.DEF, 'DeF'
 				assert.equal context.ghi, 'ghi'

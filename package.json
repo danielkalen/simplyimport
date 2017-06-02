@@ -73,12 +73,14 @@
     "fs-jetpack": "^0.13.3",
     "get-stream": "^3.0.0",
     "https-browserify": "0.0.1",
+    "icsify": "^0.7.0",
     "jquery-selector-cache": "^1.0.2",
     "lines-and-columns": "^1.1.6",
     "md5": "^2.1.0",
     "micromatch": "^2.3.11",
     "minimist": "^1.2.0",
     "os-browserify": "^0.2.1",
+    "p-wait-for": "^1.0.0",
     "path-browserify": "0.0.0",
     "process": "^0.11.9",
     "promise-break": "^0.1.0",
@@ -112,5 +114,6 @@
     "chai-spies": "^0.7.1",
     "mocha": "^3.1.2",
     "through2": "^2.0.3"
-  }
+  },
+  "false": {}
 }

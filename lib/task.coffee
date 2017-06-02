@@ -44,29 +44,36 @@ class Task extends require('events')
 				file.requiredGlobals[varName] = true
 			else
 				@requiredGlobals[varName] = true
+
+		@.on 'missingImport', (file, target, codeIndex)->
+			annotation = helpers.annotateErrLocation(file, codeIndex)
+			if @options.ignoreMissing
+				console.warn "#{LABELS.warn} cannot find '#{chalk.yellow target}'", annotation
+			else
+				@throw formatError "#{LABELS.error} cannot find '#{chalk.yellow target}'", helpers.blankError(annotation)
 		
 		@.on 'TokenizeError', (file, err)=>
-			throw formatError "#{LABELS.error} Failed to tokenize #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Failed to tokenize #{chalk.dim file.path}", err
 		
 		@.on 'ASTParseError', (file, err)=>
-			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
 		
 		@.on 'DataParseError', (file, err)=>
-			throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
 		
 		@.on 'ExtractError', (file, err)=>
-			throw formatError "#{LABELS.error} Extraction error in #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Extraction error in #{chalk.dim file.path}", err
 		
 		@.on 'TokenError', (file, err)=>
-			throw formatError "#{LABELS.error} Bad token #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Bad token #{chalk.dim file.path}", err
 		
 		@.on 'SyntaxError', (file, err)=>
 			err.message = err.annotated.lines().slice(1, -1).append('',0).join('\n')
 			Error.captureStackTrace(err)
-			throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
+			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
 		@.on 'GeneralError', (file, err)=>
-			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.path}", err
 
 
 	throw: (err)->
@@ -115,7 +122,7 @@ class Task extends require('events')
 				@files.push file
 
 
-	initFile: (input, importer)->
+	initFile: (input, importer, isForceInlined)->
 		pkgFile = null
 		Promise.bind(@)
 			.then ()->
@@ -130,13 +137,20 @@ class Task extends require('events')
 			
 			.tap (config)-> promiseBreak(@cache[config.pathAbs]) if @cache[config.pathAbs]
 			.tap (config)->
+				fs.existsAsync(config.pathAbs).then (exists)->
+					throw new (helpers.namedError('MissingFile', true)) if not exists
+			
+			.tap (config)->
 				fs.readAsync(config.pathAbs).then (content)->
 					config.content = content
 					config.hash = md5(content)
 
-			.tap (config)-> promiseBreak(@cache[config.hash]) if @cache[config.hash]
+			# .tap (config)-> promiseBreak(@cache[config.hash]) if @cache[config.hash]
 			.tap (config)->
-				config.ID = if @options.usePaths then config.pathRel else ++@currentID
+				config.ID =
+					if isForceInlined then 'inline-forced'
+					else if @options.usePaths then config.pathRel
+					else ++@currentID
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
 				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
@@ -178,6 +192,7 @@ class Task extends require('events')
 			.then file.checkSyntaxErrors
 			.then file.checkIfIsThirdPartyBundle
 			.then file.collectRequiredGlobals
+			.then file.postTransforms
 			.then file.determineType
 			.then file.tokenize
 			.return(file)
@@ -190,7 +205,7 @@ class Task extends require('events')
 			.tap (imports)-> @importStatements.push(imports...)
 			.map (statement)->
 				Promise.bind(@)
-					.then ()-> @initFile(statement.target, file)
+					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
 					.return(statement)
@@ -212,6 +227,10 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch name:'MissingFile', ()->
+						@emit 'missingImport', file, statement.target, statement.range[0]
+						statement.missing = true
+					
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
@@ -243,17 +262,13 @@ class Task extends require('events')
 	calcImportTree: ()->
 		Promise.bind(@)
 			.then ()->
-				@imports = @importStatements.groupBy('target.hash')
+				@imports = @importStatements.groupBy('target.pathAbs')
 
 			.then ()->
 				Object.values(@imports)
 			
 			.map (statements)->
 				statements = statements.filter (statement)-> statement.type isnt 'inline-forced'
-				statements.slice().forEach (statement)-> if statement.conditions
-					if not statement.conditions.every((condition)-> process.env[condition])
-						statement.removed = true
-						statements.remove(statement)
 
 				if statements.length > 1 or statements.some(helpers.isMixedExtStatement)
 					targetType = 'module'
@@ -266,7 +281,7 @@ class Task extends require('events')
 
 			.then ()->
 				@files.filter(isDataType:true).map (file)->
-					statements = @imports[file.hash]
+					statements = @imports[file.pathAbs]
 					someExtract = statements.some(s -> s.extract)
 					allExtract = someExtract and statements.every(s -> s.extract)
 					
@@ -282,7 +297,14 @@ class Task extends require('events')
 						file.content = "module.exports = #{file.content}"
 
 
-						
+			.then ()->
+				return if not @options.dedupe
+				dupGroups = @importStatements.groupBy('target.hashPostTransforms')
+				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
+				for group in dupGroups
+					for statement,index in group when index > 0
+						statement.target = group[0].target
+				return
 			
 			.then ()-> @imports
 
@@ -325,7 +347,10 @@ class Task extends require('events')
 			.then file.replaceExportStatements
 			.then file.saveContent
 			.then file.genAST
-			.then file.adjustASTLocations
+			.then ()-> promiseBreak() if not @options.sourceMap
+			.then file.genSourceMap
+			.then file.adjustSourceMap
+			.catch promiseBreak.end
 			.return(file)
 
 	
@@ -341,6 +366,11 @@ class Task extends require('events')
 					.unique('target')
 					.map('target')
 					.append(@entryFile, 0)
+					.sortBy('hash')
+			
+			.tap (files)->
+				unless @options.usePaths
+					files.forEach (file, index)-> file.ID = file.IDstr = index
 			
 			.map @compileFile
 			.then (files)->
@@ -393,7 +423,7 @@ class Task extends require('events')
 ### istanbul ignore next ###
 extendOptions = (suppliedOptions)->
 	options = extend({}, require('./defaults'), suppliedOptions)
-	options.conditions = [].concat(options.conditions) if options.conditions and not Array.isArray(options.conditions)
+	options.sourceMap ?= options.debug
 	options.transform = normalizeTransformOpts(options.transform) if options.transform
 	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
 	for p,specificOpts of options.specific

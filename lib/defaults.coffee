@@ -1,8 +1,16 @@
 module.exports = 
-	'usePaths': false
-	'sourceMap': false
-	'debug': false
-	'transform': []
-	'globalTransform': []
-	'specific': {}
-	'umd': ''
+	dedupe: true
+	usePaths: false
+	sourceMap: null
+	debug: false
+	ignoreGlobals: false
+	ignoreMissing: false
+	ignoreErrors: false
+	transform: []
+	globalTransform: []
+	ignoreTransform: []
+	ignoreFile: []
+	excludeFile: []
+	specific: {}
+	umd: ''
+	returnLoader: false

@@ -5,10 +5,10 @@ exports.iife = (args, values, body)-> """
 """
 
 exports.loader = ()-> """
-_s$m = (function(cache,modules){
+require = (function(cache,modules){
 	return function(r){
 		return cache[r] ? cache[r].exports
-						: ( cache[r]={exports:{}}, modules[r](cache[r], cache[r].exports) );
+						: ( require, cache[r]={exports:{}}, modules[r](cache[r], cache[r].exports) );
 	};
 })({},{});
 """
@@ -18,13 +18,13 @@ exports.globalDec = ()-> """
 	typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}
 """
 
-exports.umdResult = (name)-> """
+exports.umdResult = (name, entryID)-> """
 	if (typeof define === 'function' && define.umd) {
-		define(function(){return _s$m(0)})
+		define(function(){return require(#{entryID})})
 	} else if (typeof module === 'object' && module.exports) {
-		module.exports = _s$m(0)
+		module.exports = require(#{entryID})
 	} else {
-		return this['#{name}'] = _s$m(0)
+		return this['#{name}'] = require(#{entryID})
 	}
 """
 
