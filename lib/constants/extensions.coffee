@@ -1,5 +1,12 @@
 module.exports = extensions = {}
 
+extensions.compat = [
+	'js'
+	'css'
+	'html'
+	'json'
+]
+
 extensions.js = [
 	'js'
 	'jsx'

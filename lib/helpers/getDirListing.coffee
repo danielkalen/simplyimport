@@ -1,11 +1,10 @@
 Promise = require 'bluebird'
 fs = require 'fs-jetpack'
 helpers = require('./')
-cache = Object.create(null)
 
-module.exports = getDirListing = (dirPath, fromCache)-> Promise.resolve().then ()->
-	if fromCache and cache[dirPath]?
+module.exports = getDirListing = (dirPath, cache)-> Promise.resolve().then ()->
+	if cache?[dirPath]?
 		return cache[dirPath]
 	else
 		Promise.resolve(fs.listAsync(dirPath))
-			.tap (listing)-> cache[dirPath] = listing
+			.tap (listing)-> cache?[dirPath] = listing

@@ -5,7 +5,7 @@ helpers = require('./')
 EXTENSIONS = require '../constants/extensions'
 fs = require 'fs-jetpack'
 
-module.exports = resolveFilePath = (input, entryContext, useCache)->
+module.exports = resolveFilePath = (input, entryContext, cache)->
 	params = Path.parse(input)
 	isFile = false
 	
@@ -17,7 +17,7 @@ module.exports = resolveFilePath = (input, entryContext, useCache)->
 				promiseBreak(input)
 
 		.then ()->
-			helpers.getDirListing(params.dir, useCache)
+			helpers.getDirListing(params.dir, cache)
 		
 		.then (dirListing)-> # if the dir has a single match then return it, otherwise find closest match
 			candidates = dirListing.filter (targetPath)-> targetPath.includes(params.base)
@@ -42,7 +42,7 @@ module.exports = resolveFilePath = (input, entryContext, useCache)->
 				.then ()-> fs.inspectAsync(resolvedPath)
 				.tap (stats)-> promiseBreak(input) if not stats
 				.tap (stats)-> promiseBreak(resolvedPath) if stats.type isnt 'dir'
-				.then ()-> helpers.getDirListing(resolvedPath, useCache)
+				.then ()-> helpers.getDirListing(resolvedPath, cache)
 				.then (dirListing)->
 					indexFile = dirListing.find (file)-> file.includes('index')
 					return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')

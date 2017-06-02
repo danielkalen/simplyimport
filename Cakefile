@@ -1,11 +1,12 @@
 global.Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.CI
+Promise.config longStackTraces:true if process.env.CI 
 promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
 Path = require 'path'
-testModules = ['streamify-string', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for']
+testModules = ['browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for', 'source-map-support']
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
+process.env.SOURCE_MAPS = 1
 
 
 task 'test', ()->
@@ -58,7 +59,7 @@ task 'coverage', ()->
 
 
 installModules = ()-> new Promise (resolve, reject)->
-	install = spawn('npm', ['install', testModules...], {stdio:'inherit'})
+	install = spawn('npm', ['install', '--no-save', testModules...], {stdio:'inherit'})
 	install.on 'error', reject
 	install.on 'close', resolve
 

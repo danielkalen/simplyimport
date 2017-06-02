@@ -98,10 +98,51 @@ suite "SimplyImport", ()->
 			.then ()-> assert.equal promiseResult, streamResult
 
 
-	# test ""
+	test.only "inline imports will be wrapped in paranthesis when there is only one node in the body and when it isn't a variable declaration", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						import './a';
+						import './b';
+						importInline './c';
+						import './d';
+						import './e';
+					"""
+					'a.js': """
+						abc = 'abc'
+					"""
+					'b.js': """
+						abc = 'abc'; ABC = 'ABC'
+					"""
+					'c.js': """
+						var def = 'defaskidufh'
+					"""
+					'd.js': """
+						DEF = 'DEF'
+					"""
+					'e.js': """
+						function eee(){return 'eee'}
+					"""
+
+			.then ()-> processAndRun file:temp('main.js')
+			# .tapCatch console.log
+			.tap ()-> process.exit()
+			.then ({compiled, result, context})->
+				assert.equal context.abc, 'abc'
+				assert.equal context.ABC, 'ABC'
+				assert.equal context.def, 'def'
+				assert.equal context.ABC, 'ABC'
+				assert.typeof context.eee, 'function'
+				assert.equal context.eee(), 'eee'
+				assert.notInclude compiled, "(abc = 'abc'; ABC = 'ABC')"
+				assert.notInclude compiled, "(var def = 'def')"
+				assert.include compiled, "(abc = 'abc')"
+				assert.include compiled, "(DEF = 'DEF')"
+				assert.include compiled, "(function eee(){return 'eee'})"
 
 
-	test.only "files without exports will be imported inline", ()->
+	test "files without exports will be imported inline", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
@@ -125,8 +166,7 @@ suite "SimplyImport", ()->
 			.then ({compiled, result, context})->
 				assert.notInclude compiled, 'require =', "module-less bundles shouldn't have a module loader"
 				assert.equal context.abc, 'ABC'
-				assert.equal context.ABC, 'ABC'
-				# assert.equal context.ABC, 'aBc'
+				assert.equal context.ABC, 'aBc'
 				assert.equal context.def, 'dEf'
 				assert.equal context.DEF, 'DeF'
 				assert.equal context.ghi, 'ghi'

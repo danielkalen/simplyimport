@@ -11,6 +11,7 @@ sourcemapConvert = require 'convert-source-map'
 helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
+RANGE_ARRAYS = ['conditionals', 'inlines', 'imports', 'exports']
 
 
 class File
@@ -38,9 +39,9 @@ class File
 		return @task.cache[@pathAbs] = @
 
 
-	checkSyntaxErrors: ()->
+	checkSyntaxErrors: (content)->
 		if @pathExt is 'js'
-			content = @content.replace REGEX.es6import, (entire,prior='',meta,trailing='')->
+			content = content.replace REGEX.es6import, (entire,prior='',meta,trailing='')->
 				"#{prior}importPlaceholder()#{trailing}"
 			
 			if err = require('syntax-error')(content, @pathAbs)
@@ -263,6 +264,7 @@ class File
 
 	genAST: (content)->
 		content = "(#{content})" if @pathExt is 'json'
+		@checkSyntaxErrors(content)
 		try
 			@AST = Parser.parse(content, range:true, loc:true, tokens:true, comment:true, source:@pathRel, sourceType:'module')
 		catch err
@@ -324,6 +326,7 @@ class File
 					statement.extract = targetSplit[1]
 					statement.range[0] = tokens[statement.tokenRange[0]].range[0]
 					statement.range[1] = tokens[statement.tokenRange[1]].range[1]
+					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
 					statement.source = @
 					@importStatements.push(statement)
 
@@ -392,15 +395,24 @@ class File
 		Promise.bind(@)
 			.then ()-> @importStatements.filter (statement)-> statement.type is targetType
 			.map (statement)->
-				@replacedRanges.inlines.sortBy('0') if targetType is 'inline' # Sort needed because inline-forced imports could be before/after regular imports and could therefore mess up the ranges order
 				range = @offsetRange(statement.range)
 				
 				replacement = do ()=>
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-					return helpers.prepareMultilineReplacement(content, targetContent, lines, range)
+					targetContent = helpers.prepareMultilineReplacement(content, targetContent, lines, range)
+
+					if EXTENSIONS.compat.includes(statement.target.pathExt)
+						try
+							ast = Parser.parse(targetContent, tolerant:true, sourceType:'module')
+							targetContent = "(#{targetContent})" if ast.body.length < 2 and ast.body[0].type isnt 'VariableDeclaration'
+
+					return targetContent
 				
-				@replacedRanges.inlines.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+				# console.log statement.range, range if arguments[1] is 2
+				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
+				# console.log content if arguments[1] is 3
+				# console.log  @replacedRanges.inlines if arguments[1] is 3
 
 			.then ()-> content
 
@@ -495,14 +507,35 @@ class File
 			return if typeof result is 'object' then JSON.stringify(result) else String(result)
 
 
-	offsetRange: (range)->
-		offset = 
-		helpers.accumulateRangeOffset(range[0], @replacedRanges.conditionals) +
-		helpers.accumulateRangeOffset(range[0], @replacedRanges.inlines) +
-		helpers.accumulateRangeOffset(range[0], @replacedRanges.imports) +
-		helpers.accumulateRangeOffset(range[0], @replacedRanges.exports)
+	offsetRange: (range, targetArrays)->
+		offset = 0
+		targetArrays ?= RANGE_ARRAYS
+		for array in targetArrays
+			offset += helpers.accumulateRangeOffsetAbove(range, @replacedRanges[array])
 
 		return if not offset then range else [range[0]+offset, range[1]+offset]
+
+	deoffsetRange: (range, targetArrays)->
+		offset = 0
+		targetArrays ?= RANGE_ARRAYS
+		for array in targetArrays
+			offset += helpers.accumulateRangeOffsetAbove(range, @replacedRanges[array])
+		console.log range, offset, @replacedRanges[array] if offset
+
+		return if not offset then range else [range[0]-offset, range[1]-offset]
+
+
+	addRangeOffset: (target, range)->
+		ranges = @replacedRanges[target]
+		ranges.push(range)
+		ranges.sortBy('0')
+		insertedIndex = i = ranges.indexOf(range)
+		
+		if insertedIndex < ranges.length - 1
+			while largerRange = ranges[++i]
+				largerRange[0] += range[2]
+				largerRange[1] += range[2]
+		return
 
 
 	destroy: ()->

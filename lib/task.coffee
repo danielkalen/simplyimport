@@ -23,6 +23,7 @@ class Task extends require('events')
 		@files = []
 		@importStatements = []
 		@cache = Object.create(null)
+		@dirCache = Object.create(null)
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
@@ -133,12 +134,13 @@ class Task extends require('events')
 				return module.file
 			
 			.then (input)->
-				helpers.resolveFilePath(input, @entryFile.context, pkgFile is importer.pkgFile)
+				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile))
 			
 			.tap (config)-> promiseBreak(@cache[config.pathAbs]) if @cache[config.pathAbs]
 			.tap (config)->
 				fs.existsAsync(config.pathAbs).then (exists)->
-					throw new (helpers.namedError('MissingFile', true)) if not exists
+					# throw new (helpers.namedError('MissingFile', true)) if not exists
+					throw new Error('missing') if not exists
 			
 			.tap (config)->
 				fs.readAsync(config.pathAbs).then (content)->
@@ -227,9 +229,10 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch name:'MissingFile', ()->
+					.catch  ()->
 						@emit 'missingImport', file, statement.target, statement.range[0]
 						statement.missing = true
+					# .catch (err)-> @emit 'GeneralError', importer, err
 					
 					.return(statement)
 			
