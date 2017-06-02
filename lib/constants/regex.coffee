@@ -41,9 +41,13 @@ REGEX =
 			importInline		# import keyword
 			\s+					# whitespace after import keyword
 		)
-		(\S+?)					# filepath
+		(
+			".*?"
+				|
+			'.*?'
+		)
 		(\).*?|\s*?)			# trailing whitespace/parentheses
-	$///gm
+	///gm
 
 
 	# customImport: ///^

@@ -74,7 +74,7 @@ class Task extends require('events')
 			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
 		@.on 'GeneralError', (file, err)=>
-			@throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.path}", err
+			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.path}", err
 
 
 	throw: (err)->
@@ -139,7 +139,6 @@ class Task extends require('events')
 			.tap (config)-> promiseBreak(@cache[config.pathAbs]) if @cache[config.pathAbs]
 			.tap (config)->
 				fs.existsAsync(config.pathAbs).then (exists)->
-					# throw new (helpers.namedError('MissingFile', true)) if not exists
 					throw new Error('missing') if not exists
 			
 			.tap (config)->
@@ -147,7 +146,6 @@ class Task extends require('events')
 					config.content = content
 					config.hash = md5(content)
 
-			# .tap (config)-> promiseBreak(@cache[config.hash]) if @cache[config.hash]
 			.tap (config)->
 				config.ID =
 					if isForceInlined then 'inline-forced'
@@ -210,11 +208,15 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch message:'missing', ()->
+						@emit 'missingImport', file, statement.target, statement.range[0]
+						statement.missing = true
 					.return(statement)
 			
 			.filter (statement)-> not statement.target.scannedForceInlineImports
 			.map (statement)-> @scanForceInlineImports(statement.target)
 			.catch promiseBreak.end
+			.catch (err)-> @emit 'GeneralError', file, err
 			.return(@importStatements)
 
 
@@ -229,10 +231,9 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch  ()->
+					.catch message:'missing', ()->
 						@emit 'missingImport', file, statement.target, statement.range[0]
 						statement.missing = true
-					# .catch (err)-> @emit 'GeneralError', importer, err
 					
 					.return(statement)
 			
@@ -241,6 +242,7 @@ class Task extends require('events')
 			.filter (statement)-> not statement.target.scannedImports
 			.map (statement)-> @scanImports(statement.target, depth, currentDepth)
 			.catch promiseBreak.end
+			.catch (err)-> @emit 'GeneralError', file, err
 			.return(@importStatements)
 
 
@@ -254,10 +256,14 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch message:'missing', ()->
+						@emit 'missingImport', file, statement.target, statement.range[0]
+						statement.missing = true
 					.return(statement)
 						
 			.filter (statement)-> not statement.target.scannedExports
 			.map (statement)-> @scanExports(statement.target).then ()=> @scanImports(statement.target)
+			.catch (err)-> @emit 'GeneralError', file, err
 			.return(@importStatements)
 
 

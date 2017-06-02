@@ -404,15 +404,13 @@ class File
 					if EXTENSIONS.compat.includes(statement.target.pathExt)
 						try
 							ast = Parser.parse(targetContent, tolerant:true, sourceType:'module')
-							targetContent = "(#{targetContent})" if ast.body.length < 2 and ast.body[0].type isnt 'VariableDeclaration'
+							# console.log ast.body.length, ast.body.length < 2 and ast.body[0].type isnt 'VariableDeclaration', targetContent
+							targetContent = "(#{targetContent})" if (ast.body.length < 2) and ast.body[0].type isnt 'VariableDeclaration'
 
 					return targetContent
 				
-				# console.log statement.range, range if arguments[1] is 2
 				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
-				# console.log content if arguments[1] is 3
-				# console.log  @replacedRanges.inlines if arguments[1] is 3
 
 			.then ()-> content
 
@@ -511,7 +509,7 @@ class File
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
 		for array in targetArrays
-			offset += helpers.accumulateRangeOffsetAbove(range, @replacedRanges[array])
+			offset += helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array])
 
 		return if not offset then range else [range[0]+offset, range[1]+offset]
 
@@ -519,8 +517,7 @@ class File
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
 		for array in targetArrays
-			offset += helpers.accumulateRangeOffsetAbove(range, @replacedRanges[array])
-		console.log range, offset, @replacedRanges[array] if offset
+			offset += helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array])
 
 		return if not offset then range else [range[0]-offset, range[1]-offset]
 
