@@ -43,12 +43,14 @@ exports.moduleFn = (file)->
 			values.push file.contextRel
 		
 		moduleBody.push wrapper = Parser.parseExpr stringBuilders.iife(args, values)
-		moduleBody = wrapper.callee.object.body.body
+		moduleBody = wrapper.callee.object.expression.body.body
 	
 	moduleBody.push file.AST.body...
 	body.push b.returnStatement b.memberExpression(b.identifier('module'), b.identifier('exports'))
+	body = body.map (node)->
+		if node.type.includes('Statement') or node.type.includes('Declaration') then node else b.expressionStatement(node)
 	
-	return b.functionExpression(
+	b.functionExpression(
 		null
 		[b.identifier('require'), b.identifier('module'), b.identifier('exports')]
 		b.blockStatement(body)

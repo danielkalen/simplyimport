@@ -392,7 +392,7 @@ class Task extends require('events')
 				files.sortBy('hash').forEach (file)->
 					modules.push builders.moduleProp(file)
 
-				bundle.body[0].expression.callee.object.body.body.unshift(loader)
+				bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
 				return bundle
 
 			.catch promiseBreak.end

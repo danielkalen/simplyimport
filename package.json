@@ -42,8 +42,11 @@
   },
   "dependencies": {
     "@danielkalen/browserify-zlib": "^0.1.5",
+    "acorn": "^5.0.3",
     "assert": "^1.4.1",
     "ast-types": "^0.9.11",
+    "astravel": "^0.3.14",
+    "astring": "^1.0.2",
     "astw": "^2.2.0",
     "bluebird": "^3.4.7",
     "browser-resolve": "^1.11.2",

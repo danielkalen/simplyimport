@@ -55,7 +55,7 @@ module.exports = class TokenWalker
 		items = @nextUntil '}', 'from', 'String'
 
 		items.reduce (store, token, index)->
-			if token.type is 'Identifier' and token.value isnt 'as'
+			if token.type.label is 'name' and token.value isnt 'as'
 				if items[index-1].value is 'as'
 					store[items[index-2].value] = token.value
 				else

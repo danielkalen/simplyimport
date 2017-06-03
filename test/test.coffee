@@ -98,7 +98,7 @@ suite "SimplyImport", ()->
 			.then ()-> assert.equal promiseResult, streamResult
 
 
-	test.only "inline imports will be wrapped in paranthesis when there is only one node in the body and when it isn't a variable declaration", ()->
+	test "inline imports will be wrapped in paranthesis when there is only one node in the body and when it isn't a variable declaration", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
@@ -127,7 +127,6 @@ suite "SimplyImport", ()->
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result, context})->
-				console.log compiled
 				assert.equal context.abc, 'abc'
 				assert.equal context.ABC, 'ABC'
 				assert.equal context.def, 'def'
