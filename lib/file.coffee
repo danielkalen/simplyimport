@@ -252,7 +252,7 @@ class File
 	tokenize: ()->
 		unless EXTENSIONS.nonJS.includes(@pathExt)
 			try
-				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
+				@Tokens = Array.from Parser.tokenize(@content, range:true, sourceType:'module')
 			catch err
 				@task.emit 'TokenizeError', @, err
 			
@@ -262,11 +262,11 @@ class File
 
 
 
-	genAST: (content)->
-		content = "(#{content})" if @pathExt is 'json'
+	genAST: ()->
+		content = if @pathExt is 'json' then "(#{@content})" else @content
 		@checkSyntaxErrors(content)
 		try
-			@AST = Parser.parse(content, range:true, loc:true, tokens:true, comment:true, source:@pathRel, sourceType:'module')
+			@AST = Parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
 		catch err
 			@task.emit 'ASTParseError', @, err
 
@@ -324,8 +324,8 @@ class File
 					targetSplit = statement.target.split('$')
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
-					statement.range[0] = tokens[statement.tokenRange[0]].range[0]
-					statement.range[1] = tokens[statement.tokenRange[1]].range[1]
+					statement.range[0] = tokens[statement.tokenRange[0]].start
+					statement.range[1] = tokens[statement.tokenRange[1]].end
 					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
 					statement.source = @
 					@importStatements.push(statement)
@@ -375,7 +375,7 @@ class File
 			statements.forEach (statement)=>
 				statement.target = targetSplit[0]
 				statement.extract = targetSplit[1]
-				statement.range = [Tokens[statement.tokenRange[0]].range[0], Tokens[statement.tokenRange[1]].range[1]]
+				statement.range = [Tokens[statement.tokenRange[0]].start, Tokens[statement.tokenRange[1]].end]
 				statement.source = @
 				statement.target ?= @
 				@exportStatements.push(statement)
@@ -404,8 +404,8 @@ class File
 					if EXTENSIONS.compat.includes(statement.target.pathExt)
 						try
 							ast = Parser.parse(targetContent, tolerant:true, sourceType:'module')
-							# console.log ast.body.length, ast.body.length < 2 and ast.body[0].type isnt 'VariableDeclaration', targetContent
-							targetContent = "(#{targetContent})" if (ast.body.length < 2) and ast.body[0].type isnt 'VariableDeclaration'
+							invalidTypes = ['VariableDeclaration', 'ReturnStatement']
+							targetContent = "(#{targetContent})" if (ast.body.length < 2) and not invalidTypes.some((type)-> ast.body[0].type is type)
 
 					return targetContent
 				

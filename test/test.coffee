@@ -21,6 +21,7 @@ mocha.Runner::fail = do ()->
 	(test, err)->
 		err.stack = require('../lib/external/formatError').stack(err.stack)
 		orig.call(@, test, err)
+		setTimeout (()-> process.exit(1)), 200
 
 sample = ()-> Path.join __dirname,'samples',arguments...
 debug = ()-> Path.join __dirname,'debug',arguments...
@@ -170,6 +171,35 @@ suite "SimplyImport", ()->
 				assert.equal context.DEF, 'DeF'
 				assert.equal context.ghi, 'ghi'
 
+
+	test "files without exports won't be considered inline if they are imported more than once", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						import 'fileA.js'
+						import 'fileB.js'
+					"""
+					'fileA.js': """
+						var abcA = (function(){require('./a')})().toUpperCase()
+						var defA = (function(){require('./b')})().toLowerCase()
+					"""
+					'fileB.js': """
+						var abcB = (function(){require('./a')})().toUpperCase()
+					"""
+					'a.js': """
+						return 'aBc'
+					"""
+					'b.js': """
+						return 'dEf'
+					"""
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.include compiled, 'require =', "should have a module loader"
+				assert.equal context.abcA, 'ABC'
+				assert.equal context.defA, 'def'
+				assert.equal context.defB, 'def'
 
 
 

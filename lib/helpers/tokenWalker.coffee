@@ -1,9 +1,13 @@
 
 module.exports = class TokenWalker
+	Object.defineProperty @::, 'current',
+		get: ()-> @_current
+		set: (current)-> current.value ?= current.type.label; @_current = current
+	
 	constructor: (@tokens, @lines, @callback)->
 		@index = 0
-		@current = null
 		@results = []
+		@_current = null
 
 	prev: ()->
 		@current = @tokens[--@index]
@@ -16,7 +20,7 @@ module.exports = class TokenWalker
 		while @next().value isnt stopAt
 			pieces.push(@current)
 			
-			if @current.value is invalidValue or @current.type is invalidType
+			if @current.value is invalidValue or @current.type.label is invalidType
 				throw @newError()
 
 		return pieces
@@ -52,7 +56,7 @@ module.exports = class TokenWalker
 
 
 	storeMembers: (store)->
-		items = @nextUntil '}', 'from', 'String'
+		items = @nextUntil '}', 'from', 'string'
 
 		items.reduce (store, token, index)->
 			if token.type.label is 'name' and token.value isnt 'as'
@@ -75,7 +79,7 @@ module.exports = class TokenWalker
 				@storeMembers(output.members ?= Object.create(null))
 
 			when '['
-				output.conditions = @nextUntil(']', 'from', 'String').map('value').exclude(',')
+				output.conditions = @nextUntil(']', 'from', 'string').map('value').exclude(',')
 	
 
 	handleDefault: (output)->

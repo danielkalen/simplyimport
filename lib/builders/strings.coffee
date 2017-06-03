@@ -7,8 +7,9 @@ exports.iife = (args, values, body)-> """
 exports.loader = ()-> """
 require = (function(cache,modules){
 	return function(r){
+		if (!modules[r]) throw new Error(r+' is not a module')
 		return cache[r] ? cache[r].exports
-						: ( require, cache[r]={exports:{}}, modules[r](cache[r], cache[r].exports) );
+						: ( cache[r]={exports:{}}, cache[r].exports=modules[r](require, cache[r], cache[r].exports) );
 	};
 })({},{});
 """

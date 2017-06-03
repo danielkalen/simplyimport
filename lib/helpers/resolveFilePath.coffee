@@ -4,6 +4,7 @@ promiseBreak = require 'promise-break'
 helpers = require('./')
 EXTENSIONS = require '../constants/extensions'
 fs = require 'fs-jetpack'
+chalk = require 'chalk'
 
 module.exports = resolveFilePath = (input, entryContext, cache)->
 	params = Path.parse(input)
@@ -52,9 +53,9 @@ module.exports = resolveFilePath = (input, entryContext, cache)->
 			context = helpers.getNormalizedDirname(pathAbs)
 			contextRel = context.replace(entryContext+'/', '')
 			path = helpers.simplifyPath(pathAbs)
+			pathDebug = chalk.dim(path)
 			pathRel = pathAbs.replace(entryContext+'/', '')
 			pathExt = Path.extname(pathAbs).toLowerCase().slice(1)
 			pathExt = 'yml' if pathExt is 'yaml'
 			pathBase = Path.basename(pathAbs)
-			suppliedPath = input
-			return {pathAbs, path, pathRel, pathBase, pathExt, context, contextRel, suppliedPath}
+			return {path, pathDebug, pathAbs, pathRel, pathBase, pathExt, context, contextRel}

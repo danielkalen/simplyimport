@@ -1,8 +1,9 @@
-esprima = require 'esprima'
-escodegen = require 'escodegen'
 acorn = require 'acorn'
+acornLoose = require 'acorn/dist/acorn_loose'
 astring = require 'astring'
 extend = require 'extend'
+builders = require('ast-types').builders
+def = require('ast-types').Type.def
 acornOpts =
 	sourceType: 'module'
 	allowReturnOutsideFunction: true
@@ -14,16 +15,32 @@ astringOpts =
 	comments: true
 
 module.exports = new class Parser
-	parse: (code, opts)-> acorn.parse code, extend({}, acornOpts, opts)
+	parse: (code, opts)-> acornLoose.parse code, extend({}, acornOpts, opts)
 	parseExpr: (code, opts)-> @parse(code, opts).body[0].expression
-	# tokenize: (code, opts)-> esprima.tokenize code, opts
 	tokenize: (code, opts)-> acorn.tokenizer code, opts
 	generate: (ast, opts)-> astring.generate ast, extend({}, astringOpts, opts)
 	attachComments: (ast)-> require('escodegen').attachComments ast, ast.comments, ast.tokens
 
 
+acornLoose.parse = acornLoose.parse_dammit
 
 astring.baseGenerator.ParenthesizedExpression = (node, state)->
 	state.write '('
 	@[node.expression.type](node.expression, state)
 	state.write ')'
+
+astring.baseGenerator.Content = (node, state)->
+	state.write(node.content
+		.split '\n'
+		.map (line,index)-> if not index then line else state.indent.repeat(state.indentLevel)+line
+		.join '\n'
+	)
+
+
+def('Content')
+	.bases 'Expression'
+	.build 'content'
+	.field 'content', String
+require('ast-types').finalize()
+
+

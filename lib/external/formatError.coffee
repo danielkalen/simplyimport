@@ -5,10 +5,14 @@ stackFilter.filters.push('bluebird', 'escodegen', 'astring', 'acorn', 'esprima',
 filter = (stack, spacing)->
 	stackFilter.filter(stack, process.cwd())
 		.map (line)-> "#{spacing}#{chalk.dim line}"
+		.filter (line,index)-> if index > 0 then 1 else not line.includes('Error:')
 		.join '\n'
 
 module.exports = (prefix='', err)->
-	err = prefix if not err
+	if not err
+		err = prefix
+		prefix = ''
+	return err
 	err.message = """
 		#{module.exports.message err, prefix}
 		#{filter(err.stack, '\t')}

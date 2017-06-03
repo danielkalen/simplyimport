@@ -13,6 +13,7 @@ helpers = require './helpers'
 File = require './file'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
+debug = require('debug')('simplyimport')
 
 class Task extends require('events')
 	constructor: (options)->
@@ -54,19 +55,19 @@ class Task extends require('events')
 				@throw formatError "#{LABELS.error} cannot find '#{chalk.yellow target}'", helpers.blankError(annotation)
 		
 		@.on 'TokenizeError', (file, err)=>
-			@throw formatError "#{LABELS.error} Failed to tokenize #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Failed to tokenize #{file.pathDebug}", err
 		
 		@.on 'ASTParseError', (file, err)=>
-			@throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
 		
 		@.on 'DataParseError', (file, err)=>
-			@throw formatError "#{LABELS.error} Failed to parse #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
 		
 		@.on 'ExtractError', (file, err)=>
-			@throw formatError "#{LABELS.error} Extraction error in #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Extraction error in #{file.pathDebug}", err
 		
 		@.on 'TokenError', (file, err)=>
-			@throw formatError "#{LABELS.error} Bad token #{chalk.dim file.path}", err
+			@throw formatError "#{LABELS.error} Bad token #{file.pathDebug}", err
 		
 		@.on 'SyntaxError', (file, err)=>
 			err.message = err.annotated.lines().slice(1, -1).append('',0).join('\n')
@@ -74,7 +75,7 @@ class Task extends require('events')
 			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
 		@.on 'GeneralError', (file, err)=>
-			throw formatError "#{LABELS.error} Error while processing #{chalk.dim file.path}", err
+			throw formatError "#{LABELS.error} Error while processing #{file.pathDebug}", err
 
 
 	throw: (err)->
@@ -102,6 +103,7 @@ class Task extends require('events')
 			.then ()-> fs.readAsync(@entryInput)
 			.catch promiseBreak.end
 			.then (content)->
+				path = helpers.simplifyPath(@options.suppliedPath)
 				@entryFile = new File @, {
 					ID: if @options.usePaths then 'entry.js' else ++@currentID
 					isEntry: true
@@ -113,7 +115,8 @@ class Task extends require('events')
 					context: @options.context
 					contextRel: '/'
 					pathAbs: @options.suppliedPath
-					path: helpers.simplifyPath(@options.suppliedPath)
+					path: path
+					pathDebug: chalk.dim(path)
 					pathRel: 'entry.js'
 					pathExt: @options.ext
 					pathBase: 'entry.js'
@@ -124,8 +127,11 @@ class Task extends require('events')
 
 
 	initFile: (input, importer, isForceInlined)->
+		suppliedPath = input
 		pkgFile = null
-		Promise.bind(@)
+
+		@prevFileInit =
+		Promise.resolve(@prevFileInit).bind(@)
 			.then ()->
 				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile)
 
@@ -136,6 +142,7 @@ class Task extends require('events')
 			.then (input)->
 				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile))
 			
+			.tap (config)-> debug "creating #{config.pathDebug}"
 			.tap (config)-> promiseBreak(@cache[config.pathAbs]) if @cache[config.pathAbs]
 			.tap (config)->
 				fs.existsAsync(config.pathAbs).then (exists)->
@@ -151,6 +158,7 @@ class Task extends require('events')
 					if isForceInlined then 'inline-forced'
 					else if @options.usePaths then config.pathRel
 					else ++@currentID
+				config.suppliedPath = suppliedPath
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
 				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
@@ -174,14 +182,14 @@ class Task extends require('events')
 			
 			.then (config)->
 				new File(@, config)
-
+			.tap (config)-> debug "created #{config.pathDebug}"
 			.tap (file)->
 				@files.push file
 			
 			.catch promiseBreak.end
 
 
-	processFile: (file)-> unless file.processed
+	processFile: (file)-> if file.processed then file else
 		file.processed = true
 		Promise.bind(file)
 			.then file.collectConditionals
@@ -238,7 +246,6 @@ class Task extends require('events')
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
-			
 			.filter (statement)-> not statement.target.scannedImports
 			.map (statement)-> @scanImports(statement.target, depth, currentDepth)
 			.catch promiseBreak.end
@@ -346,17 +353,21 @@ class Task extends require('events')
 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
 			.return(file)
 
-					
+	
+	# replaceImportsExports: (file)->
+	# 	Promise.resolve(file.content).bind(file)
+	# 		.
 
 
 	compileFile: (file)->
 		Promise.resolve(file.content).bind(file)
+			.tap ()-> debug "compiling #{file.pathDebug}"
 			.then file.replaceImportStatements
 			.then file.saveContent
 			.then file.replaceExportStatements
 			.then file.saveContent
-			.then file.genAST
 			.then ()-> promiseBreak() if not @options.sourceMap
+			.then file.genAST
 			.then file.genSourceMap
 			.then file.adjustSourceMap
 			.catch promiseBreak.end
@@ -377,15 +388,13 @@ class Task extends require('events')
 					.append(@entryFile, 0)
 					.sortBy('hash')
 			
-			.tap (files)->
-				unless @options.usePaths
-					files.forEach (file, index)-> file.ID = file.IDstr = index
+			# .tap (files)->
+			# 	unless @options.usePaths
+			# 		files.forEach (file, index)-> file.ID = file.IDstr = index
 			
 			.map @compileFile
+			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1
 			.then (files)->
-				if files.length is 1
-					return promiseBreak(@entryFile.AST)
-
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader()
 				
@@ -395,8 +404,8 @@ class Task extends require('events')
 				bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
 				return bundle
 
-			.catch promiseBreak.end
 			.then (ast)-> Parser.generate(ast)
+			.catch promiseBreak.end
 			.tap ()-> setTimeout @destroy.bind(@)
 
 
