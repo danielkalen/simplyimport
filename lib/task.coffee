@@ -159,7 +159,7 @@ class Task extends require('events')
 					if isForceInlined then 'inline-forced'
 					else if @options.usePaths then config.pathRel
 					else ++@currentID
-				config.type = 'inline-forced' if isForceInlined
+				config.type = config.ID if isForceInlined
 				config.suppliedPath = suppliedPath
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
