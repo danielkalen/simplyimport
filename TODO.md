@@ -1,10 +1,11 @@
 # v4 Todo List
 [] implement ignore ranges
-[] implement importInline statements
-[] implement new conditionals system
+[x] implement importInline statements
+[x] implement new conditionals system
 [] implement source maps
-[] implement stream compiler
+[x] implement stream compiler
 [] implement cli import tree outputer
+[] implement url imports
 [] add transform-key support
 [] new cli options
 [] rewrite test suite

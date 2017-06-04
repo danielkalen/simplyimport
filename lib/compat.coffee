@@ -32,6 +32,7 @@ compile = (file, src, attachSourceMap)->
 			Promise.bind(file=task.entryFile)
 				.then ()-> task.replaceInlineImports(file, true)
 				.then file.ES6ImportsToCommonJS
+				.then file.normalizeImportPaths
 				.then file.saveContent
 				.then ()-> promiseBreak(file.content) if not attachSourceMap
 				.then file.genAST

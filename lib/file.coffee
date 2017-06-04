@@ -41,7 +41,7 @@ class File
 
 	checkSyntaxErrors: (content)->
 		if @pathExt is 'js'
-			content = content.replace REGEX.es6import, (entire,prior='',meta,trailing='')->
+			content = content.replace REGEX.es6import, (entire,prior='',meta,path,trailing='')->
 				"#{prior}importPlaceholder()#{trailing}"
 			
 			if err = require('syntax-error')(content, @pathAbs)
@@ -396,16 +396,12 @@ class File
 			.then ()-> @importStatements.filter (statement)-> statement.type is targetType
 			.map (statement)->
 				range = @offsetRange(statement.range)
-				
 				replacement = do ()=>
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-					targetContent = helpers.prepareMultilineReplacement(content, targetContent, lines, range)
+					targetContent = helpers.prepareMultilineReplacement(content, targetContent, lines, statement.range)
 
 					if EXTENSIONS.compat.includes(statement.target.pathExt)
-						try
-							ast = Parser.parse(targetContent, tolerant:true, sourceType:'module')
-							invalidTypes = ['VariableDeclaration', 'ReturnStatement']
-							targetContent = "(#{targetContent})" if (ast.body.length < 2) and not invalidTypes.some((type)-> ast.body[0].type is type)
+						targetContent = "(#{targetContent})" if content[range[1]] is '.' or content[range[1]] is '('
 
 					return targetContent
 				
@@ -417,7 +413,6 @@ class File
 
 	replaceImportStatements: (content)->
 		for statement in @importStatements when statement.type is 'module'
-			range = @offsetRange(statement.range)
 			
 			replacement = do ()=>
 				if not statement.members and not statement.alias
@@ -438,8 +433,9 @@ class File
 							replacement += "\nvar #{keyAlias} = #{alias}['#{key}']"
 
 				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
-				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, range)
+				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
+			range = @offsetRange(statement.range)
 			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -448,7 +444,6 @@ class File
 
 	replaceExportStatements: (content)->
 		for statement in @exportStatements
-			range = @offsetRange(statement.range)
 			
 			replacement = do ()=>
 				replacement = ''
@@ -484,8 +479,9 @@ class File
 				
 
 				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
-				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, range)
+				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
+			range = @offsetRange(statement.range)
 			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 

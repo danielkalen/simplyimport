@@ -118,8 +118,12 @@ REGEX =
 			\ from
 			\s*					# whitespace after members
 		)?
-		\S+?					# filepath
-		(\).*?|\s*?)			# trailing whitespace/parentheses
+		(
+			".+?"
+				|
+			'.+?'
+		)
+		(.*)			# trailing whitespace/parentheses
 	$///gm
 
 

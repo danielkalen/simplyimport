@@ -12,7 +12,7 @@ module.exports = (prefix='', err)->
 	if not err
 		err = prefix
 		prefix = ''
-	return err
+
 	err.message = """
 		#{module.exports.message err, prefix}
 		#{filter(err.stack, '\t')}

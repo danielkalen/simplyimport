@@ -99,18 +99,28 @@ suite "SimplyImport", ()->
 			.then ()-> assert.equal promiseResult, streamResult
 
 
-	test "inline imports will be wrapped in paranthesis when there is only one node in the body and when it isn't a variable declaration", ()->
+	test "inline imports will be wrapped in paranthesis when the import statement is part of a member expression", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
 					'main.js': """
-						import './a';
-						import './b';
+						this.a = require('./a');
+						this.a2 = require('./a2').toUpperCase();
+						this.a3 = (require('./a3')).toUpperCase();
+						this.b = import './b';
 						importInline './c';
-						import './d';
-						import './e';
+						this.d = importInline './d'.toLowerCase();
+						require('./e');
+						this.f = require('./f')();
+						this.f2 = import './f2'();
 					"""
 					'a.js': """
+						abc = 'abc'
+					"""
+					'a2.js': """
+						abc = 'abc'
+					"""
+					'a3.js': """
 						abc = 'abc'
 					"""
 					'b.js': """
@@ -125,6 +135,12 @@ suite "SimplyImport", ()->
 					'e.js': """
 						function eee(){return 'eee'}
 					"""
+					'f.js': """
+						function fff(){return 'fff'}
+					"""
+					'f2.js': """
+						function fff(){return 'fff'}
+					"""
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result, context})->
@@ -133,13 +149,27 @@ suite "SimplyImport", ()->
 				assert.equal context.def, 'def'
 				assert.equal context.DEF, 'DEF'
 				assert.equal context.ABC, 'ABC'
-				# assert.typeOf context.eee, 'function'
-				# assert.equal context.eee(), 'eee'
-				assert.notInclude compiled, "(abc = 'abc'; ABC = 'ABC')"
-				assert.notInclude compiled, "(var def = 'def')"
-				assert.include compiled, "(abc = 'abc')"
-				assert.include compiled, "(DEF = 'DEF')"
-				assert.include compiled, "(function eee"
+				assert.typeOf context.eee, 'function'
+				assert.equal context.eee(), 'eee'
+				assert.typeOf context.fff, 'undefined'
+				assert.equal context.a, 'abc'
+				assert.equal context.a2, 'ABC'
+				assert.equal context.a3, 'ABC'
+				assert.equal context.b, 'abc'
+				assert.equal context.d, 'def'
+				assert.equal context.f, 'fff'
+				assert.equal context.f2, 'fff'
+				assert.equal compiled, """
+					this.a = abc = 'abc';
+					this.a2 = (abc = 'abc').toUpperCase();
+					this.a3 = (abc = 'abc').toUpperCase();
+					this.b = abc = 'abc'; ABC = 'ABC';
+					var def = 'def';
+					this.d = (DEF = 'DEF').toLowerCase();
+					function eee(){return 'eee'};
+					this.f = (function fff(){return 'fff'})();
+					this.f2 = (function fff(){return 'fff'})();
+				"""
 
 
 	test "files without exports will be imported inline", ()->
@@ -172,7 +202,7 @@ suite "SimplyImport", ()->
 				assert.equal context.ghi, 'ghi'
 
 
-	test "files without exports won't be considered inline if they are imported more than once", ()->
+	test "files without exports won't be considered inline if they are imported more than once and will me modified to export their last expression", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
@@ -181,25 +211,36 @@ suite "SimplyImport", ()->
 						import 'fileB.js'
 					"""
 					'fileA.js': """
-						var abcA = (function(){require('./a')})().toUpperCase()
-						var defA = (function(){require('./b')})().toLowerCase()
+						abcA = (function(){return require('./a')})().toUpperCase()
+						defA = (function(){return require('./b')})().toLowerCase()
+						ghiA = (function(){return require('./c')})().toUpperCase()
 					"""
 					'fileB.js': """
-						var abcB = (function(){require('./a')})().toUpperCase()
+						abcB = (function(){return require('./a')})().toUpperCase()
+						ghiB = (function(){return require('./c')})().toLowerCase()
 					"""
 					'a.js': """
-						return 'aBc'
+						'aBc'
 					"""
 					'b.js': """
-						return 'dEf'
+						'dEf'
+					"""
+					'c.js': """
+						ghi = require('./ghi')
+						return ghi
+					"""
+					'ghi.js': """
+						module.exports = 'gHi'
 					"""
 
-			.then ()-> processAndRun file:temp('main.js')
+			.then ()-> processAndRun file:temp('main.js'), 'script.js', abcA:1
 			.then ({compiled, result, context})->
 				assert.include compiled, 'require =', "should have a module loader"
 				assert.equal context.abcA, 'ABC'
 				assert.equal context.defA, 'def'
-				assert.equal context.defB, 'def'
+				assert.equal context.ghiA, 'GHI'
+				assert.equal context.ghiB, 'ghi'
+				assert.equal context.ghi, 'gHi'
 
 
 

@@ -16,6 +16,7 @@ astringOpts =
 
 module.exports = new class Parser
 	parse: (code, opts)-> acornLoose.parse code, extend({}, acornOpts, opts)
+	parseStrict: (code, opts)-> acorn.parse code, extend({}, acornOpts, opts)
 	parseExpr: (code, opts)-> @parse(code, opts).body[0].expression
 	tokenize: (code, opts)-> acorn.tokenizer code, opts
 	generate: (ast, opts)-> astring.generate ast, extend({}, astringOpts, opts)

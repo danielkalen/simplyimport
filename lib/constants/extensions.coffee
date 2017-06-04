@@ -45,6 +45,11 @@ extensions.nonJS = extensions.none.concat(
 	extensions.html
 )
 
+extensions.static = extensions.none.concat(
+	extensions.css
+	extensions.html
+)
+
 extensions.all = extensions.none.concat(
 	extensions.js
 	extensions.data

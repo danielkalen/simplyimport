@@ -42,7 +42,7 @@ class Task extends require('events')
 	
 	attachListeners: ()->
 		@.on 'requiredGlobal', (file, varName)=>
-			if varName.statsWith('__')
+			if varName.startsWith('__')
 				file.requiredGlobals[varName] = true
 			else
 				@requiredGlobals[varName] = true
@@ -75,6 +75,7 @@ class Task extends require('events')
 			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
 		@.on 'GeneralError', (file, err)=>
+			throw err if err.message.startsWith(LABELS.error)
 			throw formatError "#{LABELS.error} Error while processing #{file.pathDebug}", err
 
 
@@ -295,6 +296,11 @@ class Task extends require('events')
 					if statement.extract and statement.target.pathExt isnt 'json'
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
+					if statement.type is 'module' and statement.target.type is 'inline' and not statement.target.becameModule
+						statement.target.becameModule = true
+						statement.target.content = helpers.exportLastExpression(statement.target)
+
+
 			.then ()->
 				@files.filter(isDataType:true).map (file)->
 					statements = @imports[file.pathAbs]
@@ -349,14 +355,26 @@ class Task extends require('events')
 		Promise.resolve(file.importStatements).bind(file)
 			.map (statement)=> @replaceInlineImports(statement.target)
 			.return(null)
+			.tap ()-> debug "replacing inline imports #{file.pathDebug}"
 			.then file.replaceInlineImports
 			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
 			.return(file)
 
 	
-	# replaceImportsExports: (file)->
-	# 	Promise.resolve(file.content).bind(file)
-	# 		.
+	replaceImportsExports: (file)->
+		return file if file.replacedImportsExports
+		file.replacedImportsExports = true
+		
+		Promise.resolve(file.content).bind(file)
+			.tap ()-> debug "replacing imports/exports #{file.pathDebug}"
+			.then file.replaceImportStatements
+			.then file.saveContent
+			.then file.replaceExportStatements
+			.then file.saveContent
+			.return file.importStatements
+			.filter (statement)-> statement.type isnt 'inline-forced'
+			.map (statement)=> @replaceImportsExports(statement.target)
+			.return(file)
 
 
 	compileFile: (file)->
@@ -379,6 +397,7 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then @calcImportTree
 			.return @entryFile
+			.then @replaceImportsExports
 			.then @replaceInlineImports
 			.then ()->
 				@importStatements
@@ -387,13 +406,8 @@ class Task extends require('events')
 					.map('target')
 					.append(@entryFile, 0)
 					.sortBy('hash')
-			
-			# .tap (files)->
-			# 	unless @options.usePaths
-			# 		files.forEach (file, index)-> file.ID = file.IDstr = index
-			
-			.map @compileFile
-			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1
+						
+			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1 and Object.keys(@requiredGlobals).length is 0
 			.then (files)->
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader()
