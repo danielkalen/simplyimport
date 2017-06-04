@@ -8,7 +8,7 @@ module.exports = newImportStatement = (keyword='require')->
 	tokenRange: []
 	source: null
 	target: null
-	extract: null
+	extract: undefined
 	conditions: null
 	members: null
 	alias: null

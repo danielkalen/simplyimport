@@ -31,13 +31,15 @@ temp = ()-> Path.join __dirname,'temp',arguments...
 
 processAndRun = (opts, filename='script.js', context={})->
 	SimplyImport(opts).then (compiled)->
+		debugPath = debug(filename)
+		writeToDisc = ()-> fs.writeAsync(debugPath, compiled).timeout(500)
+		
 		Promise.resolve()
 			.then ()-> (new vm.Script(compiled, {filename})).runInNewContext(context)
-			.then (result)-> {result, compiled, context}
+			.then (result)-> {result, compiled, context, writeToDisc}
 			.catch (err)->
-				debugPath = debug(filename)
-				# err.message += "\nSaved compiled result to '#{debugPath}'"
-				fs.writeAsync(debugPath, compiled).timeout(500)
+				err.message += "\nSaved compiled result to '#{debugPath}'"
+				writeToDisc
 					.catch ()-> err
 					.then ()-> throw err
 		
@@ -306,8 +308,7 @@ suite "SimplyImport", ()->
 					"""
 
 			.then ()-> processAndRun file:temp('main.js'), ignoreSyntaxErrors:true, 'script.js', abcA:1
-			.then ({compiled, result, context})->
-				# assert.include compiled, 'require =', "should have a module loader"
+			.then ({compiled, result, context, writeToDisc})->
 				assert.equal context.a, 'AaA', 'last assignment should be exported'
 				assert.equal context.abc, 'aAa'
 				assert.equal context.abc2, 'AaA'
@@ -319,7 +320,7 @@ suite "SimplyImport", ()->
 				assert.equal typeof context.e, 'object', 'object literals should be exported'
 				assert.deepEqual context.e, [1,5,19], 'object literals should be exported'
 				assert.equal typeof context.f, 'function', 'function declarations should be exported'
-				assert.equal context.f(), 'dDd', 'function declarations should be exported'
+				assert.equal context.f(), 'fFf', 'function declarations should be exported'
 				assert.equal typeof context.g, 'function', 'last declaration/assignment should be exported'
 				assert.equal context.g(), 'fFf'
 				assert.equal context.h, 13, 'last declaration/assignment should be exported'
@@ -328,7 +329,7 @@ suite "SimplyImport", ()->
 				assert.equal context.k, undefined, 'if last is empty return then nothing will be exported'
 				assert.equal context.l, 'EXPORTER', 'last expression should be exported'
 				assert.equal context.lll, 'exporter'
-				assert.equal context.m, undefined, 'nothing should be exported when nothing is available to be exported'
+				assert.deepEqual context.m, {}, 'nothing should be exported when nothing is available to be exported'
 
 
 

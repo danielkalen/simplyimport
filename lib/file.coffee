@@ -312,6 +312,7 @@ class File
 				try
 					requires = helpers.collectRequires(tokens, @linesPostTransforms)
 					imports = helpers.collectImports(tokens, @linesPostTransforms)
+					statements = imports.concat(requires)
 				catch err
 					if err.name is 'TokenError'
 						@task.emit('TokenError', @, err)
@@ -320,7 +321,7 @@ class File
 
 					return
 
-				imports.concat(requires).forEach (statement)=>
+				statements.forEach (statement)=>
 					targetSplit = statement.target.split('$')
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
@@ -356,7 +357,7 @@ class File
 					@importStatements.push(statement)
 
 
-		return @importStatements
+		return @importStatements.sortBy('range[0]')
 
 
 	collectExports: (tokens=@Tokens)->
@@ -391,7 +392,7 @@ class File
 	replaceInlineImports: (targetType='inline')->
 		content = @content
 		lines = @linesPostTransforms or @linesOriginal # the latter will be used when targetType==='inline-forced'
-		
+
 		Promise.bind(@)
 			.then ()-> @importStatements.filter (statement)-> statement.type is targetType
 			.map (statement)->
@@ -413,7 +414,7 @@ class File
 
 	replaceImportStatements: (content)->
 		for statement in @importStatements when statement.type is 'module'
-			
+
 			replacement = do ()=>
 				if not statement.members and not statement.alias
 					replacement = "require(#{statement.target.IDstr})"
