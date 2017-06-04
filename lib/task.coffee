@@ -159,6 +159,7 @@ class Task extends require('events')
 					if isForceInlined then 'inline-forced'
 					else if @options.usePaths then config.pathRel
 					else ++@currentID
+				config.type = 'inline-forced' if isForceInlined
 				config.suppliedPath = suppliedPath
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
@@ -198,7 +199,9 @@ class Task extends require('events')
 			.then ()=> @replaceForceInlineImports(file)
 			.then file.applyAllTransforms
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
+			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.checkSyntaxErrors
+			.catch promiseBreak.end
 			.then file.checkIfIsThirdPartyBundle
 			.then file.collectRequiredGlobals
 			.then file.postTransforms

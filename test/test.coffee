@@ -33,10 +33,11 @@ processAndRun = (opts, filename='script.js', context={})->
 	SimplyImport(opts).then (compiled)->
 		debugPath = debug(filename)
 		writeToDisc = ()-> fs.writeAsync(debugPath, compiled).timeout(500)
+		run = ()-> (new vm.Script(compiled, {filename})).runInNewContext(context)
 		
 		Promise.resolve()
-			.then ()-> (new vm.Script(compiled, {filename})).runInNewContext(context)
-			.then (result)-> {result, compiled, context, writeToDisc}
+			.then run
+			.then (result)-> {result, compiled, context, writeToDisc, run}
 			.catch (err)->
 				err.message += "\nSaved compiled result to '#{debugPath}'"
 				writeToDisc
@@ -331,6 +332,51 @@ suite "SimplyImport", ()->
 				assert.equal context.lll, 'exporter'
 				assert.deepEqual context.m, {}, 'nothing should be exported when nothing is available to be exported'
 
+
+	test "importInline statements would cause the contents of the import to be inlined prior to transformations & import/export collection", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'mainA.js': """
+						switch (input) {
+							case 'main':
+								output = 'main'; break;
+							import 'abc'
+							import 'def'
+							import 'ghi'
+						}
+					"""
+					'mainB.js': """
+						switch (input) {
+							case 'main':
+								output = 'main'; break;
+							importInline 'abc'
+							importInline 'def'
+							importInline 'ghi'
+						}
+					"""
+					'abc.js': """
+						case 'abc':
+							output = 'abc'; break;
+					"""
+					'def.js': """
+						case 'def':
+							output = 'def'; break;
+					"""
+					'ghi.js': """
+						case 'ghi':
+							output = 'ghi'; break;
+					"""
+
+			.then ()-> SimplyImport file:temp('mainA.js')
+			.catch ()-> 'failed as expected'
+			.then (result)-> assert.equal result, 'failed as expected'
+			.then ()-> processAndRun file:temp('mainB.js'), 'mainB.js', {input:'abc'}
+			.then ({compiled, result, context, run})->
+				assert.equal context.output, 'abc'
+				context.input = 'ghi'
+				run()
+				assert.equal context.output, 'ghi'
 
 
 

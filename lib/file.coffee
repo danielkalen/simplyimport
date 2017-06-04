@@ -18,7 +18,7 @@ class File
 	constructor: (@task, state)->
 		extend(@, state)
 		@IDstr = JSON.stringify(@ID)
-		@type = @tokens = @AST = @parsed = null
+		@tokens = @AST = @parsed = null
 		@exportStatements = []
 		@importStatements = []
 		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
