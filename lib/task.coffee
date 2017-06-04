@@ -69,7 +69,7 @@ class Task extends require('events')
 		@.on 'TokenError', (file, err)=>
 			@throw formatError "#{LABELS.error} Bad token #{file.pathDebug}", err
 		
-		@.on 'SyntaxError', (file, err)=>
+		@.on 'SyntaxError', (file, err)=> unless @options.ignoreSyntaxErrors
 			err.message = err.annotated.lines().slice(1, -1).append('',0).join('\n')
 			Error.captureStackTrace(err)
 			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err

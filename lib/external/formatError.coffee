@@ -13,6 +13,10 @@ module.exports = (prefix='', err)->
 		err = prefix
 		prefix = ''
 
+	if err.stack and err.message and err.stack.includes(err.message)
+		err.message = err.stack.slice(0, err.stack.indexOf(err.message)+err.message.length)
+		err.stack = err.stack.slice(err.message.length)
+	
 	err.message = """
 		#{module.exports.message err, prefix}
 		#{filter(err.stack, '\t')}

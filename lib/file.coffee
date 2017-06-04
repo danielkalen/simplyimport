@@ -41,8 +41,8 @@ class File
 
 	checkSyntaxErrors: (content)->
 		if @pathExt is 'js'
-			content = content.replace REGEX.es6import, (entire,prior='',meta,path,trailing='')->
-				"#{prior}importPlaceholder()#{trailing}"
+			content = content.replace REGEX.es6import, (entire,meta,path)->
+				"importPlaceholder()"
 			
 			if err = require('syntax-error')(content, @pathAbs)
 				@task.emit 'SyntaxError', @, err

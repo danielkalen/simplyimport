@@ -19,7 +19,8 @@ SimplyImport = require '../'
 mocha.Runner::fail = do ()->
 	orig = mocha.Runner::fail
 	(test, err)->
-		err.stack = require('../lib/external/formatError').stack(err.stack)
+		# err.stack = require('../lib/external/formatError').stack(err.stack)
+		err = require('../lib/external/formatError')(err)
 		orig.call(@, test, err)
 		setTimeout (()-> process.exit(1)), 200
 
@@ -35,7 +36,7 @@ processAndRun = (opts, filename='script.js', context={})->
 			.then (result)-> {result, compiled, context}
 			.catch (err)->
 				debugPath = debug(filename)
-				err.message += "\nSaved compiled result to '#{debugPath}'"
+				# err.message += "\nSaved compiled result to '#{debugPath}'"
 				fs.writeAsync(debugPath, compiled).timeout(500)
 					.catch ()-> err
 					.then ()-> throw err
@@ -202,7 +203,7 @@ suite "SimplyImport", ()->
 				assert.equal context.ghi, 'ghi'
 
 
-	test "files without exports won't be considered inline if they are imported more than once and will me modified to export their last expression", ()->
+	test "files without exports won't be considered inline if they are imported more than once", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
@@ -241,6 +242,93 @@ suite "SimplyImport", ()->
 				assert.equal context.ghiA, 'GHI'
 				assert.equal context.ghiB, 'ghi'
 				assert.equal context.ghi, 'gHi'
+
+
+	test "inline imports turned into module exports will me modified to export their last expression", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						a = import 'a.js' || import 'a.js'
+						b = require('b.js') || require('b.js')
+						c = import 'c.js' || import 'c.js'
+						d = require('d.js') || require('d.js')
+						e = import 'e.js' || import 'e.js'
+						f = import 'f.js' || import 'f.js'
+						g = import 'g.js' || import 'g.js'
+						h = import 'h.js' || import 'h.js'
+						i = import 'i.js' || import 'i.js'
+						j = import 'j.js' || import 'j.js'
+						k = import 'k.js' || import 'k.js'
+						lll = 'exporter'
+						l = import 'l.js' || import 'l.js'
+						m = import 'm.js' || import 'm.js'
+					"""
+					'a.js': """
+						abc = 'aAa'
+						abc2 = 'AaA'
+					"""
+					'b.js': """var def = 'bBb'"""
+					'c.js': """'cCc'"""
+					'd.js': """function(){return 'dDd'}"""
+					'e.js': """[1,5,19]"""
+					'f.js': """function fff(){return 'fFf'}"""
+					'g.js': """
+						var ggg = 'gGg', gGg =12;
+						function fff(){return 'fFf'}
+						if (0) {throw new Error} else {null}
+					"""
+					'h.js': """
+						function fff(){return 'fFf'}
+						var hhh = 'hHh', hHh =13;
+						if (0) {throw new Error} else {null}
+					"""
+					'i.js': """
+						function fff(){return 'fFf'}
+						var iii = 'iIi', iIi =13;
+						iiii = 94
+						if (0) {throw new Error} else {null}
+					"""
+					'j.js': """
+						jjj = 95
+						if (0) {throw new Error} else {null}
+						return jjj
+					"""
+					'k.js': """
+						kkk = 123
+						return
+					"""
+					'l.js': """
+						lll.toUpperCase()
+					"""
+					'm.js': """
+						if (0) {throw new Error}
+					"""
+
+			.then ()-> processAndRun file:temp('main.js'), ignoreSyntaxErrors:true, 'script.js', abcA:1
+			.then ({compiled, result, context})->
+				# assert.include compiled, 'require =', "should have a module loader"
+				assert.equal context.a, 'AaA', 'last assignment should be exported'
+				assert.equal context.abc, 'aAa'
+				assert.equal context.abc2, 'AaA'
+				assert.equal context.b, 'bBb', 'last declaration should be exported'
+				assert.equal context.def, undefined
+				assert.equal context.c, 'cCc', 'literals should be exported'
+				assert.equal typeof context.d, 'function', 'function expressions should be exported'
+				assert.equal context.d(), 'dDd', 'function expressions should be exported'
+				assert.equal typeof context.e, 'object', 'object literals should be exported'
+				assert.deepEqual context.e, [1,5,19], 'object literals should be exported'
+				assert.equal typeof context.f, 'function', 'function declarations should be exported'
+				assert.equal context.f(), 'dDd', 'function declarations should be exported'
+				assert.equal typeof context.g, 'function', 'last declaration/assignment should be exported'
+				assert.equal context.g(), 'fFf'
+				assert.equal context.h, 13, 'last declaration/assignment should be exported'
+				assert.equal context.i, 94, 'last declaration/assignment should be exported'
+				assert.equal context.j, 95, 'if last is return it should be modified to export the return argument'
+				assert.equal context.k, undefined, 'if last is empty return then nothing will be exported'
+				assert.equal context.l, 'EXPORTER', 'last expression should be exported'
+				assert.equal context.lll, 'exporter'
+				assert.equal context.m, undefined, 'nothing should be exported when nothing is available to be exported'
 
 
 

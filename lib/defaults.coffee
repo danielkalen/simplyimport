@@ -6,6 +6,7 @@ module.exports =
 	ignoreGlobals: false
 	ignoreMissing: false
 	ignoreErrors: false
+	ignoreSyntaxErrors: false
 	transform: []
 	globalTransform: []
 	ignoreTransform: []

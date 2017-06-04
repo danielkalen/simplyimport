@@ -22,6 +22,7 @@ module.exports = exportLastExpression = (file)->
 				return "#{file.content}\nmodule.exports = #{last.id.name}"
 
 			when 'ReturnStatement'
+				return file.content if not last.argument
 				return file.content.insert 'module.exports = ', last.argument.start
 
 			else

@@ -50,30 +50,6 @@ REGEX =
 	///gm
 
 
-	# customImport: ///^
-	# 	(?:
-	# 		.*					# prior content
-	# 		[\ \t\r=]+			# prior space (excluding new line)
-	# 		\W?					# no letters
-	# 			|				# or if above aren't present
-	# 		\W?					# no letters
-	# 	)
-	# 	(
-	# 		import					# import keyword
-	# 		\s+						# whitespace after import keyword
-	# 	)
-	# 	(?:\[(.+)\])?			# conditionals
-	# 	(
-	# 		\s*						# whitespace after conditional
-	# 	)
-	# 	(?!
-	# 		\{.+\}
-	# 			|
-	# 		\ from
-	# 	)
-	# 	(\S+?)					# filepath
-	# 	(\).*?|\s*?)			# trailing whitespace/parentheses
-	# $///gm
 
 	# es6import: ///
 	# 	(
@@ -100,9 +76,7 @@ REGEX =
 	# $///gm
 
 	es6import: ///
-		(
-			.*?					# prior content
-		)
+		\b
 		import					# import keyword
 		\s+						# whitespace after import keyword
 		(
@@ -123,8 +97,7 @@ REGEX =
 				|
 			'.+?'
 		)
-		(.*)			# trailing whitespace/parentheses
-	$///gm
+	///g
 
 
 	pugImport: ///^
