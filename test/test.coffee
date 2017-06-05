@@ -640,21 +640,47 @@ suite "SimplyImport", ()->
 			.tapCatch (err)-> helpers.intercept.stop()
 
 
-	test.skip "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
+	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
-					'main.js': """
+					'nested/main.js': """
 						abc = import 'abc'
-						def = import 'def'
-						ghi = importInline 'ghi'
+						ghi = importInline 'ghi/file.js'
+						def = require("def/nested")
+					"""
+					'node_modules/abc/index.js': """
+						module.exports = 'abc123'
+					"""
+					'node_modules/def/nested/index.js': """
+						module.exports = 'def456'
+					"""
+					'node_modules/ghi/file.js': """
+						theGhi = 'ghi789'
 					"""
 
-			.then ()-> processAndRun file:temp('main.js'), ignoreMissing:true
-			.then ({context})->
-				assert.deepEqual context.abc, {}
-				assert.deepEqual context.def, {}
-				assert.deepEqual context.ghi, {}
+
+			.then ()->
+				Promise.all [
+					processAndRun file:temp('nested/main.js')
+					processAndRun file:temp('nested/main.js'),usePaths:true
+				]
+			.spread (bundleA, bundleB)->
+				assert.notEqual bundleA.compiled, bundleB.compiled
+				assert.include bundleA.compiled, '0: function (require'
+				assert.notInclude bundleB.compiled, '0: function (require'
+				assert.notInclude bundleA.compiled, '"entry.js": function (require'
+				assert.include bundleB.compiled, '"entry.js": function (require'
+				# assert.match bundleA.compiled, /\d\: function\(require/
+				# assert.notMatch bundleB.compiled, /\d\: function\(require/
+				# assert.notMatch bundleA.compiled, /'[\w\.\/]+'\: function\(require/
+				# assert.match bundleB.compiled, /'[\w\.\/]+'\: function\(require/
+
+				context = bundleA.context
+				assert.equal context.abc, 'abc123'
+				assert.equal context.def, 'def456'
+				assert.equal context.ghi, 'ghi789'
+				assert.equal context.theGhi, 'ghi789'
 
 
 	test.skip "es6 exports will be transpiled to commonJS exports", ()->
