@@ -673,11 +673,6 @@ suite "SimplyImport", ()->
 				assert.include bundleB.compiled, '"entry.js": function (require'
 				assert.include bundleB.compiled, '"../node_modules/abc/index.js": function (require'
 				assert.include bundleB.compiled, '"../node_modules/def/nested/index.js": function (require'
-				assert.include bundleB.compiled, '"../node_modules/ghi/file.js": function (require'
-				# assert.match bundleA.compiled, /\d\: function\(require/
-				# assert.notMatch bundleB.compiled, /\d\: function\(require/
-				# assert.notMatch bundleA.compiled, /'[\w\.\/]+'\: function\(require/
-				# assert.match bundleB.compiled, /'[\w\.\/]+'\: function\(require/
 
 				context = bundleA.context
 				assert.equal context.abc, 'abc123'
