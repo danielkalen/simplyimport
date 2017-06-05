@@ -1,6 +1,6 @@
 chalk = require 'chalk'
 stackFilter = require 'stack-filter'
-stackFilter.filters.push('bluebird', 'escodegen', 'astring', 'acorn', 'esprima', 'mocha', 'timers', 'events')
+stackFilter.filters.push('bluebird', 'fs-jetpack', 'astring', 'acorn', 'mocha', 'timers', 'events')
 
 filter = (stack, spacing)->
 	stackFilter.filter(stack, process.cwd())

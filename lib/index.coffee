@@ -18,7 +18,6 @@ SimplyImport.compile = (options, returnStream)->
 
 	taskPromise = 
 	Promise.bind(task)
-		.then task.resolveEntryPackage
 		.then task.initEntryFile
 		.then task.processFile
 		.then task.scanImports
@@ -40,7 +39,6 @@ SimplyImport.scan = (options)->
 	task = new Task(options)
 
 	Promise.bind(task)
-		.then task.resolveEntryPackage
 		.then task.initEntryFile
 		.then task.processFile
 		.then ()-> task.scanImports(task.entryFile, options.depth)

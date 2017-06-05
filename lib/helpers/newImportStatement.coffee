@@ -9,6 +9,5 @@ module.exports = newImportStatement = (keyword='require')->
 	source: null
 	target: null
 	extract: undefined
-	conditions: null
 	members: null
 	alias: null

@@ -5,6 +5,7 @@ helpers = require('./')
 EXTENSIONS = require '../constants/extensions'
 fs = require 'fs-jetpack'
 chalk = require 'chalk'
+debug = require('debug')('simplyimport:fs')
 
 module.exports = resolveFilePath = (input, entryContext, cache)->
 	params = Path.parse(input)
@@ -17,6 +18,7 @@ module.exports = resolveFilePath = (input, entryContext, cache)->
 				isFile = true
 				promiseBreak(input)
 
+		.tap ()-> debug "attempting to resolve extension-less path #{chalk.dim input}"
 		.then ()->
 			helpers.getDirListing(params.dir, cache)
 		
@@ -32,21 +34,26 @@ module.exports = resolveFilePath = (input, entryContext, cache)->
 				if fileMatch
 					return Path.join(params.dir, fileMatch)
 				else if exactMatch
-					return exactMatch
+					return Path.join(params.dir, exactMatch)
 
 			return input
 		
+		.tap (resolved)-> debug "best match is #{chalk.dim resolved}"
 		.catch promiseBreak.end
+		.tap (resolvedPath)-> debug "resolving #{chalk.dim resolvedPath}", isFile: if isFile then 'yes' else 'undecided'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if isFile
 		.then (resolvedPath)->
 			Promise.resolve()
 				.then ()-> fs.inspectAsync(resolvedPath)
 				.tap (stats)-> promiseBreak(input) if not stats
+				.tapCatch ()-> debug "no path stats available for #{chalk.dim resolvedPath}"
 				.tap (stats)-> promiseBreak(resolvedPath) if stats.type isnt 'dir'
+				.tap (stats)-> debug "scanning dir #{chalk.dim resolvedPath}"
 				.then ()-> helpers.getDirListing(resolvedPath, cache)
 				.then (dirListing)->
 					indexFile = dirListing.find (file)-> file.includes('index')
 					return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
+				.tap (resolvedPath)-> debug "using index file #{chalk.dim resolvedPath}"
 
 		.catch promiseBreak.end
 		.then (pathAbs)->

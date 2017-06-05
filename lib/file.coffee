@@ -486,6 +486,7 @@ class File
 			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
+		content += "\nexports.__esModule=true;" if @exportStatements.length
 		return content
 
 

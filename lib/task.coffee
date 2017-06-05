@@ -6,7 +6,6 @@ fs = require 'fs-jetpack'
 globMatch = require 'micromatch'
 chalk = require 'chalk'
 extend = require 'extend'
-findPkgJson = require 'read-pkg-up'
 formatError = require './external/formatError'
 Parser = require './external/parser'
 helpers = require './helpers'
@@ -14,6 +13,7 @@ File = require './file'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 debug = require('debug')('simplyimport')
+EMPTY_STUB = Path.join __dirname,'..','empty.js'
 
 class Task extends require('events')
 	constructor: (options)->
@@ -83,23 +83,19 @@ class Task extends require('events')
 		throw err unless @options.ignoreErrors
 
 
-	resolveEntryPackage: ()->
-		### istanbul ignore next ###
+	handleMissingFile: (file, statement)->
+		@emit 'missingImport', file, statement.target, statement.range[0]
+
 		Promise.bind(@)
-			.then ()-> findPkgJson(normalize:false, cwd:@options.context)
-			.then (result)->
-				helpers.resolvePackagePaths(result.pkg, result.path)
-				@options.pkgFile = pkgFile = result.pkg
-				
-				unless @options.src
-					@entryInput = pkgFile.browser[@entryInput] if typeof pkgFile.browser is 'object' and pkgFile.browser[@entryInput]
-
-			.catch ()->
-
+			.then ()-> @initFile EMPTY_STUB, file, false, false
+			.then (emptyFile)->
+				statement.target = emptyFile
+				statement.extract = undefined
 
 
 	initEntryFile: ()->
 		Promise.bind(@)
+			.then ()-> helpers.resolveEntryPackage(@)
 			.then ()-> promiseBreak(@entryInput) if @options.src
 			.then ()-> fs.readAsync(@entryInput)
 			.catch promiseBreak.end
@@ -127,12 +123,12 @@ class Task extends require('events')
 				@files.push file
 
 
-	initFile: (input, importer, isForceInlined)->
+	initFile: (input, importer, isForceInlined, prev=@prevFileInit)->
 		suppliedPath = input
 		pkgFile = null
 
 		@prevFileInit =
-		Promise.resolve(@prevFileInit).bind(@)
+		Promise.resolve(prev).bind(@)
 			.then ()->
 				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile)
 
@@ -144,7 +140,11 @@ class Task extends require('events')
 				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile))
 			
 			.tap (config)-> debug "creating #{config.pathDebug}"
-			.tap (config)-> promiseBreak(@cache[config.pathAbs]) if @cache[config.pathAbs]
+			.tap (config)->
+				if @cache[config.pathAbs]
+					debug "using cached #{config.pathDebug}"
+					promiseBreak(@cache[config.pathAbs])
+
 			.tap (config)->
 				fs.existsAsync(config.pathAbs).then (exists)->
 					throw new Error('missing') if not exists
@@ -220,9 +220,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'missing', ()->
-						@emit 'missingImport', file, statement.target, statement.range[0]
-						statement.missing = true
+					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
 			.filter (statement)-> not statement.target.scannedForceInlineImports
@@ -243,10 +241,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'missing', ()->
-						@emit 'missingImport', file, statement.target, statement.range[0]
-						statement.missing = true
-					
+					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
@@ -267,9 +262,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'missing', ()->
-						@emit 'missingImport', file, statement.target, statement.range[0]
-						statement.missing = true
+					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 						
 			.filter (statement)-> not statement.target.scannedExports
@@ -305,10 +298,10 @@ class Task extends require('events')
 
 
 			.then ()->
-				@files.filter(isDataType:true).map (file)->
+				@files.filter(isDataType:true).map (file)=>
 					statements = @imports[file.pathAbs]
-					someExtract = statements.some(s -> s.extract)
-					allExtract = someExtract and statements.every(s -> s.extract)
+					someExtract = statements.some((s)-> s.extract)
+					allExtract = someExtract and statements.every((s)-> s.extract)
 					
 					if statements.length > 1
 						if allExtract

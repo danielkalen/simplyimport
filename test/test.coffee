@@ -40,7 +40,7 @@ processAndRun = (opts, filename='script.js', context={})->
 			.then (result)-> {result, compiled, context, writeToDisc, run}
 			.catch (err)->
 				err.message += "\nSaved compiled result to '#{debugPath}'"
-				writeToDisc
+				writeToDisc()
 					.catch ()-> err
 					.then ()-> throw err
 		
@@ -366,6 +366,306 @@ suite "SimplyImport", ()->
 					'ghi.js': """
 						case 'ghi':
 							output = 'ghi'; break;
+					"""
+
+			.then ()-> SimplyImport file:temp('mainA.js')
+			.catch ()-> 'failed as expected'
+			.then (result)-> assert.equal result, 'failed as expected'
+			.then ()-> processAndRun file:temp('mainB.js'), 'mainB.js', {input:'abc'}
+			.then ({compiled, result, context, run})->
+				assert.equal context.output, 'abc'
+				context.input = 'ghi'
+				run()
+				assert.equal context.output, 'ghi'
+	
+
+	test "importInline statements will not be turned into separate modules if imported more than once", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'mainA.js': """
+						abc = import './abc'
+						def = import './abc'
+						import './ghi'
+						ghi = import './ghi'
+					"""
+					'mainB.js': """
+						abc = importInline './abc'
+						def = importInline './abc'
+						importInline './ghi'
+						ghi = importInline './ghi'
+					"""
+					'abc.js': """
+						'abc123'
+					"""
+					'ghi.js': """
+						theGhi = 'ghi789'
+					"""
+
+			.then ()->
+				Promise.all [
+					processAndRun file:temp('mainA.js')
+					processAndRun file:temp('mainB.js')
+				]
+			.spread (bundleA, bundleB)->
+				assert.notEqual bundleA.compiled, bundleB.compiled
+				assert.include bundleA.compiled, 'require ='
+				assert.notInclude bundleB.compiled, 'require ='
+				assert.deepEqual bundleA.context, bundleB.context
+
+				context = bundleB.context
+				assert.equal context.abc, 'abc123'
+				assert.equal context.def, 'abc123'
+				assert.equal context.ghi, 'ghi789'
+				assert.equal context.theGhi, 'ghi789'
+	
+
+	test "an import path can be extension-less", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						a = import './aaa'
+						a2 = import './aaa.js'
+						b = require('./bbb')
+						c = import './ccc'
+					"""
+					'aaa.js': """
+						module.exports = 'abc123'
+					"""
+					'bbb.nonjs': """
+						module.exports = 'def456'
+					"""
+					'ccc.json': """
+						{"a":1, "b":2}
+					"""
+
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.a, 'abc123'
+				assert.equal context.a2, 'abc123'
+				assert.equal context.b, 'def456'
+				assert.deepEqual context.c, {a:1,b:2}
+	
+	
+	test "if the provided import path matches a directory it will be searched for an index file", ()->
+		Promise.resolve()
+			.then ()-> fs.dirAsync(temp(), empty:true)
+			.then ()->
+				helpers.lib
+					'main.js': """
+						a = import './a'
+						b = require('./b')
+						c = import './c'
+					"""
+					'a/index.js': """
+						module.exports = 'abc123'
+					"""
+					'b/_index.nonjs': """
+						module.exports = 'def456'
+					"""
+					'c/index.json': """
+						{"a":1, "b":2}
+					"""
+					'c/distraction.json': """
+						{"a":2, "b":4}
+					"""
+
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.a, 'abc123'
+				assert.equal context.b, 'def456'
+				assert.deepEqual context.c, {a:1,b:2}
+	
+	
+	test "extension-less import paths that match a directory and a file will have the file take precedence", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						a = import './abc'
+						b = require('./def')
+						c = importInline './ghi'
+					"""
+					'abc.js': """
+						module.exports = 'ABC123'
+					"""
+					'abc/index.js': """
+						module.exports = 'abc123'
+					"""
+					'def.nonjs': """
+						module.exports = 'DEF456'
+					"""
+					'def/index.js': """
+						module.exports = 'def456'
+					"""
+					'ghi.other.json': """
+						{"a":1, "b":2}
+					"""
+					'ghi/__index.json': """
+						{"a":2, "b":4}
+					"""
+
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.a, 'ABC123'
+				assert.equal context.b, 'DEF456'
+				assert.deepEqual context.c, {a:2,b:4}
+	
+	
+	test "extension-less import paths that match a js file and a non-js file will have the js take precedence", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						a = import './abc'
+						b = require('./abc')
+						c = importInline 'abc'
+					"""
+					'abc.js': """
+						module.exports = 'ABC123'
+					"""
+					'abc.json': """
+						{"a":1, "b":2}
+					"""
+
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.a, 'ABC123'
+				assert.equal context.b, 'ABC123'
+				assert.equal context.c, 'ABC123'
+	
+
+	test "import paths not starting with '.' or '/' will be attempted to load from node_modules", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						abc = import 'abc'
+						ghi = importInline 'ghi/file.js'
+						def = require("def/nested")
+					"""
+					'node_modules/abc/index.js': """
+						module.exports = 'abc123'
+					"""
+					'node_modules/def/nested/index.js': """
+						module.exports = 'def456'
+					"""
+					'node_modules/ghi/file.js': """
+						theGhi = 'ghi789'
+					"""
+
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.abc, 'abc123'
+				assert.equal context.def, 'def456'
+				assert.equal context.ghi, 'ghi789'
+				assert.equal context.theGhi, 'ghi789'
+	
+
+	test "if a node_modules-compatible path isn't matched in node_modules it will be treated as a local path", ()->
+		Promise.resolve()
+			.then ()-> fs.dirAsync(temp(), empty:true)
+			.then ()->
+				helpers.lib
+					'main.js': """
+						abc = import 'abc'
+						ghi = importInline 'ghi/file'
+						def = require("def")
+					"""
+					'abc.js': """
+						module.exports = 'abc123'
+					"""
+					'node_modules/def/nested/index.js': """
+						module.exports = 'DEF456'
+					"""
+					'def/index.js': """
+						module.exports = 'def456'
+					"""
+					'ghi/file.js': """
+						theGhi = 'ghi789'
+					"""
+
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.abc, 'abc123'
+				assert.equal context.def, 'def456'
+				assert.equal context.ghi, 'ghi789'
+				assert.equal context.theGhi, 'ghi789'
+
+
+	test "missing files will cause an error to be thrown", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						abc = import 'kkk'
+						def = import 'jjj'
+					"""
+
+			.then ()-> processAndRun file:temp('main.js')
+			.catch (err)-> 'failed as expected'
+			.then (result)-> assert.equal result, 'failed as expected'
+
+
+	test "options.ignoreMissing will surpress missing file errors and will cause them to be replaced with an empty stub", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.intercept.start('stderr')
+				helpers.lib
+					'main.js': """
+						abc = import 'kkk'
+						def = import 'jjj'
+						ghi = importInline 'ggg'
+					"""
+
+			.then ()-> processAndRun file:temp('main.js'), ignoreMissing:true
+			.then ({context, compiled})->
+				stderr = helpers.intercept.stop()
+				assert.deepEqual context.abc, {}
+				assert.deepEqual context.def, {}
+				assert.deepEqual context.ghi, {}
+				assert.include stderr, 'WARN'
+				assert.include stderr, 'cannot find'
+				assert.include stderr, 'kkk'
+				assert.include stderr, 'jjj'
+				assert.include stderr, 'ggg'
+
+			.tapCatch (err)-> helpers.intercept.stop()
+
+
+	test.skip "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						abc = import 'abc'
+						def = import 'def'
+						ghi = importInline 'ghi'
+					"""
+
+			.then ()-> processAndRun file:temp('main.js'), ignoreMissing:true
+			.then ({context})->
+				assert.deepEqual context.abc, {}
+				assert.deepEqual context.def, {}
+				assert.deepEqual context.ghi, {}
+
+
+	test.skip "es6 exports will be transpiled to commonJS exports", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						import 'a';
+					"""
+					'a.js': """
+						case 'abc':
 					"""
 
 			.then ()-> SimplyImport file:temp('mainA.js')

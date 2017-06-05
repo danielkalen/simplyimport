@@ -13,5 +13,6 @@ module.exports =
 	ignoreFile: []
 	excludeFile: []
 	specific: {}
+	target: 'browser'
 	umd: ''
 	returnLoader: false

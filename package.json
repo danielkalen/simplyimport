@@ -48,7 +48,7 @@
     "astravel": "^0.3.14",
     "astring": "^1.0.2",
     "astw": "^2.2.0",
-    "bluebird": "^3.4.7",
+    "bluebird": "^3.5.0",
     "browser-resolve": "^1.11.2",
     "browserify": "^14.4.0",
     "browserify-zlib": "^0.1.4",
