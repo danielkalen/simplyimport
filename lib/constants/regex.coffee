@@ -9,6 +9,7 @@ REGEX =
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
 	initialWhitespace: /^[ \t]+/
+	decKeyword: /var|let|const/
 	requireArg: /\brequire[,\)]/
 	processRequire: /\brequire[\(\s]['"]process['"]\)?/
 	processDec: /\bprocess\s?=\s?/
@@ -21,7 +22,8 @@ REGEX =
 	vars:
 		global: /\bglobal\b/
 		exports: /\bexports\b/
-		process: /\bprocess\./
+		# process: /\bprocess\./
+		process: /\bprocess\b/
 		__dirname: /\b\_\_dirname\b/
 		__filename: /\b\_\_filename\b/
 		# require: /\brequire[\(\s]/
@@ -163,9 +165,9 @@ REGEX =
 			\[ 											# property string-notation access
 				|
 			[=\.] 										# property dot-notation access
-		)
+		)?
 		(.*) 											# trailing content
-	$///
+	$///m
 
 	commonImport: ///^
 		\b

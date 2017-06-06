@@ -16,7 +16,7 @@ require = (function(cache,modules){
 
 
 exports.globalDec = ()-> """
-	typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {}
+	typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : this
 """
 
 exports.umdResult = (name, entryID)-> """

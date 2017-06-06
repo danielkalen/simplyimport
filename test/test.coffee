@@ -681,26 +681,252 @@ suite "SimplyImport", ()->
 				assert.equal context.theGhi, 'ghi789'
 
 
-	test.skip "es6 exports will be transpiled to commonJS exports", ()->
+	test.only "es6 exports will be transpiled to commonJS exports", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
 					'main.js': """
-						import 'a';
+						aaa = import 'a'
+						exports.a = aaa
+						import * as bbb from 'b'
+						exports.b = bbb
+						import ccc from 'c'
+						exports.c1 = ccc
+						import {ccc} from 'c'
+						exports.c2 = ccc
+						import {abc} from 'd'
+						exports.d = abc
+						import {abc as ABC, def, ghi as GHI} from 'e'
+						exports.e = {ABC:ABC, def:def, GHI:GHI}
+						import ggg, * as GGG from 'g'
+						exports.g = {ggg:ggg, GGG:GGG}
+						import hhh, {hhh as HHH, h2, h1} from 'h'
+						exports.h1 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
+						import hhh, {hhh as HHH, h2, h1} from 'h2'
+						exports.h2 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
+						import * as fff from 'f'
+						exports.f = fff
 					"""
 					'a.js': """
-						case 'abc':
+						export default abc = 123
+						export let def = 456
+						module.exports.DEF = def
+						var jkl = 'jkl'
+						var JKL = 'JKL'
+						export {ghi, jkl as JKL}
+					"""
+					'b.js': """
+						export default function abc(a,b){return a+b}
+						export {abc as ABC}
+						module.exports.AAA = abc
+						var JKL = 'JKL'
+						export const JKL, jkl = 'jKl', def= JKL
+					"""
+					'c.js': """
+						export default function (a,b){return a+b}
+						export function ccc(a,b) {return a-b}
+					"""
+					'd.js': """
+						export default var abc = 'abc'
+						export {abc}
+						exports.def = 456
+					"""
+					'e.js': """
+						export default var abc = 'abc'
+						var ABC = 'ABC', def = 'dEf', DEF = 'DEF', ghi = 'ghi', GHI = 'GHI'
+						export {abc, def, ghi}
+						exports.def = exports.def.toLowerCase()
+					"""
+					'g.js': """
+						export default false || 'maybe'
+						var ABC = 'ABC', def = 'dEf', DEF = 'DEF', ghi = 'ghi', GHI = 'GHI'
+						export {abc, def, ghi, ABC, DEF, GHI}
+					"""
+					'h.js': """
+						export default module.exports.notDefault = 'kinsta'
+						export let hhh = 'hHh'
+						var h1 = 'H2'
+						export {h1 as h2}
+					"""
+					'h2.js': """
+						exports.default = module.exports.notDefault = 'kinsta'
+						var hhh = exports.hhh = 'hHh'
+						var h1 = 'H2'
+						exports.h2 = h1
+					"""
+					'f.js': """
+						export * from 'nested/f2'
+						export * from 'nested/f3'
+						export var fff = 'fFf'
+					"""
+					'nested/f2.js': """
+						export default function(a,b){return a+b}
+						export var abc = 123
+						export * from 'f4'
+
+						module.exports.def = 456
+						export var def = 456, ghi = 789
+					"""
+					'nested/f3.js': """
+						export GHI = 'GHI'
+					"""
+					'nested/f4.js': """
+						export var jkl = 'JKL'
 					"""
 
-			.then ()-> SimplyImport file:temp('mainA.js')
-			.catch ()-> 'failed as expected'
-			.then (result)-> assert.equal result, 'failed as expected'
-			.then ()-> processAndRun file:temp('mainB.js'), 'mainB.js', {input:'abc'}
-			.then ({compiled, result, context, run})->
-				assert.equal context.output, 'abc'
-				context.input = 'ghi'
-				run()
-				assert.equal context.output, 'ghi'
+			.then ()-> SimplyImport file:temp('main.js')
+			.then ({writeToDisc,compiled, result, context, run})->
+				writeToDisc()
+				# assert.equal context.output, 'abc'
+				# context.input = 'ghi'
+				# run()
+				# assert.equal context.output, 'ghi'
+
+
+
+	suite "globals", ()->
+		test "the 'global' identifier will be polyfilled if detected in the code", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'mainA.js': """
+							abc = import './abc'
+							def = require("./def")
+							module.exports = abc
+							return global
+						"""
+						'mainB.js': """
+							ghi = import './ghi'
+							module.exports = ghi
+						"""
+						'mainC.js': """
+							ghi = require('ghi')
+							module.exports = typeof global === 'undefined' ? ghi.toUpperCase() : 'GHI'
+						"""
+						'abc.js': """
+							global.valueABC = 'abc123'
+							module.exports = global.valueABC
+						"""
+						'def.js': """
+							module.exports = global.valueDEF = 'def456'
+						"""
+						"ghi.js": """
+							module.exports = 'ghi789'
+						"""
+
+			.then ()->
+				Promise.all [
+					processAndRun file:temp('mainA.js')
+					processAndRun file:temp('mainB.js')
+					processAndRun file:temp('mainC.js')
+				]
+			.spread (bundleA, bundleB, bundleC)->
+				assert.include bundleA.compiled, require('../lib/builders/strings').globalDec(), 'global dec should be present in bundle A'
+				assert.notInclude bundleB.compiled, require('../lib/builders/strings').globalDec(), 'global dec should not be present in bundle B'
+				assert.notInclude bundleC.compiled, require('../lib/builders/strings').globalDec(), 'global dec should not be present in bundle C'
+				assert.deepEqual bundleA.result, bundleA.context
+				assert.equal bundleA.context.abc, 'abc123', 'bundleA.abc'
+				assert.equal bundleA.context.def, 'def456', 'bundleA.def'
+				assert.equal bundleA.context.valueABC, 'abc123', 'bundleA.global.valueABC'
+				assert.equal bundleA.context.valueDEF, 'def456', 'bundleA.global.valueDEF'
+				assert.equal bundleC.context.ghi, 'ghi789', 'bundleC.ghi'
+				assert.equal bundleC.result, 'GHI789', 'bundleC.result'
+
+
+		test "the 'process' identifier will be polyfilled with a shared module if detected in the code", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'mainA.js': """
+							abc = import './abc'
+							def = require("./def")
+							module.exports = process
+						"""
+						'mainB.js': """
+							ghi = import './ghi'
+							module.exports = ghi
+							return require('process')
+						"""
+						'mainC.js': """
+							jkl = import './jkl'
+							module.exports = jkl
+						"""
+						'abc.js': """
+							process.valueABC = 'abc'
+							module.exports = process.valueABC
+						"""
+						'def.js': """
+							process.env.DEFJS = process.browser ? 'DEF' : 'def'
+							module.exports = process.env.DEFJS
+						"""
+						"ghi.js": """
+							try {process.value = 'gHi'} catch (e) {}
+							module.exports = require('process').valueGHI = 'gHi'
+						"""
+						"jkl.js": """
+							process = typeof process === 'object' ? 'jkl' : 'JKL'
+							module.exports = process
+						"""
+
+			.then ()->
+				Promise.all [
+					processAndRun file:temp('mainA.js')
+					processAndRun file:temp('mainB.js')
+					processAndRun file:temp('mainC.js')
+				]
+			.spread (bundleA, bundleB, bundleC)->
+				assert.equal bundleA.context.abc, 'abc', 'bundleA.abc'
+				assert.equal bundleA.context.def, 'DEF', 'bundleA.def'
+				assert.typeOf bundleA.result, 'object'
+				assert.equal bundleA.result.valueABC, 'abc', 'bundleA.process.valueABC'
+				assert.equal bundleA.result.env.DEFJS, 'DEF', 'bundleA.process.env.DEFJS'
+				assert.equal bundleB.context.ghi, 'gHi', 'bundleB.ghi'
+				assert.equal bundleB.result.valueGHI, 'gHi', 'bundleB.process.valueGHI'
+				assert.equal bundleB.result.value, undefined, 'bundleB.process.value'
+				assert.equal bundleC.result, 'JKL', 'bundleC.result'
+
+
+		test "the '__filename' and '__dirname' identifiers will be replaced with the module's relative filename & context", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'nested/main.js': """
+							abc = import './abc'
+							def = require("./def")
+							def2 = require("../def")
+							ghi = import 'ghi'
+							jkl = import '../nested/inner/jkl'
+							lmn = import '../nested/inner/lmn'
+							module.exports = {file:__filename, dir:__dirname}
+						"""
+						'nested/abc.js': """
+							module.exports = __filename
+						"""
+						'nested/def.js': """
+							module.exports = __dirname
+						"""
+						'def.js': """
+							module.exports = __dirname
+						"""
+						"node_modules/ghi/index.js": """
+							module.exports = {file:__filename, dir:__dirname}
+						"""
+						"nested/inner/jkl.js": """
+							module.exports = __filename
+						"""
+						"nested/inner/lmn.js": """
+							module.exports = 'no file name'
+						"""
+
+			.then ()-> processAndRun file:temp('nested/main.js')
+			.then ({compiled, result, context})->
+				assert.equal context.abc, '/abc.js'
+				assert.equal context.def, '/'
+				assert.equal context.def2, '/..'
+				assert.deepEqual context.ghi, {file:'/../node_modules/ghi/index.js', dir:'/../node_modules/ghi'}
+				assert.equal context.jkl, '/inner/jkl.js'
+				assert.equal context.lmn, 'no file name'
+				assert.deepEqual result, {file:'/main.js', dir:'/'}
 
 
 

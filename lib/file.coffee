@@ -44,7 +44,7 @@ class File
 			content = content.replace REGEX.es6import, (entire,meta,path)->
 				"importPlaceholder()"
 			
-			if err = require('syntax-error')(content, @pathAbs)
+			if err = Parser.check(content, @pathAbs)
 				@task.emit 'SyntaxError', @, err
 
 
@@ -66,7 +66,7 @@ class File
 			)
 
 
-	collectRequiredGlobals: ()-> if not @isThirdPartyBundle
+	collectRequiredGlobals: ()-> if not @isThirdPartyBundle and not EXTENSIONS.static.includes(@pathExt)
 		@task.emit('requiredGlobal',@,'global') if REGEX.vars.global.test(@content) and not REGEX.globalCheck.test(@content)
 		@task.emit('requiredGlobal',@,'process') if REGEX.vars.process.test(@content) and not REGEX.processRequire.test(@content) and not REGEX.processDec.test(@content)
 		@task.emit('requiredGlobal',@,'__dirname') if REGEX.vars.__dirname.test(@content)
@@ -159,7 +159,7 @@ class File
 
 	determineType: ()->
 		@type = switch
-			when @isEntry then 'module'
+			# when @isEntry then 'module'
 			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
 			else 'module'
 
@@ -167,6 +167,9 @@ class File
 
 
 	postTransforms: ()->
+		if @requiredGlobals.process
+			@contentPostTransforms = @content = "var process = require('process')\n#{@content}"
+
 		@hashPostTransforms = md5(@contentPostTransforms)
 		@linesPostTransforms = new LinesAndColumns(@contentPostTransforms)
 

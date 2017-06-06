@@ -42,7 +42,7 @@ class Task extends require('events')
 	
 	attachListeners: ()->
 		@.on 'requiredGlobal', (file, varName)=>
-			if varName.startsWith('__')
+			if varName isnt 'global' #if varName.startsWith('__')
 				file.requiredGlobals[varName] = true
 			else
 				@requiredGlobals[varName] = true
@@ -53,7 +53,10 @@ class Task extends require('events')
 				console.warn "#{LABELS.warn} cannot find '#{chalk.yellow target}'", annotation
 			else
 				@throw formatError "#{LABELS.error} cannot find '#{chalk.yellow target}'", helpers.blankError(annotation)
-		
+
+		@.on 'missingEntry', ()=>
+			throw formatError "#{LABELS.error} cannot find '#{chalk.yellow @options.file}'", helpers.blankError()
+
 		@.on 'TokenizeError', (file, err)=>
 			@throw formatError "#{LABELS.error} Failed to tokenize #{file.pathDebug}", err
 		
@@ -67,7 +70,8 @@ class Task extends require('events')
 			@throw formatError "#{LABELS.error} Extraction error in #{file.pathDebug}", err
 		
 		@.on 'TokenError', (file, err)=>
-			@throw formatError "#{LABELS.error} Bad token #{file.pathDebug}", err
+			err.message += helpers.annotateErrLocation(file, err.token.start)
+			@throw formatError "#{LABELS.error} Unexpected token #{file.pathDebug}", err
 		
 		@.on 'SyntaxError', (file, err)=> unless @options.ignoreSyntaxErrors
 			err.message = err.annotated.lines().slice(1, -1).append('',0).join('\n')
@@ -97,10 +101,12 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then ()-> helpers.resolveEntryPackage(@)
 			.then ()-> promiseBreak(@entryInput) if @options.src
+			.then ()-> fs.existsAsync(@entryInput).then (exists)=> if not exists then @emit 'missingEntry'
 			.then ()-> fs.readAsync(@entryInput)
 			.catch promiseBreak.end
 			.then (content)->
 				path = helpers.simplifyPath(@options.suppliedPath)
+				base = if @options.file then Path.basename(@options.file) else 'entry.js'
 				@entryFile = new File @, {
 					ID: if @options.usePaths then 'entry.js' else ++@currentID
 					isEntry: true
@@ -110,13 +116,13 @@ class Task extends require('events')
 					pkgFile: @options.pkgFile
 					suppliedPath: if @options.src then '' else @entryInput
 					context: @options.context
-					contextRel: '/'
+					contextRel: ''
 					pathAbs: @options.suppliedPath
 					path: path
 					pathDebug: chalk.dim(path)
-					pathRel: 'entry.js'
+					pathRel: base
 					pathExt: @options.ext
-					pathBase: 'entry.js'
+					pathBase: base
 				}
 
 			.tap (file)->
@@ -402,8 +408,8 @@ class Task extends require('events')
 					.map('target')
 					.append(@entryFile, 0)
 					.sortBy('hash')
-						
-			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1 and Object.keys(@requiredGlobals).length is 0
+			
+			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
 			.then (files)->
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader()

@@ -4,13 +4,13 @@ helpers = require('./')
 module.exports = collectImports = (tokens, lines)->
 	@walkTokens tokens, lines, 'import', ()->
 		output = helpers.newImportStatement('import')
-		if @next().type.label is 'string'
-			@prev()
-		else
+		if @next().type.keyword
 			throw @newError()
+		else
+			@prev()
 
 		while @next().type.label isnt 'string' then switch
-			when @current.value is '{'
+			when @current.value is '{' or @current.value is '*'
 				@handleMemebers(output)
 
 			when @current.type.label is 'name' and @current.value isnt 'from'

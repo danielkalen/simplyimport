@@ -36,11 +36,11 @@ exports.moduleFn = (file)->
 		
 		if file.requiredGlobals.__filename
 			args.push '__filename'
-			values.push file.pathRel
+			values.push "'/#{file.pathRel}'"
 		
 		if file.requiredGlobals.__dirname
 			args.push '__dirname'
-			values.push file.contextRel
+			values.push "'/#{file.contextRel}'"
 		
 		moduleBody.push wrapper = Parser.parseExpr stringBuilders.iife(args, values)
 		moduleBody = wrapper.callee.object.expression.body.body

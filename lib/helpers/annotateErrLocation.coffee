@@ -6,6 +6,7 @@ module.exports = (file, codeIndex)->
 	loc = lines.locationForIndex(codeIndex)
 	line = file.content.lines()[loc.line]
 	line = line.slice(0, Math.min(10,process.stderr.columns)) if line.length > process.stderr.columns
+	loc.line += 1
 	
 	"""
 		\n

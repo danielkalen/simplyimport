@@ -22,6 +22,8 @@ module.exports = collectExports = (tokens, lines)->
 				
 				if @current.type.keyword
 					output.keyword = @current.value
+					# if REGEX.decKeyword.test(output.keyword)
+					# 	@storeDecs()
 					@next()
 
 				if @current.type.label is 'name'

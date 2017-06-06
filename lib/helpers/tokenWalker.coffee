@@ -48,11 +48,25 @@ module.exports = class TokenWalker
 
 
 	newError: ()->
-		loc = @lines.locationForIndex(@current.range[0])
-		err = new Error "unexpected #{@current.type} '#{@current.value}' at line #{loc.line+1}:#{loc.column}"
+		err = new Error "unexpected '#{@current.value}'"
+		err.token = @current
 		err.name = 'TokenError'
 		err.stack = err.stack.lines().slice(1).join('\n')
 		return err
+
+
+	# storeDecs: (store)->
+	# 	items = @nextUntil '=', 'from', 'string'
+
+	# 	items.reduce (store, token, index)->
+	# 		if token.type.label is 'name' and token.value isnt 'as'
+	# 			if items[index-1]?.value is 'as'
+	# 				store[items[index-2].value] = token.value
+	# 			else
+	# 				store[token.value] = token.value
+	# 		return store
+		
+	# 	, store
 
 
 	storeMembers: (store)->
@@ -60,7 +74,7 @@ module.exports = class TokenWalker
 
 		items.reduce (store, token, index)->
 			if token.type.label is 'name' and token.value isnt 'as'
-				if items[index-1].value is 'as'
+				if items[index-1]?.value is 'as'
 					store[items[index-2].value] = token.value
 				else
 					store[token.value] = token.value
