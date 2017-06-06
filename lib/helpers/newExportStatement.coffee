@@ -10,3 +10,4 @@ module.exports = newExportStatement = ()->
 	members: null
 	keyword: null
 	identifier: null
+	decs: null

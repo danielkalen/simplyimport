@@ -20,9 +20,7 @@ SimplyImport.compile = (options, returnStream)->
 	Promise.bind(task)
 		.then task.initEntryFile
 		.then task.processFile
-		.then task.scanImports
-		.then ()-> task.entryFile
-		.then task.scanExports
+		.then task.scanImportsExports
 		.then task.compile
 
 	if not returnStream
@@ -41,8 +39,7 @@ SimplyImport.scan = (options)->
 	Promise.bind(task)
 		.then task.initEntryFile
 		.then task.processFile
-		.then ()-> task.scanImports(task.entryFile, options.depth)
-		.then ()-> task.scanExports(task.entryFile)
+		.then ()-> task.scanImportsExports(task.entryFile, options.depth)
 		.then task.calcImportTree
 		.then ()->
 			task.entryFile.importStatements

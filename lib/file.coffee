@@ -41,7 +41,7 @@ class File
 
 	checkSyntaxErrors: (content)->
 		if @pathExt is 'js'
-			content = content.replace REGEX.es6import, (entire,meta,path)->
+			content = content.replace REGEX.es6import, (entire, meta, path)->
 				"importPlaceholder()"
 			
 			if err = Parser.check(content, @pathAbs)
@@ -295,12 +295,12 @@ class File
 
 
 	collectForceInlineImports: ()->
-		@content.replace REGEX.inlineImport, (entireLine, priorContent='', keyword, childPath, trailingContent='', offset)=>
+		@content.replace REGEX.inlineImport, (entire, childPath, offset)=>
 			statement = helpers.newImportStatement()
 			statement.source = @
 			statement.target = childPath.removeAll(REGEX.quotes).trim()
-			statement.range[0] = offset + priorContent.length
-			statement.range[1] = offset + (entireLine.length - trailingContent.length)
+			statement.range[0] = offset
+			statement.range[1] = offset + entire.length
 			statement.type = 'inline-forced'
 			@importStatements.push(statement)
 		
@@ -377,11 +377,16 @@ class File
 				return
 
 			statements.forEach (statement)=>
-				statement.target = targetSplit[0]
-				statement.extract = targetSplit[1]
-				statement.range = [Tokens[statement.tokenRange[0]].start, Tokens[statement.tokenRange[1]].end]
+				console.log tokens.length if not tokens[statement.tokenRange[1]]
+				statement.range = [tokens[statement.tokenRange[0]].start, tokens[statement.tokenRange[1]].end]
 				statement.source = @
 				statement.target ?= @
+				if statement.decs
+					for dec,range of statement.decs
+						throw new Error "#{dec} = #{JSON.stringify range}" if Object.keys(range).length is 1
+						# throw new Error JSON.stringify(statement.decs) if Object.keys(range).length is 1
+						statement.decs[dec] = @content.slice(range.start, range.end)
+
 				@exportStatements.push(statement)
 
 
@@ -423,12 +428,13 @@ class File
 					replacement = "require(#{statement.target.IDstr})"
 					if statement.extract
 						replacement += "['#{statement.extract}']"
+
 				else
 					alias = statement.alias or helpers.randomVar()
 					replacement = "var #{alias} = require(#{statement.target.IDstr})"
 
 					if statement.members
-						nonDefault = Object.exclude(statement.members, 'default')
+						nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
 
 						if statement.members.default
 							replacement += "\nvar #{statement.members.default} = #{alias}['default']"
@@ -436,7 +442,7 @@ class File
 						for key,keyAlias of nonDefault
 							replacement += "\nvar #{keyAlias} = #{alias}['#{key}']"
 
-				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
+				# replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
 			range = @offsetRange(statement.range)
@@ -451,6 +457,7 @@ class File
 			
 			replacement = do ()=>
 				replacement = ''
+			
 				if statement.target isnt statement.source
 					alias = helpers.randomVar()
 					replacement = "var #{alias} = require(#{statement.target.IDstr})"
@@ -458,35 +465,46 @@ class File
 					if statement.members
 						for keyAlias,key of statement.members
 							replacement += "\nexports['#{keyAlias}'] = #{alias}['#{key}']"
+					
 					else
 						key = helpers.randomVar()
 						replacement += "\nvar #{key};for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}]"
+
 
 				else
 					if statement.members
 						for keyAlias,key of statement.members
 							replacement += "\nexports['#{keyAlias}'] = #{key}"
+					
+
+					else if statement.decs
+						decs = Object.keys(statement.decs)
+						values = Object.values(statement.decs)
+
+						replacement += "#{statement.keyword} #{values.join ', '}\n"
+						replacement += "exports.#{dec} = #{dec}; " for dec in decs
+
+
 					else
-						replacement += '\n'
-						if statement.keyword and isDec=statement.keyword.includes(/var|let|const/)
-							replacement += "#{statement.keyword} #{statement.identifier} = "
-						
 						if statement.default
 							replacement += "exports['default'] = "
+							replacement += " #{statement.identifier} = " if statement.identifier
+						
 						else if statement.identifier
 							replacement += "exports['#{statement.identifier}'] = "
 
-						if statement.keyword and not isDec # function or class
+						if statement.keyword# and not isDec # function or class
 							replacement += "#{statement.keyword} "
 							if statement.identifier
 								replacement += statement.identifier
 				
 
-				replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
+				# replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
 			range = @offsetRange(statement.range)
 			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+			# console.log @pathDebug+'\n'+content.slice(range[0],range[1])+'\n'+replacement+'\n----'
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
 		content += "\nexports.__esModule=true;" if @exportStatements.length

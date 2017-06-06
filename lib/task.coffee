@@ -236,12 +236,20 @@ class Task extends require('events')
 			.return(@importStatements)
 
 
-	scanImports: (file, depth=Infinity, currentDepth=0)->
-		file.scannedImports = true
+	scanImportsExports: (file, depth=Infinity, currentDepth=0)-> if not file.scannedImportsExports
+		file.scannedImportsExports = true
+		importingExports = null
+		
 		Promise.bind(@)
+			.then ()-> file.collectExports()
+			.filter (statement)-> statement.target isnt statement.source
+			.tap (exports)-> @importStatements.push(exports...); importingExports = exports
+			
 			.then ()-> file.collectImports()
 			.filter (statement)-> statement.type isnt 'inline-forced'
 			.tap (imports)-> @importStatements.push(imports...)
+			
+			.then (imports)-> imports.concat(importingExports)
 			.map (statement)->
 				Promise.bind(@)
 					.then ()-> @initFile(statement.target, file)
@@ -251,28 +259,9 @@ class Task extends require('events')
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
-			.filter (statement)-> not statement.target.scannedImports
-			.map (statement)-> @scanImports(statement.target, depth, currentDepth)
+			.map (statement)-> @scanImportsExports(statement.target, depth, currentDepth)
+			
 			.catch promiseBreak.end
-			.catch (err)-> @emit 'GeneralError', file, err
-			.return(@importStatements)
-
-
-	scanExports: (file)->
-		file.scannedExports = true
-		Promise.bind(@)
-			.then ()-> file.collectExports()
-			.filter (statement)-> statement.target isnt statement.source
-			.map (statement)->
-				Promise.bind(@)
-					.then ()-> @initFile(statement.target, file)
-					.then (childFile)-> @processFile(childFile)
-					.then (childFile)-> statement.target = childFile
-					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
-					.return(statement)
-						
-			.filter (statement)-> not statement.target.scannedExports
-			.map (statement)-> @scanExports(statement.target).then ()=> @scanImports(statement.target)
 			.catch (err)-> @emit 'GeneralError', file, err
 			.return(@importStatements)
 
@@ -396,6 +385,7 @@ class Task extends require('events')
 	
 	compile: ()->
 		builders = require('./builders')
+		
 		Promise.bind(@)
 			.then @calcImportTree
 			.return @entryFile

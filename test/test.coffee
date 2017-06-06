@@ -681,66 +681,96 @@ suite "SimplyImport", ()->
 				assert.equal context.theGhi, 'ghi789'
 
 
+	test "duplicate import statements within the same file are allowed (both module and inlines)", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						a = (importInline '2'+importInline '3')*importInline '2'
+						exports.a = a
+						b = import 'abc' + import 'def'+require('def')  +require('abc')
+						exports.b = b
+					"""
+					'abc.js': 'module.exports = "abc"'
+					'def.js': 'module.exports = "def"'
+					'2.js': '2'
+					'3.js': '3'
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({context})->
+				assert.equal context.a, 10
+				assert.equal context.b, 'abcdefdefabc'
+
+
 	test.only "es6 exports will be transpiled to commonJS exports", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
 					'main.js': """
 						aaa = import 'a'
-						exports.a = aaa
-						import * as bbb from 'b'
-						exports.b = bbb
-						import ccc from 'c'
-						exports.c1 = ccc
-						import {ccc} from 'c'
-						exports.c2 = ccc
-						import {abc} from 'd'
-						exports.d = abc
-						import {abc as ABC, def, ghi as GHI} from 'e'
-						exports.e = {ABC:ABC, def:def, GHI:GHI}
+						//exports.a = aaa
+						//import * as bbb from 'b'
+						//exports.b = bbb
+						//import ccc from 'c'
+						//exports.c1 = ccc
+						//import {ccc} from 'c'
+						//exports.c2 = ccc
+						//import {abc} from 'd'
+						//exports.d = abc
+						//import {abc as ABC, def, ghi as GHI} from 'e'
+						//exports.e = {ABC:ABC, def:def, GHI:GHI}
 						import ggg, * as GGG from 'g'
 						exports.g = {ggg:ggg, GGG:GGG}
-						import hhh, {hhh as HHH, h2, h1} from 'h'
-						exports.h1 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
-						import hhh, {hhh as HHH, h2, h1} from 'h2'
-						exports.h2 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
-						import * as fff from 'f'
-						exports.f = fff
+						//import hhh, {hhh as HHH, h2, h1} from 'h'
+						//exports.h1 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
+						//import hhh, {hhh as HHH, h2, h1} from 'h2'
+						//exports.h2 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
+						//import * as fff from 'f'
+						//exports.f = fff
 					"""
 					'a.js': """
 						export default abc = 123
+						export function sam(){}
 						export let def = 456
 						module.exports.DEF = def
 						var jkl = 'jkl'
-						var JKL = 'JKL'
+						var JKL = 'JKL', ghi = 'gHi'
 						export {ghi, jkl as JKL}
 					"""
 					'b.js': """
 						export default function abc(a,b){return a+b}
 						export {abc as ABC}
 						module.exports.AAA = abc
-						var JKL = 'JKL'
-						export const JKL, jkl = 'jKl', def= JKL
+						export const JKL = 'JKL', jkl = 'jKl', def= JKL
 					"""
 					'c.js': """
 						export default function (a,b){return a+b}
 						export function ccc(a,b) {return a-b}
 					"""
 					'd.js': """
-						export default var abc = 'abc'
+						export default abc = 'abc'
 						export {abc}
 						exports.def = 456
 					"""
 					'e.js': """
-						export default var abc = 'abc'
+						export default abc = 'abc'
 						var ABC = 'ABC', def = 'dEf', DEF = 'DEF', ghi = 'ghi', GHI = 'GHI'
 						export {abc, def, ghi}
 						exports.def = exports.def.toLowerCase()
 					"""
 					'g.js': """
 						export default false || 'maybe'
-						var ABC = 'ABC', def = 'dEf', DEF = 'DEF', ghi = 'ghi', GHI = 'GHI'
-						export {abc, def, ghi, ABC, DEF, GHI}
+						export var ABC ='ABC', def = {a:[1,2,3]},
+
+						DEF = ['DEF', {a:[1,2,3]}], ghi = function(){var oi = null;
+						let df = 123
+						},
+						GHI
+						=
+
+						'GHI'
+						, jkl = GHI
+						instanceof String, JKL = new
+						Array	(1,2)
 					"""
 					'h.js': """
 						export default module.exports.notDefault = 'kinsta'
@@ -774,8 +804,8 @@ suite "SimplyImport", ()->
 						export var jkl = 'JKL'
 					"""
 
-			.then ()-> SimplyImport file:temp('main.js')
-			.then ({writeToDisc,compiled, result, context, run})->
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({writeToDisc, compiled, result, context, run})->
 				writeToDisc()
 				# assert.equal context.output, 'abc'
 				# context.input = 'ghi'

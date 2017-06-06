@@ -2,6 +2,8 @@ REGEX =
 	es6memberAlias: /\s+as\s+/
 	quotes: /['"]/
 	commaSeparated: /,\s*/
+	bracketStart: /^[\{\[\(]$/
+	bracketEnd: /^[\}\]\)]$/
 	squareBrackets: /[\[\]]/
 	curlyBrackets: /[\{\}]/
 	stringContents: /".+?"|'.+?'/g
@@ -31,25 +33,16 @@ REGEX =
 	ifStartStatement: /simplyimport:if\s+(.+)/g
 	ifEndStatement: /simplyimport:end/g
 
-	inlineImport: ///^
-		(
-			.*					# prior content
-			[\ \t\r=]+			# prior space (excluding new line)
-			\W?					# no letters
-				|				# or if above aren't present
-			\W?					# no letters
-		)
-		(
-			importInline		# import keyword
-			\s+					# whitespace after import keyword
-		)
+	inlineImport: ///
+		\b
+		importInline		# import keyword
+		\s+					# whitespace after import keyword
 		(
 			".*?"
 				|
 			'.*?'
 		)
-		(\).*?|\s*?)			# trailing whitespace/parentheses
-	///gm
+	///g
 
 
 

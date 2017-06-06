@@ -24,9 +24,7 @@ compile = (file, src, attachSourceMap)->
 		.then task.resolveEntryPackage
 		.then task.initEntryFile
 		.then task.processFile
-		.then task.scanImports
-		.then ()-> task.entryFile
-		.then task.scanExports
+		.then task.scanImportsExports
 		.then task.calcImportTree
 		.then ()->
 			Promise.bind(file=task.entryFile)
