@@ -32,6 +32,7 @@ module.exports = collectExports = (tokens, lines)->
 				
 				if @current.type.keyword # var|let|const|function|class
 					output.keyword = @current.value
+
 					if REGEX.decKeyword.test(output.keyword) # var|let|const
 						@storeDecs(output.decs = Object.create(null))
 						return output
@@ -41,11 +42,19 @@ module.exports = collectExports = (tokens, lines)->
 
 				if @current.type.label is 'name' # function-name|class-name|assignment-expr-left 
 					output.identifier = @current.value
+					while @next().type.label and @current.value is '.' or @current.type.label is 'name'
+						output.identifier += @current.value
+					
 					if not output.keyword # assignment-expr
-						@next().end++ # will be the '=' punctuator
+						@current.end++ # will be the '=' punctuator
+					
+					else # function-args-start|class-block-start
+						@prev()
 				
+
 				else if @current.value isnt '=' # funciton-args-start|class-block-start
 					@prev()
+
 
 			else throw @newError()
 

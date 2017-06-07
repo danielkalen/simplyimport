@@ -362,19 +362,15 @@ class Task extends require('events')
 			.then file.saveContent
 			.then file.replaceExportStatements
 			.then file.saveContent
-			.return file.importStatements
+			.return file.importStatements.concat(file.exportStatements)
 			.filter (statement)-> statement.type isnt 'inline-forced'
 			.map (statement)=> @replaceImportsExports(statement.target)
 			.return(file)
 
 
-	compileFile: (file)->
+	genSourceMap: (file)->
 		Promise.resolve(file.content).bind(file)
-			.tap ()-> debug "compiling #{file.pathDebug}"
-			.then file.replaceImportStatements
-			.then file.saveContent
-			.then file.replaceExportStatements
-			.then file.saveContent
+			.tap ()-> debug "generating sourcemap #{file.pathDebug}"
 			.then ()-> promiseBreak() if not @options.sourceMap
 			.then file.genAST
 			.then file.genSourceMap

@@ -688,7 +688,7 @@ suite "SimplyImport", ()->
 					'main.js': """
 						a = (importInline '2'+importInline '3')*importInline '2'
 						exports.a = a
-						b = import 'abc' + import 'def'+require('def')  +require('abc')
+						b = import './abc' + import './def'+require('./def')  +require('./abc')
 						exports.b = b
 					"""
 					'abc.js': 'module.exports = "abc"'
@@ -701,35 +701,35 @@ suite "SimplyImport", ()->
 				assert.equal context.b, 'abcdefdefabc'
 
 
-	test.only "es6 exports will be transpiled to commonJS exports", ()->
+	test "es6 exports will be transpiled to commonJS exports", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
 					'main.js': """
 						aaa = import 'a'
-						//exports.a = aaa
-						//import * as bbb from 'b'
-						//exports.b = bbb
-						//import ccc from 'c'
-						//exports.c1 = ccc
-						//import {ccc} from 'c'
-						//exports.c2 = ccc
-						//import {abc} from 'd'
-						//exports.d = abc
-						//import {abc as ABC, def, ghi as GHI} from 'e'
-						//exports.e = {ABC:ABC, def:def, GHI:GHI}
+						exports.a = aaa
+						import * as bbb from 'b'
+						exports.b = bbb
+						import ccc from 'c'
+						exports.c1 = ccc
+						import {ccc} from 'c'
+						exports.c2 = ccc
+						import {abc} from 'd'
+						exports.d = abc
+						import {abc as ABC, def, ghi as GHI} from 'e'
+						exports.e = {ABC:ABC, def:def, GHI:GHI}
 						import ggg, * as GGG from 'g'
 						exports.g = {ggg:ggg, GGG:GGG}
-						//import hhh, {hhh as HHH, h2, h1} from 'h'
-						//exports.h1 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
-						//import hhh, {hhh as HHH, h2, h1} from 'h2'
-						//exports.h2 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
-						//import * as fff from 'f'
-						//exports.f = fff
+						import hhh, {hhh as HHH, h2, h1} from 'h'
+						exports.h1 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
+						import hhh, {hhh as HHH, h2, h1} from 'h2'
+						exports.h2 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
+						import * as fff from 'f'
+						exports.f = fff
 					"""
 					'a.js': """
 						export default abc = 123
-						export function sam(){}
+						export function sam(){return 'sammy'}
 						export let def = 456
 						module.exports.DEF = def
 						var jkl = 'jkl'
@@ -738,9 +738,10 @@ suite "SimplyImport", ()->
 					"""
 					'b.js': """
 						export default function abc(a,b){return a+b}
+						var abc = 'AbC'
 						export {abc as ABC}
 						module.exports.AAA = abc
-						export const JKL = 'JKL', jkl = 'jKl', def= JKL
+						export const JKL = 'JKl', jkl = 'jKl', def= JKL
 					"""
 					'c.js': """
 						export default function (a,b){return a+b}
@@ -769,8 +770,8 @@ suite "SimplyImport", ()->
 
 						'GHI'
 						, jkl = GHI
-						instanceof String, JKL = new
-						Array	(1,2)
+						instanceof Number, JKL = new
+						Array	(12,20)
 					"""
 					'h.js': """
 						export default module.exports.notDefault = 'kinsta'
@@ -792,25 +793,56 @@ suite "SimplyImport", ()->
 					'nested/f2.js': """
 						export default function(a,b){return a+b}
 						export var abc = 123
-						export * from 'f4'
+						export {jkl as jkl_, JKL} from 'f4'
 
 						module.exports.def = 456
 						export var def = 456, ghi = 789
 					"""
 					'nested/f3.js': """
-						export GHI = 'GHI'
+						export var GHI = 'GHI'
 					"""
 					'nested/f4.js': """
-						export var jkl = 'JKL'
+						var a = 1, b = 2, jKl = 'jKl'
+						export var jkl = 'jkl', JKL='JKL'
+						export {a, jKl as default, b}
 					"""
 
-			.then ()-> processAndRun file:temp('main.js')
-			.then ({writeToDisc, compiled, result, context, run})->
+			.then ()-> processAndRun file:temp('main.js'), usePaths:true
+			.then ({writeToDisc, compiled, result, run})->
 				writeToDisc()
-				# assert.equal context.output, 'abc'
-				# context.input = 'ghi'
-				# run()
-				# assert.equal context.output, 'ghi'
+				assert.equal result.a.default, 123
+				assert.equal result.a.sam(), 'sammy'
+				assert.equal result.a.def, 456
+				assert.equal result.a.DEF, 456
+				assert.equal result.a.jkl, undefined
+				assert.equal result.a.JKL, 'jkl'
+				assert.equal result.a.ghi, 'gHi'
+				assert.equal result.b.default(2,5), 7
+				assert.equal result.b.abc, undefined
+				assert.equal result.b.ABC, 'AbC'
+				assert.equal result.b.AAA, 'AbC'
+				assert.equal result.b.JKL, 'JKl'
+				assert.equal result.b.jkl, 'jKl'
+				assert.equal result.b.def, 'JKl'
+				assert.equal result.c1(9,4), 13
+				assert.equal result.c2(9,4), 5
+				assert.equal result.d, 'abc'
+				assert.equal result.e.ABC, 'abc'
+				assert.equal result.e.def, 'def'
+				assert.equal result.e.GHI, 'ghi'
+				assert.equal result.g.ggg, 'maybe'
+				assert.equal result.g.GGG.default, 'maybe'
+				assert.equal result.g.GGG.ABC, 'ABC'
+				assert.deepEqual result.g.GGG.def, {a:[1,2,3]}
+				assert.deepEqual result.g.GGG.DEF, ['DEF', {a:[1,2,3]}]
+				assert.equal result.g.GGG.ghi(), null
+				assert.equal result.g.GGG.oi, undefined
+				assert.equal result.g.GGG.GHI, 'GHI'
+				assert.equal result.g.GGG.jkl, false
+				assert.deepEqual result.g.GGG.JKL, [12,20]
+				# assert.equal result.h1,
+				# assert.equal result.h2,
+				# assert.equal result.f,
 
 
 

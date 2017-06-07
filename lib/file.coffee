@@ -377,14 +377,12 @@ class File
 				return
 
 			statements.forEach (statement)=>
-				console.log tokens.length if not tokens[statement.tokenRange[1]]
 				statement.range = [tokens[statement.tokenRange[0]].start, tokens[statement.tokenRange[1]].end]
 				statement.source = @
 				statement.target ?= @
 				if statement.decs
 					for dec,range of statement.decs
 						throw new Error "#{dec} = #{JSON.stringify range}" if Object.keys(range).length is 1
-						# throw new Error JSON.stringify(statement.decs) if Object.keys(range).length is 1
 						statement.decs[dec] = @content.slice(range.start, range.end)
 
 				@exportStatements.push(statement)
@@ -435,14 +433,17 @@ class File
 
 					if statement.members
 						nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
+						decs = []
+						decs.push("#{statement.members.default} = #{alias}.default") if statement.members.default
+						decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
+						replacement += ", #{decs.join ', '};"
 
-						if statement.members.default
-							replacement += "\nvar #{statement.members.default} = #{alias}['default']"
+						# if statement.members.default
+						# 	replacement += "\nvar #{statement.members.default} = #{alias}.default"
 
-						for key,keyAlias of nonDefault
-							replacement += "\nvar #{keyAlias} = #{alias}['#{key}']"
+						# for key,keyAlias of nonDefault
+						# 	replacement += "\nvar #{keyAlias} = #{alias}.#{key}"
 
-				# replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
 			range = @offsetRange(statement.range)
@@ -460,21 +461,23 @@ class File
 			
 				if statement.target isnt statement.source
 					alias = helpers.randomVar()
-					replacement = "var #{alias} = require(#{statement.target.IDstr})"
+					replacement = "var #{alias} = require(#{statement.target.IDstr})\n"
 
 					if statement.members
-						for keyAlias,key of statement.members
-							replacement += "\nexports['#{keyAlias}'] = #{alias}['#{key}']"
+						decs = []
+						decs.push("exports.#{keyAlias} = #{alias}.#{key}") for keyAlias,key of statement.members
+						replacement += decs.join ', '
 					
 					else
 						key = helpers.randomVar()
-						replacement += "\nvar #{key};for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}]"
+						replacement += "var #{key}; for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}];"
 
 
 				else
 					if statement.members
-						for keyAlias,key of statement.members
-							replacement += "\nexports['#{keyAlias}'] = #{key}"
+						decs = []
+						decs.push("exports.#{keyAlias} = #{key}") for keyAlias,key of statement.members
+						replacement += decs.join ', '
 					
 
 					else if statement.decs
@@ -487,11 +490,11 @@ class File
 
 					else
 						if statement.default
-							replacement += "exports['default'] = "
+							replacement += "exports.default = "
 							replacement += " #{statement.identifier} = " if statement.identifier
 						
 						else if statement.identifier
-							replacement += "exports['#{statement.identifier}'] = "
+							replacement += "exports.#{statement.identifier} = "
 
 						if statement.keyword# and not isDec # function or class
 							replacement += "#{statement.keyword} "
@@ -499,7 +502,6 @@ class File
 								replacement += statement.identifier
 				
 
-				# replacement = "`#{replacement}`" if @pathExt is 'coffee' or @pathExt is 'iced'
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
 			range = @offsetRange(statement.range)
@@ -507,7 +509,7 @@ class File
 			# console.log @pathDebug+'\n'+content.slice(range[0],range[1])+'\n'+replacement+'\n----'
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
-		content += "\nexports.__esModule=true;" if @exportStatements.length
+		content += "\nexports.__esModule=true" if @exportStatements.length
 		return content
 
 

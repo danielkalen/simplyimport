@@ -1,6 +1,8 @@
 REGEX = require '../constants/regex'
 extend = require 'extend'
 PLACEHOLDER = {type:{}}
+VALID_PUNCTUATORS = [',','.']
+VALID_KEYWORDS = ['function','new','class','in','instanceof','typeof','void','delete']
 
 module.exports = class TokenWalker
 	Object.defineProperty @::, 'current',
@@ -94,7 +96,7 @@ module.exports = class TokenWalker
 					currentAssignment = @_prev.value
 					store[currentAssignment] = {start:@_prev.start}
 
-				when hasNewLine() and @_prev.value isnt ',' and not currentAssignment
+				when hasNewLine() and not VALID_PUNCTUATORS.includes(@_prev.value) and not VALID_KEYWORDS.includes(prevKeyword) #and not currentAssignment
 					return @prev()
 				
 				when currentAssignment
@@ -110,11 +112,9 @@ module.exports = class TokenWalker
 
 				else
 					throw @newError() unless @current.type.label is 'name'
-					# unless @current.type.label is 'name'
-					# 	debugger
-					# 	throw @newError()
 
-		store[currentAssignment]?.end ?= @current.end
+		@prev() if not @current.type.label
+		store[currentAssignment].end = @current.end
 
 			
 
@@ -122,7 +122,7 @@ module.exports = class TokenWalker
 		items = @nextUntil '}', 'from', 'string'
 
 		items.reduce (store, token, index)->
-			if token.type.label is 'name' and token.value isnt 'as'
+			if token.value isnt 'as' and (token.type.label is 'name' or token.type.keyword is 'default')
 				if items[index-1]?.value is 'as'
 					store[items[index-2].value] = token.value
 				else
