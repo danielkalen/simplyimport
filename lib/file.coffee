@@ -240,10 +240,13 @@ class File
 				Promise.resolve()
 					.then ()=> getStream streamify(content).pipe(transformer.fn(pathAbs, transformOpts, @))
 					.then (content)=>
+						if transformer.name.includes(/coffeeify|tsify/)
+							@pathExt = 'js'
+						else if transformer.name.includes(/csonify|yamlify/)
+							@pathExt = 'json'
+						
 						if @pathExt isnt @pathExtOriginal
 							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
-						else if transformer.name.includes(/coffeeify|tsify/)
-							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt='js')
 
 						@sourceMap ?= sourcemapConvert.fromSource(content)?.sourcemap
 						return content
@@ -325,7 +328,7 @@ class File
 					return
 
 				statements.forEach (statement)=>
-					targetSplit = statement.target.split('$')
+					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
 					statement.range[0] = tokens[statement.tokenRange[0]].start
@@ -506,14 +509,13 @@ class File
 			
 			range = @offsetRange(statement.range)
 			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-			# console.log @pathDebug+'\n'+content.slice(range[0],range[1])+'\n'+replacement+'\n----'
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
 		content += "\nexports.__esModule=true" if @exportStatements.length
 		return content
 
 
-	extract: (key)->
+	extract: (key, returnActual)->
 		try
 			@parsed ?= JSON.parse(@content)
 		catch err
@@ -523,6 +525,7 @@ class File
 			@task.emit 'ExtractError', @, new Error "requested key '#{key}' not found"
 		else
 			result = @parsed[key] or Object.get(@parsed, key)
+			return result if returnActual
 			return if typeof result is 'object' then JSON.stringify(result) else String(result)
 
 

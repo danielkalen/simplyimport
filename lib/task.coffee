@@ -10,6 +10,7 @@ formatError = require './external/formatError'
 Parser = require './external/parser'
 helpers = require './helpers'
 File = require './file'
+REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 debug = require('debug')('simplyimport')
@@ -47,8 +48,8 @@ class Task extends require('events')
 			else
 				@requiredGlobals[varName] = true
 
-		@.on 'missingImport', (file, target, codeIndex)->
-			annotation = helpers.annotateErrLocation(file, codeIndex)
+		@.on 'missingImport', (file, target, pos)->
+			annotation = helpers.annotateErrLocation(file, pos)
 			if @options.ignoreMissing
 				console.warn "#{LABELS.warn} cannot find '#{chalk.yellow target}'", annotation
 			else
@@ -64,6 +65,8 @@ class Task extends require('events')
 			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
 		
 		@.on 'DataParseError', (file, err)=>
+			if pos = err.message.match(/at position (\d+)/)?[1]
+				err.message += helpers.annotateErrLocation(file, pos)
 			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
 		
 		@.on 'ExtractError', (file, err)=>
@@ -297,14 +300,21 @@ class Task extends require('events')
 					statements = @imports[file.pathAbs]
 					someExtract = statements.some((s)-> s.extract)
 					allExtract = someExtract and statements.every((s)-> s.extract)
-					
+
 					if statements.length > 1
+						if someExtract and REGEX.commonExport.test(file.content)
+							file.content = file.content.replace(REGEX.commonExport, '').replace(REGEX.endingSemi, '')
+						
+
 						if allExtract
 							extracts = statements.map('extract').unique()
-							file.content = JSON.stringify new ()-> @[key] = file.extract(key) for key in extracts; @
+							file.content = JSON.stringify new ()-> @[key] = file.extract(key, true) for key in extracts; @
+						
 						else if someExtract
-							extracts = statements.filter(extract:/./).map('extract').unique()
-							file.parsed[key] = file.extract(key) for key in extracts
+							extracts = statements.filter((s)-> s.extract).map('extract').unique()
+							for key in extracts
+								extract = file.extract(key,true)
+								file.parsed[key] = extract
 							file.content = JSON.stringify file.parsed
 
 						file.content = "module.exports = #{file.content}"

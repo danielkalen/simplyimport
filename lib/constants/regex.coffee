@@ -2,6 +2,8 @@ REGEX =
 	es6memberAlias: /\s+as\s+/
 	quotes: /['"]/
 	commaSeparated: /,\s*/
+	extractDelim: /\s*\$\s*/
+	endingSemi: /;$/
 	bracketStart: /^[\{\[\(]$/
 	bracketEnd: /^[\}\]\)]$/
 	squareBrackets: /[\[\]]/
@@ -137,8 +139,8 @@ REGEX =
 		(.*) 												# trailing content
 	$///gm
 
-	commonExport: ///^
-		(.+[\ \t\r]|.+\;|)								# prior content
+	commonExport: ///
+		\b
 		(?:
 			exports\s* 									# plain exports variable
 				|
@@ -159,8 +161,7 @@ REGEX =
 				|
 			[=\.] 										# property dot-notation access
 		)?
-		(.*) 											# trailing content
-	$///m
+	///m
 
 	commonImport: ///^
 		\b

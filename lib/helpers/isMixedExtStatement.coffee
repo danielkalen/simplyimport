@@ -6,9 +6,10 @@ module.exports = isMixedExtStatement = (statement)->
 	target = statement.target.pathExt
 	sourceRelated = helpers.relatedExtensions(source)
 	targetRelated = helpers.relatedExtensions(target)
+
 	return  source isnt target and
 			(
 				sourceRelated isnt targetRelated or
 				target is 'js' # and source is a transpiled type (e.g. coffeescript, typescript)
 			) and
-			sourceRelated isnt EXTENSIONS.data
+			targetRelated isnt EXTENSIONS.data
