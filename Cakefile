@@ -4,16 +4,16 @@ promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
 Path = require 'path'
-testModules = ['browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for', 'source-map-support']
+testModules = ['mocha', 'chai', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for', 'source-map-support']
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
 process.env.SOURCE_MAPS = 1
 
 
 task 'test', ()->
 	Promise.resolve()
-		.then ()-> testModules.every (testModule)-> fs.exists Path.resolve('node_modules',testModule)
-		.then (installed)-> promiseBreak() if installed
-		.then ()-> installModules(testModules)
+		.then ()-> testModules.filter (module)-> not fs.exists Path.resolve('node_modules',module,'package.json')
+		.tap (missingModules)-> promiseBreak() if missingModules.length is 0
+		.tap (missingModules)-> installModules(missingModules)
 		.catch promiseBreak.end
 		.then runTests
 
@@ -21,9 +21,9 @@ task 'test', ()->
 
 task 'coverage', ()->
 	Promise.resolve()
-		.then ()-> covreageModules.every (covreageModule)-> fs.exists Path.resolve('node_modules',covreageModule)
-		.then (installed)-> promiseBreak() if installed
-		.then ()-> installModules(coverageModules)
+		.then ()-> coverageModules.filter (module)-> not fs.exists Path.resolve('node_modules',module,'package.json')
+		.tap (missingModules)-> promiseBreak() if missingModules.length is 0
+		.tap (missingModules)-> installModules(missingModules)
 		.catch promiseBreak.end
 		.then ()->
 			coffeeCoverage = require 'coffee-coverage'
@@ -58,8 +58,8 @@ task 'coverage', ()->
 
 
 
-installModules = ()-> new Promise (resolve, reject)->
-	install = spawn('npm', ['install', '--no-save', testModules...], {stdio:'inherit'})
+installModules = (targetModules)-> new Promise (resolve, reject)->
+	install = spawn('npm', ['install', '--no-save', '--no-purne', targetModules...], {stdio:'inherit'})
 	install.on 'error', reject
 	install.on 'close', resolve
 
