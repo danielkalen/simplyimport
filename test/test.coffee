@@ -889,6 +889,36 @@ suite "SimplyImport", ()->
 					assert.deepEqual result.c, {__esModule:true, abc:123}
 
 
+	test "imports/exports should be live", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							import * as a from './a'
+							import * as b from './b'
+							import * as c from './c'
+							module.exports = {a:a,b:b,c:c}
+						"""
+						'a.js': """
+							export var abc = 'abc'
+							module.exports.def = 'def'
+						"""
+						'b.js': """
+							import * as a from './a'
+							module.exports = a
+						"""
+						'c.js': """
+							import * as a from './a'
+							module.exports = a
+							a.def = a.def.toUpperCase()
+						"""
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({compiled, result})->
+					assert.deepEqual result.a, {__esModule:true, abc:'abc', def:'DEF'}
+					assert.equal result.a, result.b
+					assert.equal result.a, result.c
+
+
 	suite "globals", ()->
 		test "the 'global' identifier will be polyfilled if detected in the code", ()->
 			Promise.resolve()
