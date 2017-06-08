@@ -844,6 +844,51 @@ suite "SimplyImport", ()->
 				# assert.equal result.f,
 
 
+	test "es6 imports/exports can be placed in nested scopes", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							load = function(){
+								import a from './a'
+								import * as b from './b'
+								import * as c from './c'
+								return {a:a, b:b, c:c}
+							}
+							module.exports = load()
+						"""
+						'a.js': """
+							export var abc = 123
+							load = function(){
+								var def = 456, ghi = 789, jkl = 999;
+								export default result = {abc:abc, def:def, ghi:ghi, jkl:jkl}
+							}
+							load()
+						"""
+						'b.js': """
+							export var abc = 123;
+							load = function(){
+								var ghi = 789, jkl = 999;
+								export let def = 456
+								(function(){export {ghi, jkl}})()
+							}
+							load()
+						"""
+						'c.js': """
+							export var abc = 123
+							load = function(){
+								var ghi = 789, jkl = 999;
+								export let def = 456
+								(function(){export {ghi, jkl}})()
+							}
+						"""
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({compiled, result, writeToDisc})->
+					assert.deepEqual result.a, {abc:123, def:456, ghi:789, jkl:999}
+					assert.deepEqual result.b, {__esModule:true, abc:123, def:456, ghi:789, jkl:999}
+					assert.deepEqual result.c, {__esModule:true, abc:123}
+
+
 	suite "globals", ()->
 		test "the 'global' identifier will be polyfilled if detected in the code", ()->
 			Promise.resolve()
@@ -987,6 +1032,10 @@ suite "SimplyImport", ()->
 				assert.equal context.jkl, '/inner/jkl.js'
 				assert.equal context.lmn, 'no file name'
 				assert.deepEqual result, {file:'/main.js', dir:'/'}
+
+
+	suite "transforms", ()->
+		test ""
 
 
 	suite "extraction", ()->

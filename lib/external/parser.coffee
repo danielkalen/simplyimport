@@ -21,7 +21,7 @@ module.exports = new class Parser
 	tokenize: (code, opts)-> acorn.tokenizer code, opts
 	generate: (ast, opts)-> astring.generate ast, extend({}, astringOpts, opts)
 	attachComments: (ast)-> require('escodegen').attachComments ast, ast.comments, ast.tokens
-	check: (content, path, opts={sourceType:'module'})-> require('syntax-error-plus')(content, path, opts)
+	check: (content, path, opts={sourceType:'module'})-> require('syntax-error-plus')(content, path, extend({}, acornOpts, opts))
 
 
 acornLoose.parse = acornLoose.parse_dammit

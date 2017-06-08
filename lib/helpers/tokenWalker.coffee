@@ -74,44 +74,47 @@ module.exports = class TokenWalker
 			currentLine = @lines.locationForIndex(@current.start).line
 			return currentLine isnt prevLine
 
-		while @next().type.label and @current.type.label isnt 'eof' then switch
-			when REGEX.bracketStart.test(@current.value)
-				currentBrackets.push(@current.value)
-				continue
+		while @next().type.label and @current.type.label isnt 'eof'
+			isStatementEnd = hasNewLine() and not VALID_PUNCTUATORS.includes(@_prev.value) and not VALID_KEYWORDS.includes(prevKeyword)
 			
-			when REGEX.bracketEnd.test(@current.value)
-				last = currentBrackets.last()
-				if  last is '[' and @current.value is ']' or
-					last is '{' and @current.value is '}' or
-					last is '(' and @current.value is ')'
-						currentBrackets.pop()
-				else
-					throw @newError()
-
-				continue
-
-			
-			when currentBrackets.length is 0 then switch
-				when @current.type.isAssign and not currentAssignment
-					currentAssignment = @_prev.value
-					store[currentAssignment] = {start:@_prev.start}
-
-				when hasNewLine() and not VALID_PUNCTUATORS.includes(@_prev.value) and not VALID_KEYWORDS.includes(prevKeyword) #and not currentAssignment
-					return @prev()
+			switch
+				when REGEX.bracketStart.test(@current.value) and not isStatementEnd
+					currentBrackets.push(@current.value)
+					continue
 				
-				when currentAssignment
-					store[currentAssignment].end = @current.end
-					prevKeyword = @current.value if @current.type.keyword
+				when REGEX.bracketEnd.test(@current.value)
+					last = currentBrackets.last()
+					if  last is '[' and @current.value is ']' or
+						last is '{' and @current.value is '}' or
+						last is '(' and @current.value is ')'
+							currentBrackets.pop()
+					else
+						throw @newError()
 
-					switch
-						when @current.value is ';'
-							return
-						when @current.value is ','
-							store[currentAssignment].end = @_prev.end
-							currentAssignment = null
+					continue
 
-				else
-					throw @newError() unless @current.type.label is 'name'
+				
+				when currentBrackets.length is 0 then switch
+					when @current.type.isAssign and not currentAssignment
+						currentAssignment = @_prev.value
+						store[currentAssignment] = {start:@_prev.start}
+
+					when isStatementEnd #and not currentAssignment
+						return @prev()
+					
+					when currentAssignment
+						store[currentAssignment].end = @current.end
+						prevKeyword = @current.value if @current.type.keyword
+
+						switch
+							when @current.value is ';'
+								return
+							when @current.value is ','
+								store[currentAssignment].end = @_prev.end
+								currentAssignment = null
+
+					else
+						throw @newError() unless @current.type.label is 'name'
 
 		@prev() if not @current.type.label
 		store[currentAssignment].end = @current.end
