@@ -30,10 +30,10 @@ class File
 		@linesOriginal = new LinesAndColumns(@content)
 		@options.transform ?= []
 		
-		if @isEntry or @isExternalEntry
+		# if @isEntry or @isExternalEntry
 			
-			if  @pkgTransform = @pkgFile.browserify?.transform
-				@pkgTransform = [@pkgTransform] if helpers.isValidTransformerArray(@pkgTransform)
+		if  @pkgTransform = @pkgFile.browserify?.transform
+			@pkgTransform = [@pkgTransform] if not helpers.isValidTransformerArray(@pkgTransform)
 
 
 		return @task.cache[@pathAbs] = @
@@ -175,11 +175,12 @@ class File
 
 
 	applyAllTransforms: (content=@content)->
-		@allTransforms = [].concat @options.transform, @task.options.globalTransform#, @pkgTransform
+		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform#, @pkgTransform
 		Promise.resolve(content).bind(@)
-			.then @applySpecificTransforms
-			.then(@applyPkgTransforms if @isEntry or @isExternalEntry)
-			.then(@applyGlobalTransforms unless @isEntry)
+			.then @applySpecificTransforms							# ones found in "simplyimport:specific" package.json field
+			.then @applyPkgTransforms								# ones found in "browserify.transform" package.json field
+			.then(@applyRegularTransforms unless @isExternal)		# ones provided through options.transform (applied to all files of entry-level package)
+			.then @applyGlobalTransforms							# ones provided through options.globalTransform (applied to all processed files)
 
 
 	applySpecificTransforms: (content)->
@@ -197,7 +198,7 @@ class File
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms, Path.resolve(@pkgFile.dirPath,'node_modules'))
+				@applyTransforms(content, transforms)
 
 			.catch promiseBreak.end
 
@@ -211,7 +212,20 @@ class File
 			
 			.then (transforms)-> [content, transforms]
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms, Path.resolve(@pkgFile.dirPath,'node_modules'))
+				@applyTransforms(content, transforms)
+
+			.catch promiseBreak.end
+
+
+	applyRegularTransforms: (content)->
+		Promise.bind(@)
+			.then ()->
+				transforms = @task.options.transform
+				promiseBreak(content) if not transforms?.length or @options.skipTransform
+				return [content, transforms]
+			
+			.spread (content, transforms)->
+				@applyTransforms(content, transforms)
 
 			.catch promiseBreak.end
 
@@ -220,25 +234,24 @@ class File
 		Promise.bind(@)
 			.then ()->
 				transforms = @task.options.globalTransform
-				promiseBreak(content) if not transforms?.length
+				promiseBreak(content) if not transforms?.length or @options.skipTransform
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms, Path.resolve(@pkgFile.dirPath,'node_modules'))
+				@applyTransforms(content, transforms)
 
 			.catch promiseBreak.end
 
 
 
-	applyTransforms: (content, transforms, useFullPath)->
+	applyTransforms: (content, transforms)->
 		Promise.resolve(transforms)
-			.map (transform)-> helpers.resolveTransformer(transform, useFullPath)
+			.map (transform)=> helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
 			.reduce((content, transformer)=>
-				pathAbs = if useFullPath then @pathAbs else Path.basename(@pathAbs)
 				transformOpts = extend {_flags:@task.options}, transformer.opts
-			
+
 				Promise.resolve()
-					.then ()=> getStream streamify(content).pipe(transformer.fn(pathAbs, transformOpts, @))
+					.then ()=> getStream streamify(content).pipe(transformer.fn(@pathAbs, transformOpts, @))
 					.then (content)=>
 						if transformer.name.includes(/coffeeify|tsify/)
 							@pathExt = 'js'

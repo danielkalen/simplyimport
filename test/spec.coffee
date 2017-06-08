@@ -46,7 +46,7 @@ importAndRunAsScript = (opts, filename='script.js')->
 				fs.writeAsync(debugPath, compiledResult).timeout(500)
 					.catch ()-> err
 					.then ()-> throw err
-			
+
 
 suite "SimplyImport", ()->
 	suiteTeardown ()-> fs.removeAsync(temp())
@@ -55,8 +55,6 @@ suite "SimplyImport", ()->
 			fs.writeAsync temp('someFile.js'), 'abc123'
 			fs.writeAsync temp('someFile2.js'), 'def456'
 		]
-		
-
 
 
 
@@ -65,7 +63,6 @@ suite "SimplyImport", ()->
 		test "Unquoted imports that have whitespace after them should not make any difference", ()->
 			SimplyImport(src:"importInline 'test/temp/someFile.js'\t").then (result)->
 				expect(result).to.equal "abc123\t"
-			
 
 
 		test "Imports surrounded by parentheses should not make any difference", ()->
@@ -216,7 +213,7 @@ suite "SimplyImport", ()->
 						delete kiddy
 						delete another
 						delete myDefault
-				
+
 				.then ()->
 					SimplyImport("import test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
@@ -226,7 +223,7 @@ suite "SimplyImport", ()->
 						expect(()-> kid).to.throw()
 						expect(()-> kiddy).to.throw()
 						expect(()-> another).to.throw()
-				
+
 				.then ()->
 					SimplyImport("import {BBB} from test/temp/exportBasic.js\nimport {kid} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
@@ -234,7 +231,7 @@ suite "SimplyImport", ()->
 						expect(kid).to.equal 'kiddy'
 						delete BBB
 						delete kid
-					
+
 				.then ()->
 					SimplyImport("import defFn from test/temp/exportBasic.js\nimport defFnAlias from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
@@ -242,7 +239,7 @@ suite "SimplyImport", ()->
 						expect(defFnAlias()).to.equal 33
 						delete defFn
 						delete defFnAlias
-					
+
 				.then ()->
 					SimplyImport("import * as allExports from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
@@ -265,7 +262,7 @@ suite "SimplyImport", ()->
 						catch err
 							console.log(results[0])
 							throw err
-						
+
 						try
 							eval(results[1])
 						catch err
@@ -289,7 +286,7 @@ suite "SimplyImport", ()->
 						export default {AAA, BBB,CCC as ccc,  DDD as DDDDD  }\n\
 						export var another = 'anotherValue'\n\
 						export let kid ='kiddy';"
-										
+
 				.then ()->
 					SimplyImport("import theDefault,{kid as kido,another} from test/temp/exportAdvanced.js", opts, {isStream:true}).then (result)->
 						try
@@ -297,14 +294,14 @@ suite "SimplyImport", ()->
 						catch err
 							console.error(result)
 							throw err
-						
+
 						expect(theDefault.AAA).to.equal 'aaa'
 						expect(theDefault.BBB).to.equal 'bbb'
 						expect(theDefault.ccc).to.equal 'ccc'
 						expect(theDefault.DDDDD).to.equal 'ddd'
 						expect(another).to.equal 'anotherValue'
 						expect(kido).to.equal 'kiddy'
-				
+
 				.then ()->
 					fs.writeAsync(tempFile('importExported.js'), "import * as allExports from exportBasic.js")
 
@@ -316,9 +313,8 @@ suite "SimplyImport", ()->
 						expect(theExported.AAA).to.equal 'aaa'
 						expect(theExported.DDDDD).to.equal 'ddd'
 						delete theExported
-				
 
-											
+
 
 
 
@@ -336,7 +332,7 @@ suite "SimplyImport", ()->
 						var EEE = 'eee'; exports['CCC'] = CCC\n\
 						module.exports.DDDDD = DDD;\n\
 						exports.another = 'anotherValue';\n"
-				
+
 				.then ()->
 					SimplyImport("import { AAA,BBB, ccc as CCC,DDDDD as ddd,kid,  kiddy, another} from test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
@@ -352,7 +348,7 @@ suite "SimplyImport", ()->
 						delete kid
 						delete kiddy
 						delete another
-					
+
 				.then ()->
 					SimplyImport("import test/temp/exportBasic.js", opts, {isStream:true}).then (result)->
 						eval(result)
@@ -558,7 +554,6 @@ suite "SimplyImport", ()->
 					expect(typeof env).to.equal 'object'
 					expect(env).to.eql {}
 					delete env
-				
 
 
 
@@ -821,13 +816,12 @@ suite "SimplyImport", ()->
 			fs.writeAsync(tempFile('varDec.coffee'), "abc = 50").then ()->
 				SimplyImport("import test/temp/varDec", null, {isStream:true, isCoffee:true}).then (result)->
 					expect(result).to.equal "abc = 50"
-		
 
 
 		test.skip "If an extension-less import is treated as a Coffee file but doesn't exist, SimplyImport will attempt treat it as a JS file", ()->
 			SimplyImport("import test/temp/someFile", null, {isStream:true, isCoffee:true}).then (result)->
 				expect(result).to.equal "`abc123`"
-			
+
 
 
 		test.skip "If an importer is a JS file attempting to import a Coffee file, the Coffee file will be compiled to JS", ()->
@@ -978,7 +972,7 @@ suite "SimplyImport", ()->
 					delete kiddy
 					delete another
 					delete myDefault
-					
+
 					SimplyImport("import test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true}).then (result)->
 						eval(result = coffeeCompiler.compile result, 'bare':true)
 						expect(()-> AAA).to.throw()
@@ -987,21 +981,21 @@ suite "SimplyImport", ()->
 						expect(()-> kid).to.throw()
 						expect(()-> kiddy).to.throw()
 						expect(()-> another).to.throw()
-					
+
 						SimplyImport("import {BBB} from test/temp/exportBasic.coffee\nimport {kid} from test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true}).then (result)->
 							eval(result = coffeeCompiler.compile result, 'bare':true)
 							expect(BBB).to.equal 'bbb'
 							expect(kid).to.equal 'kiddy'
 							delete BBB
 							delete kid
-					
+
 							SimplyImport("import defFn from test/temp/exportBasic.coffee\nimport defFnAlias from test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true}).then (result)->
 								eval(result = coffeeCompiler.compile result, 'bare':true)
 								expect(defFn()).to.equal 33
 								expect(defFnAlias()).to.equal 33
 								delete defFn
 								delete defFnAlias
-					
+
 								SimplyImport("import * as allExports from test/temp/exportBasic.coffee", opts, {isStream:true, isCoffee:true}).then (result)->
 									eval(result = coffeeCompiler.compile result, 'bare':true)
 									expect(typeof allExports).to.equal 'object'
@@ -1297,7 +1291,7 @@ suite "SimplyImport", ()->
 				
 				SimplyImport(importDec, {conditions:['condA']}, {isStream:true}).then (result)->
 					expect(result).to.equal "abc123"
-		
+
 
 		test.skip "All conditions must be satisfied in order for the file to be imported", ()->
 			importDec = "import [condA, condB] 'test/temp/someFile.js'"
@@ -1306,7 +1300,7 @@ suite "SimplyImport", ()->
 				
 				SimplyImport(importDec, {conditions:['condA', 'condB', 'condC']}, {isStream:true}).then (result)->
 					expect(result).to.equal "abc123"
-		
+
 
 		test.skip "If the provided condition (to satisfy) matches ['*'], all conditions will be passed", ()->
 			importDec = "import [condA, condB] 'test/temp/someFile.js'"
@@ -1334,7 +1328,7 @@ suite "SimplyImport", ()->
 			"// import 'commented.js'"
 		]
 		importer = importerLines.join('\n')
-		
+
 		suiteSetup ()-> Promise.all [
 			fs.writeAsync(tempFile('importer.js'), importer)
 			fs.writeAsync(tempFile('withquotes.js'), 'withquotes')
@@ -1346,7 +1340,7 @@ suite "SimplyImport", ()->
 			fs.writeAsync(tempFile('dir/index.js'), 'dir')
 			fs.writeAsync(tempFile('variable.js'), 'variable')
 		]
-		
+
 		test.skip "Calling SimplyImport.scanImports(path) will retrieve import objects for all discovered imports in a file", ()->
 			Promise.props(
 				imports: SimplyImport.scanImports('test/temp/importer.js')
@@ -1396,7 +1390,7 @@ suite "SimplyImport", ()->
 				expect(imports[5]).to.equal path.join(context, 'nested/nested1.js')
 				expect(imports[6]).to.equal path.join(context, 'dir/index.js')
 				expect(imports[7]).to.equal path.join(context, 'variable.js')
-			
+
 
 
 
@@ -1404,7 +1398,7 @@ suite "SimplyImport", ()->
 			SimplyImport.scanImports('import someFile.js', {isStream:true, pathOnly:true, context:'test/temp'}).then (imports)->
 				expect(imports.length).to.equal 1
 				expect(imports[0]).to.equal 'someFile.js'
-			
+
 
 
 

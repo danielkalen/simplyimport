@@ -8,7 +8,7 @@ chalk = require 'chalk'
 debug = require('debug')('simplyimport:fs')
 
 module.exports = resolveFilePath = (input, entryContext, cache)->
-	params = Path.parse(input)
+	params = Path.parse(Path.resolve(input))
 	isFile = false
 	
 	Promise.resolve()

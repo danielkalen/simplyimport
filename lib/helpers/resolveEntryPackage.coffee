@@ -13,4 +13,6 @@ module.exports = resolveEntryPackage = (task)->
 				if typeof pkgFile.browser is 'object' and pkgFile.browser[task.entryInput]
 					task.entryInput = pkgFile.browser[task.entryInput]
 
+			return pkgFile
+
 		.catch ()->

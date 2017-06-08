@@ -3,7 +3,6 @@ promiseBreak = require 'promise-break'
 Path = require 'path'
 md5 = require 'md5'
 fs = require 'fs-jetpack'
-globMatch = require 'micromatch'
 chalk = require 'chalk'
 extend = require 'extend'
 formatError = require './external/formatError'
@@ -103,6 +102,10 @@ class Task extends require('events')
 	initEntryFile: ()->
 		Promise.bind(@)
 			.then ()-> helpers.resolveEntryPackage(@)
+			.then (pkgFile)->
+				if pkgFile and pkgFile['simplyimport:specific'] and Object.keys(@options.specific).length is 0
+					@options.specific = normalizeSpecificOpts(pkgFile['simplyimport:specific'])
+			
 			.then ()-> promiseBreak(@entryInput) if @options.src
 			.then ()-> fs.existsAsync(@entryInput).then (exists)=> if not exists then @emit 'missingEntry'
 			.then ()-> fs.readAsync(@entryInput)
@@ -110,12 +113,11 @@ class Task extends require('events')
 			.then (content)->
 				path = helpers.simplifyPath(@options.suppliedPath)
 				base = if @options.file then Path.basename(@options.file) else 'entry.js'
-				@entryFile = new File @, {
+				config =
 					ID: if @options.usePaths then 'entry.js' else ++@currentID
 					isEntry: true
 					content: content
 					hash: md5(content)
-					options: @options.pkgFile.simplyimport?.main or {}
 					pkgFile: @options.pkgFile
 					suppliedPath: if @options.src then '' else @entryInput
 					context: @options.context
@@ -126,7 +128,11 @@ class Task extends require('events')
 					pathRel: base
 					pathExt: @options.ext
 					pathBase: base
-				}
+				
+				config.options = @options.specific.entry
+				config.options ||= helpers.matchFileSpecificOptions(config, @options.specific) if @options.file
+				config.options ||= {}
+				@entryFile = new File @, config
 
 			.tap (file)->
 				@files.push file
@@ -174,21 +180,7 @@ class Task extends require('events')
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
 				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
 				specificOptions = if config.isExternal then extend({}, config.pkgFile.simplyimport, @options.specific) else @options.specific
-				
-				config.options = switch
-					when specificOptions[config.suppliedPath] then specificOptions[config.suppliedPath]
-					else do ()->
-						matchingGlob = null
-						opts = matchBase:true
-						
-						for glob of specificOptions
-							if globMatch.isMatch(config.pathAbs, glob, opts) or
-								globMatch.isMatch(config.pathAbs, glob) or
-								globMatch.isMatch(config.path, glob) or
-								globMatch.isMatch(config.suppliedPath, glob, opts)
-									matchingGlob = glob
-
-						return specificOptions[matchingGlob] or {}
+				config.options = helpers.matchFileSpecificOptions(config, specificOptions)
 				
 			
 			.then (config)->
@@ -456,14 +448,20 @@ extendOptions = (suppliedOptions)->
 	options.sourceMap ?= options.debug
 	options.transform = normalizeTransformOpts(options.transform) if options.transform
 	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
-	for p,specificOpts of options.specific
-		specificOpts.transform = normalizeTransformOpts(specificOpts.transform) if specificOpts.transform
+	options.specific = normalizeSpecificOpts(options.specific)
 	
 	return options
 
 
+normalizeSpecificOpts = (specificOpts)->
+	for p,fileSpecific of specificOpts when fileSpecific.transform
+		fileSpecific.transform = normalizeTransformOpts(fileSpecific.transform)
+
+	return specificOpts
+
+
 normalizeTransformOpts = (transform)->
-	transform = [].concat(transform) if transform and not Array.isArray(transform)
+	transform = [transform] if transform and not Array.isArray(transform)
 	if transform.length is 2 and typeof transform[0] is 'string' and Object.isObject(transform[1])
 		transform = [transform]
 

@@ -1065,7 +1065,172 @@ suite "SimplyImport", ()->
 
 
 	suite "transforms", ()->
-		test ""
+		test "provided through-stream transform functions will be passed each file's content prior to import/export scanning", ()->
+			through = require('through2')
+			customTransform = (file)->
+				return through() if file.endsWith('b.js') or file.endsWith('main.js')
+				through(
+					(chunk, enc, done)->
+						@push chunk.toString().toUpperCase()
+						done()
+					(done)->
+						@push "\nmodule.exports = GHI+'-'+(require('./d'))" if file.endsWith('c.js')
+						done()
+				)
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = import './b'
+							c = import './c'
+						"""
+						'a.js': """
+							abc = 'abc-value'
+						"""
+						'b.js': """
+							module.exports = 'def-value'
+						"""
+						'c.js': """
+							ghi = 'ghi-value'
+						"""
+						'd.js': """
+							jkl = 'jkl-value'
+						"""
+				.then ()-> processAndRun file:temp('main.js'), transform:[customTransform]
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'ABC-VALUE'
+					assert.equal context.b, 'def-value'
+					assert.equal context.c, 'GHI-VALUE-JKL-VALUE'
+					assert.notInclude compiled, 'abc-value'
+
+
+		test "strings resembling the transform file path can be provided in place of a function", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = import './b'
+							c = import './c'
+						"""
+						'a.js': """
+							abc = 'abc-value'
+						"""
+						'b.js': """
+							module.exports = 'def-value'
+						"""
+						'c.js': """
+							ghi = 'ghi-value'
+						"""
+				.then ()-> processAndRun file:temp('main.js'), transform:['test/helpers/uppercaseTransform'], specific:{'b.js':{skipTransform:true}, 'main.js':{skipTransform:true}}
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'ABC-VALUE'
+					assert.equal context.b, 'def-value'
+					assert.equal context.c, 'GHI-VALUE'
+					assert.notInclude compiled, 'abc-value'
+
+
+		test "strings resembling the transform module name can be provided in place of a function", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = import './b'
+							c = import './c'
+						"""
+						'a.js': """
+							abc = 'abc-value'
+						"""
+						'b.js': """
+							module.exports = 'def-value'
+						"""
+						'c.js': """
+							ghi = 'ghi-value'
+						"""
+						'package.json': '{"main":"entry.js"}'
+						'node_modules/uppercase/index.coffee': fs.read './test/helpers/uppercaseTransform.coffee'
+				
+				.then ()-> processAndRun file:temp('main.js'), transform:['uppercase'], specific:{'b.js':{skipTransform:true}, 'main.js':{skipTransform:true}}
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'ABC-VALUE'
+					assert.equal context.b, 'def-value'
+					assert.equal context.c, 'GHI-VALUE'
+					assert.notInclude compiled, 'abc-value'
+
+
+		test "transforms specified in options.specific will be applied only to the specified file", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = import './b'
+							c = import './c'
+						"""
+						'a.js': """
+							abc = 'abc-value'
+						"""
+						'b.js': """
+							module.exports = 'def-value'
+						"""
+						'c.js': """
+							ghi = 'ghi-value'
+						"""
+						'package.json': '{"main":"entry.js", "simplyimport:specific":{"c.js":{"transform":"test/helpers/uppercaseTransform"}}}'
+				
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'abc-value'
+					assert.equal context.b, 'def-value'
+					assert.equal context.c, 'GHI-VALUE'
+
+
+		test "transforms specified in package.json's browserify.transform field will be applied to imports of that package", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'package.json': '{"browserify":{"transform":"test/helpers/replacerTransform"}}'
+						'main.js': """
+							a = import 'module-a'
+							b = import 'module-b'
+							c = import './c'
+							d = 'gHi'
+						"""
+						'c.js': """
+							ghi = 'gHi-value'
+						"""
+					
+						'node_modules/module-a/package.json': '{"browserify":{"transform":"test/helpers/lowercaseTransform"}}'
+						'node_modules/module-a/index.js': """
+							exports.a = import './a'
+							exports.b = 'vaLUe-gHi'
+						"""
+						'node_modules/module-a/a.js': """
+							result = 'gHi-VALUE'
+						"""
+					
+						'node_modules/module-b/package.json': '{"browserify":{"transform":"test/helpers/replacerTransform"}}'
+						'node_modules/module-b/index.js': """
+							exports.a = import './a'
+							exports.b = 'vaLUe-gHi'
+						"""
+						'node_modules/module-b/a.js': """
+							result = 'gHi-VALUE'
+						"""
+				
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({context, compiled, writeToDisc})->
+					writeToDisc()
+					assert.equal context.a.a, 'ghi-value'
+					assert.equal context.a.b, 'value-ghi'
+					assert.equal context.b.a, 'GhI-VALUE'
+					assert.equal context.b.b, 'vaLUe-GhI'
+					assert.equal context.c, 'GhI-value'
+					assert.equal context.d, 'GhI'
+
 
 
 	suite "extraction", ()->

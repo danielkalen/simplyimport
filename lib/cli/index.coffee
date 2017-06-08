@@ -27,10 +27,6 @@ passedOptions =
 
 helpers.exitWithHelpMessage() if help
 
-try # Attempt to fetch the 'simplyimport' field from the CWD package.json
-	passedOptions.specific = fs.read('package.json', 'json')['simplyimport:specific']
-
-
 
 
 
