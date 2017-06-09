@@ -14,8 +14,8 @@ SimplyImport = require '../'
 mocha.Runner::fail = do ()->
 	orig = mocha.Runner::fail
 	(test, err)->
-		# err.stack = require('../lib/external/formatError').stack(err.stack)
-		err = require('../lib/external/formatError')(err)
+		err.stack = require('../lib/external/formatError').stack(err.stack)
+		# err = require('../lib/external/formatError')(err)
 		orig.call(@, test, err)
 		setTimeout (()-> process.exit(1)), 200
 
@@ -1345,6 +1345,7 @@ suite "SimplyImport", ()->
 						'c.coffee': """
 							module.exports = 'DEF-value'
 						"""
+						'node_modules/module-a/package.json': '{"main":"./index.coffee"}'
 						'node_modules/module-a/index.coffee': """
 							module.exports.a = false or 'maybe'
 							module.exports.b = import './a'

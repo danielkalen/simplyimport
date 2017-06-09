@@ -8,6 +8,7 @@ filter = (stack, spacing)->
 		.filter (line,index)-> if index > 0 then 1 else not line.includes('Error:')
 		.join '\n'
 
+
 module.exports = (prefix='', err)->
 	if not err
 		err = prefix
@@ -17,12 +18,14 @@ module.exports = (prefix='', err)->
 		err.message = err.stack.slice(0, err.stack.indexOf(err.message)+err.message.length)
 		err.stack = err.stack.slice(err.message.length)
 	
+	err.message += "\n#{err.annotated}" if err.annotated and not err.message.includes(err.annotated)
 	err.message = """
 		#{module.exports.message err, prefix}
 		#{filter(err.stack, '\t')}
 	"""
 	err.stack = ''
 	return err
+
 
 module.exports.message = (err, prefix)-> 
 	if prefix

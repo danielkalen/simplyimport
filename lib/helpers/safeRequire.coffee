@@ -19,7 +19,6 @@ module.exports = safeRequire = (targetPath, basedir)->
 
 		.catch promiseBreak.end
 		.then (resolvedPath)->
-			console.log resolvedPath, targetPath
 			require(resolvedPath)
 
 		.catch (err)->

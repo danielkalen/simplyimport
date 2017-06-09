@@ -242,9 +242,12 @@ class File
 
 
 	applyTransforms: (content, transforms)->
+		lastTransformer = null
+		
 		Promise.resolve(transforms)
 			.map (transform)=> helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
 			.reduce((content, transformer)=>
+				lastTransformer = transformer
 				transformOpts = extend {_flags:@task.options}, transformer.opts
 
 				Promise.resolve()
@@ -262,6 +265,8 @@ class File
 						return content
 				
 			, content)
+			.catch (err)=>
+				@task.emit 'TransformError', @, err, lastTransformer
 
 
 

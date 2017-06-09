@@ -7,7 +7,7 @@ template = (fn, name='', opts={})->
 
 module.exports = resolveTransformer = (transformer, basedir)-> Promise.resolve().then ()-> switch
 	when typeof transformer is 'function'
-		template(transformer)
+		template(transformer, transformer.name)
 
 	when typeof transformer is 'object' and helpers.isValidTransformerArray(transformer)
 		helpers.safeRequire(transformer[0], basedir).then (transformPath)->
