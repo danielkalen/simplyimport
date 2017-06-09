@@ -30,11 +30,8 @@ class File
 		@linesOriginal = new LinesAndColumns(@content)
 		@options.transform ?= []
 		
-		# if @isEntry or @isExternalEntry
-			
 		if  @pkgTransform = @pkgFile.browserify?.transform
 			@pkgTransform = [@pkgTransform] if not helpers.isValidTransformerArray(@pkgTransform)
-
 
 		return @task.cache[@pathAbs] = @
 

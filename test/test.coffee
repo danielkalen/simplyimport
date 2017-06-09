@@ -6,11 +6,6 @@ vm = require 'vm'
 assert = require('chai').assert
 expect = require('chai').expect
 helpers = require './helpers'
-# Streamify = require 'streamify-string'
-# Browserify = require 'browserify'
-# Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
-# regEx = require '../lib/constants/regex'
-# exec = require('child_process').exec
 nodeVersion = parseFloat(process.version[1])
 badES6Support = nodeVersion < 6
 bin = Path.resolve 'bin'
@@ -1230,6 +1225,142 @@ suite "SimplyImport", ()->
 					assert.equal context.b.b, 'vaLUe-GhI'
 					assert.equal context.c, 'GhI-value'
 					assert.equal context.d, 'GhI'
+
+
+		test "global transforms will be applied to all processed files", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							A = import './a'
+							b = import './b'
+							C = import './c'
+							d = import 'mODULe-A'
+						"""
+						'a.js': """
+							abc = 'abc-VALUE'
+						"""
+						'b.js': """
+							module.exports = 'DEF-value'
+						"""
+						'c.js': """
+							GHI = 'ghi-VALUE'
+						"""
+						'node_modules/module-a/index.js': """
+							exports.a = imPORt './a'
+							exports.b = 'vaLUe-gHi'
+						"""
+						'node_modules/module-a/a.js': """
+							result = 'gHi-VALUE'
+						"""
+				
+				.then ()-> processAndRun file:temp('main.js'), globalTransform:[helpers.lowercaseTransform]
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'abc-value'
+					assert.equal context.b, 'def-value'
+					assert.equal context.c, 'ghi-value'
+					assert.equal context.d.a, 'ghi-value'
+					assert.equal context.d.b, 'value-ghi'
+					assert.equal context.A, undefined
+
+
+		test "transforms will receive the file's full path as the 1st argument", ()->
+			received = null
+			customTransform = (file)->
+				received = file
+				require('through2')()
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'abc.js': "'abc-value'"
+						'deff/index.js': "'def-value'"
+				
+				.then ()-> assert.equal received, null
+				.then ()-> SimplyImport src:"import './abc'", context:temp(), transform:customTransform
+				.then ()-> assert.equal received, temp('abc.js')
+				.then ()-> SimplyImport src:"import 'deff'", context:temp(), transform:customTransform
+				.then ()-> assert.equal received, temp('deff/index.js')
+
+
+		test "transforms will receive the tasks's options object as the 2nd argument under the _flags property", ()->
+			received = null
+			customTransform = (file, opts)->
+				received = opts
+				require('through2')()
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'abc.js': "'abc-value'"
+						'def/index.js': "'def-value'"
+				
+				.then ()-> assert.equal received, null
+				.then ()-> SimplyImport src:"import './abc'", context:temp(), transform:customTransform
+				.then ()->
+					assert.typeOf received, 'object'
+					assert.typeOf received._flags, 'object'
+					assert.equal received._flags.src, "import './abc'"
+					assert.equal received._flags.transform[0], customTransform
+
+
+		test "transforms will receive the file's internal object as the 3rd argument", ()->
+			received = null
+			customTransform = (file, opts, file_)->
+				received = file_
+				require('through2')()
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'deff/index.js': "'def-value'"
+				
+				.then ()-> assert.equal received, null
+				.then ()-> SimplyImport src:"import './deff'", context:temp(), transform:customTransform
+				.then ()->
+					assert.typeOf received, 'object'
+					assert.equal received.pathAbs, temp('deff/index.js')
+					assert.equal received.path, Path.relative process.cwd(), temp('deff/index.js')
+					assert.equal received.pathExt, 'js'
+					assert.equal received.pathBase, 'index.js'
+					assert.equal received.content, "'def-value'"
+
+
+		test.only "coffeescript files will be automatically transformed by default", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = import './b'
+							c = import './c'
+							d = import 'module-a'
+						"""
+						'a.coffee': """
+							abc = 'abc-value'
+						"""
+						'b/index.coffee': """
+							module.exports = do ()-> abc = 456; require '../c'
+						"""
+						'c.coffee': """
+							module.exports = 'DEF-value'
+						"""
+						'node_modules/module-a/index.coffee': """
+							module.exports.a = false or 'maybe'
+							module.exports.b = import './a'
+						"""
+						'node_modules/module-a/a.js': """
+							var result = 'gHi-VALUE'
+						"""
+				
+				.then ()-> processAndRun file:temp('main.js'), globalTransform:[helpers.lowercaseTransform]
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'abc-value'
+					assert.equal context.abc, 'abc-value'
+					assert.equal context.b, 'DEF-value'
+					assert.equal context.c, 'DEF-value'
+					assert.equal context.d.a, 'maybe'
+					assert.equal context.d.b, 'gHi-VALUE'
 
 
 
