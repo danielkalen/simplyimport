@@ -202,11 +202,13 @@ class Task extends require('events')
 			.then file.collectConditionals
 			.then ()=> @scanForceInlineImports(file)
 			.then ()=> @replaceForceInlineImports(file)
+			.then file.replaceES6Imports
 			.then file.applyAllTransforms
 			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
 			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.checkSyntaxErrors
 			.catch promiseBreak.end
+			.then file.restoreES6Imports
 			.then file.checkIfIsThirdPartyBundle
 			.then file.collectRequiredGlobals
 			.then file.postTransforms

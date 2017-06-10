@@ -10,12 +10,12 @@ module.exports = collectRequires = (tokens, lines)->
 		output.target = @current.value.removeAll(REGEX.quotes).trim()
 
 		return output if @next().value isnt ','
-		return output if @next().value isnt 'string'
+		return output if @next().type.label isnt 'string'
 		output.members ?= {}
 		output.members.default = @current.value.removeAll(REGEX.quotes).trim()
 
 		return output if @next().value isnt ','
-		return output if @next().value isnt 'string'
+		return output if @next().type.label isnt 'string'
 		output.members ?= {}
 		members = @current.value.removeAll(REGEX.quotes).trim()
 

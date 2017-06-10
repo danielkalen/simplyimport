@@ -77,11 +77,11 @@ REGEX =
 		import					# import keyword
 		\s+						# whitespace after import keyword
 		(
-			(?:
+			(
 				[^\*,\{\s]+ 	# default member
 				,?\ ?			# trailing comma
 			)?
-			(?:
+			(
 				\*\ as\ \S+		# all members
 					|
 				\{.+\} 			# specific members
@@ -94,6 +94,27 @@ REGEX =
 				|
 			'.+?'
 		)
+	///g
+
+	tempImport: ///
+		\b
+		_\$sm
+		\(
+		(
+			".+?"
+				|
+			'.+?'
+		)
+		(?:
+			,\s*
+			(
+				".+?"
+					|
+				'.+?'
+			)
+		)?
+		\s*
+		\)
 	///g
 
 

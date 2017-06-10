@@ -38,8 +38,7 @@ class File
 
 	checkSyntaxErrors: (content)->
 		if @pathExt is 'js'
-			content = content.replace REGEX.es6import, (entire, meta, path)->
-				"importPlaceholder()"
+			content = content.replace REGEX.es6import, ()-> "importPlaceholder()"
 			
 			if err = Parser.check(content, @pathAbs)
 				@task.emit 'SyntaxError', @, err
@@ -310,6 +309,28 @@ class File
 		
 		# for mapping in mappings
 		# 	mapping
+
+
+	replaceES6Imports: ()->
+		@content = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)->
+			body = "#{childPath}"
+			body += ",'#{meta}'" if meta
+			replacement = "_$sm(#{body})"
+			lenDiff = original.length - replacement.length
+			if lenDiff > 0
+				padding = ' '.repeat(lenDiff)
+				replacement = "_$sm(#{body}#{padding})"
+			return replacement
+
+
+	restoreES6Imports: ()->
+		@content = @content.replace REGEX.tempImport, (entire, childPath, meta='')->
+			childPath = childPath.slice(1,-1)
+			meta = meta.slice(1,-1)
+			body = if meta then " #{meta}" else ""
+			body += "'#{childPath}'"
+			replacement = "import #{body}"
+			return replacement
 
 
 	collectForceInlineImports: ()->

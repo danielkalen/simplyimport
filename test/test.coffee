@@ -1326,7 +1326,7 @@ suite "SimplyImport", ()->
 					assert.equal received.content, "'def-value'"
 
 
-		test.only "coffeescript files will be automatically transformed by default", ()->
+		test "coffeescript files will be automatically transformed by default", ()->
 			Promise.resolve()
 				.then ()->
 					helpers.lib
@@ -1337,7 +1337,7 @@ suite "SimplyImport", ()->
 							d = import 'module-a'
 						"""
 						'a.coffee': """
-							abc = 'abc-value'
+							do ()-> abc = 'abc-value'
 						"""
 						'b/index.coffee': """
 							module.exports = do ()-> abc = 456; require '../c'
@@ -1348,20 +1348,23 @@ suite "SimplyImport", ()->
 						'node_modules/module-a/package.json': '{"main":"./index.coffee"}'
 						'node_modules/module-a/index.coffee': """
 							module.exports.a = false or 'maybe'
-							module.exports.b = import './a'
+							import {output as innerModule} from './inner'
+							module.exports.b = innerModule
 						"""
-						'node_modules/module-a/a.js': """
-							var result = 'gHi-VALUE'
+						'node_modules/module-a/inner.js': """
+							var mainOutput = (function(){return 'inner-value'})()
+							var otherOutput = 'another-value'
+							export {mainOutput as output, otherOutput}
 						"""
 				
-				.then ()-> processAndRun file:temp('main.js'), globalTransform:[helpers.lowercaseTransform]
+				.then ()-> processAndRun file:temp('main.js')
 				.then ({context, compiled, writeToDisc})->
 					assert.equal context.a, 'abc-value'
-					assert.equal context.abc, 'abc-value'
+					assert.equal context.abc, undefined
 					assert.equal context.b, 'DEF-value'
 					assert.equal context.c, 'DEF-value'
 					assert.equal context.d.a, 'maybe'
-					assert.equal context.d.b, 'gHi-VALUE'
+					assert.equal context.d.b, 'inner-value'
 
 
 
