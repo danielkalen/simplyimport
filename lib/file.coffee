@@ -184,7 +184,7 @@ class File
 			.then (content)->
 				transforms = @options.transform
 				forceTransform = switch
-					when @pathExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'tsify'
+					when @pathExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'browserify-typescript'
 					when @pathExt is 'coffee'	and not @allTransforms.includes('coffeeify')	then 'coffeeify'
 					when @pathExt is 'cson'		and not @allTransforms.includes('csonify') 		then 'csonify'
 					when @pathExt is 'yml'		and not @allTransforms.includes('yamlify') 		then 'yamlify'
@@ -312,7 +312,9 @@ class File
 
 
 	replaceES6Imports: ()->
+		hasImports = false
 		@content = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)->
+			hasImports = true
 			body = "#{childPath}"
 			body += ",'#{meta}'" if meta
 			replacement = "_$sm(#{body})"
@@ -321,6 +323,9 @@ class File
 				padding = ' '.repeat(lenDiff)
 				replacement = "_$sm(#{body}#{padding})"
 			return replacement
+
+		if hasImports and @pathExt is 'ts'
+			@content = "declare function _$sm(...a: any[]): any;\n#{@content}"
 
 
 	restoreES6Imports: ()->

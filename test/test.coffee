@@ -17,7 +17,7 @@ mocha.Runner::fail = do ()->
 		err.stack = require('../lib/external/formatError').stack(err.stack)
 		# err = require('../lib/external/formatError')(err)
 		orig.call(@, test, err)
-		setTimeout (()-> process.exit(1)), 200
+		setTimeout (()-> process.exit(1)), 200 unless process.env.CI
 
 sample = ()-> Path.join __dirname,'samples',arguments...
 debug = ()-> Path.join __dirname,'debug',arguments...
@@ -94,7 +94,7 @@ suite "SimplyImport", ()->
 		
 		Promise.resolve()
 			.then ()-> require('p-wait-for') (-> promiseResult and streamResult and true or false), 2
-			.timeout(200)
+			.timeout(2000)
 			.then ()-> assert.equal promiseResult, streamResult
 
 
@@ -1343,8 +1343,10 @@ suite "SimplyImport", ()->
 							module.exports = do ()-> abc = 456; require '../c'
 						"""
 						'c.coffee': """
-							module.exports = 'DEF-value'
+							module.exports = importInline './c2'
 						"""
+						'c2.coffee': "'DEF-value'"
+						
 						'node_modules/module-a/package.json': '{"main":"./index.coffee"}'
 						'node_modules/module-a/index.coffee': """
 							module.exports.a = false or 'maybe'
@@ -1363,6 +1365,62 @@ suite "SimplyImport", ()->
 					assert.equal context.abc, undefined
 					assert.equal context.b, 'DEF-value'
 					assert.equal context.c, 'DEF-value'
+					assert.equal context.d.a, 'maybe'
+					assert.equal context.d.b, 'inner-value'
+
+
+		test.skip "typescript files will be automatically transformed by default", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = import './b'
+							c = import './c'
+							d = import 'module-a'
+						"""
+						'a.ts': """
+							function returner(label: string) {return label+'-value'}
+							export = returner('abc');
+						"""
+						'b/index.ts': """
+							function exporter(obj?: {a:string, b:string}) {
+								var result;
+								import * as result from '../c'
+								return result;
+							}
+							var result = exporter()
+							export = result
+						"""
+						'c.ts': """
+							export = importInline './c2'
+						"""
+						'c2.ts': "{'a':'def-value', 'b':'ghi-value'}"
+						
+						'node_modules/module-a/package.json': '{"main":"./index.ts"}'
+						'node_modules/module-a/index.ts': """
+							function extract(): string {
+								return 'maybe';
+							}
+							export var a = extract()
+							var innerModule;
+							import {output as innerModule} from './inner'
+							export var b = innerModule;
+						"""
+						'node_modules/module-a/inner.js': """
+							var mainOutput = (function(){return 'inner-value'})()
+							var otherOutput = 'another-value'
+							export {mainOutput as output, otherOutput}
+						"""
+				
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({context, compiled, writeToDisc})->
+					writeToDisc()
+					assert.equal context.a, 'abc-value'
+					assert.equal context.b.a, 'def-value'
+					assert.equal context.b.b, 'ghi-value'
+					assert.equal context.c.a, 'def-value'
+					assert.equal context.c.b, 'ghi-value'
 					assert.equal context.d.a, 'maybe'
 					assert.equal context.d.b, 'inner-value'
 
