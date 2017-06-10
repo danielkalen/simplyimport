@@ -143,6 +143,9 @@ REGEX =
 		(\S+?)					# filepath
 	$///gm
 
+	tsExport: ///
+		\bexport\s+=\s*
+	///
 
 	es6export: ///^
 		(

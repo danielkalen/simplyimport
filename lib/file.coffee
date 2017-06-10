@@ -156,6 +156,7 @@ class File
 	determineType: ()->
 		@type = switch
 			# when @isEntry then 'module'
+			when @pathExtOriginal is 'ts' then 'module'
 			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
 			else 'module'
 
@@ -184,7 +185,7 @@ class File
 			.then (content)->
 				transforms = @options.transform
 				forceTransform = switch
-					when @pathExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'browserify-typescript'
+					when @pathExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'typescriptifier'
 					when @pathExt is 'coffee'	and not @allTransforms.includes('coffeeify')	then 'coffeeify'
 					when @pathExt is 'cson'		and not @allTransforms.includes('csonify') 		then 'csonify'
 					when @pathExt is 'yml'		and not @allTransforms.includes('yamlify') 		then 'yamlify'
@@ -481,12 +482,6 @@ class File
 						decs.push("#{statement.members.default} = #{alias}.default") if statement.members.default
 						decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
 						replacement += ", #{decs.join ', '};"
-
-						# if statement.members.default
-						# 	replacement += "\nvar #{statement.members.default} = #{alias}.default"
-
-						# for key,keyAlias of nonDefault
-						# 	replacement += "\nvar #{keyAlias} = #{alias}.#{key}"
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
