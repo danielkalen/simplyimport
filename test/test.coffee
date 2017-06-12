@@ -1659,7 +1659,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite.only "conditionals", ()->
+	suite "conditionals", ()->
 		test "conditional blocks are marked by start/end comments and are removed if the statement in the start comment is falsey", ()->
 			Promise.resolve()
 				.then ()->
@@ -1850,6 +1850,49 @@ suite "SimplyImport", ()->
 					assert.equal context.bbb, 'bbb'
 					assert.equal context.ccc, undefined
 					assert.equal context.result, undefined
+
+
+		test "conditional statements will be processed prior to force inline imports", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							abc = importInline "./a.js";
+
+							// simplyimport:if var3
+							importInline "./b"
+							// simplyimport:end
+
+							// simplyimport:if !var4
+							importInline "./c"
+							// simplyimport:end
+
+							// simplyimport:if !var5
+							importInline "./c"
+							importInline "./d"
+							// simplyimport:end
+
+							// simplyimport:if var5
+							importInline "./e"
+							// simplyimport:end
+						"""
+
+						"a.js": "aaa = 'aaa'"
+						"b.js": "bbb = 'bbb'"
+						"c.js": "ccc = 'ccc'"
+						"d.js": "ddd = 'ddd'"
+						"e.js": "eee = 'eee'"
+
+				.then ()->
+					process.env.var5 = 2
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'aaa'
+					assert.equal context.aaa, 'aaa'
+					assert.equal context.bbb, undefined
+					assert.equal context.ccc, 'ccc'
+					assert.equal context.ddd, undefined
+					assert.equal context.eee, 'eee'
 
 
 

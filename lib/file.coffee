@@ -12,7 +12,7 @@ helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
 GLOBALS = require './constants/globals'
-RANGE_ARRAYS = ['conditionals', 'inlines', 'imports', 'exports']
+RANGE_ARRAYS = ['inlines', 'imports', 'exports']
 
 
 class File
@@ -150,7 +150,7 @@ class File
 						outputLines.push(line)
 					else
 						index = @linesOriginal.indexForLocation line:index, column:0
-						@replacedRanges.conditionals.push [index, index, line.length]
+						@addRangeOffset 'conditionals', [index, index, line.length*-1]
 
 				return outputLines.join('\n')
 
