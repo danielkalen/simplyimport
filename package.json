@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "3.5.10",
+  "version": "4.0.0",
   "description": "Inline imports/exports for JS/Coffee featuring ES6 & CommonJS syntax support, transforms, conditional & duplicate imports, etc.",
   "keywords": [
     "import",
@@ -94,7 +94,7 @@
     "timers-browserify": "^2.0.2",
     "treeify": "^1.0.1",
     "tty-browserify": "0.0.0",
-    "typescript": "^2.3.3",
+    "typescript": "^2.3.4",
     "typescriptifier": "^1.0.0",
     "umd": "^3.0.1",
     "url": "^0.11.0",

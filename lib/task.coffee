@@ -81,6 +81,7 @@ class Task extends require('events')
 			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
 		@.on 'TransformError', (file, err, transformer)=>
+			console.log(err)
 			name = chalk.dim transformer.name or String transformer.fn
 			@throw formatError "#{LABELS.error} Error while applying transform #{name} to #{file.pathDebug}", err
 		

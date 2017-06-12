@@ -1369,8 +1369,9 @@ suite "SimplyImport", ()->
 					assert.equal context.d.b, 'inner-value'
 
 
-		test.skip "typescript files will be automatically transformed by default", ()->
+		test.only "typescript files will be automatically transformed by default", ()->
 			Promise.resolve()
+				.then ()-> fs.dir temp(), empty:true
 				.then ()->
 					helpers.lib
 						'main.js': """
@@ -1395,7 +1396,7 @@ suite "SimplyImport", ()->
 						'c.ts': """
 							export = importInline './c2'
 						"""
-						'c2.ts': "{'a':'def-value', 'b':'ghi-value'}"
+						'c2.ts': "add = {'a':'def-value', 'b':'ghi-value'}"
 						
 						'node_modules/module-a/package.json': '{"main":"./index.ts"}'
 						'node_modules/module-a/index.ts': """
@@ -1413,9 +1414,8 @@ suite "SimplyImport", ()->
 							export {mainOutput as output, otherOutput}
 						"""
 				
-				.then ()-> processAndRun file:temp('main.js')
+				.then ()-> processAndRun file:temp('main.js'), usePaths:true
 				.then ({context, compiled, writeToDisc})->
-					writeToDisc()
 					assert.equal context.a, 'abc-value'
 					assert.equal context.b.a, 'def-value'
 					assert.equal context.b.b, 'ghi-value'

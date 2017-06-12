@@ -185,10 +185,10 @@ class File
 			.then (content)->
 				transforms = @options.transform
 				forceTransform = switch
-					when @pathExt is 'ts'		and not @allTransforms.includes('tsify') 		then 'typescriptifier'
-					when @pathExt is 'coffee'	and not @allTransforms.includes('coffeeify')	then 'coffeeify'
-					when @pathExt is 'cson'		and not @allTransforms.includes('csonify') 		then 'csonify'
-					when @pathExt is 'yml'		and not @allTransforms.includes('yamlify') 		then 'yamlify'
+					when @pathExt is 'ts'		and not @allTransforms.includes('tsify-transform') 	then 'tsify-transform'
+					when @pathExt is 'coffee'	and not @allTransforms.includes('coffeeify')		then 'coffeeify'
+					when @pathExt is 'cson'		and not @allTransforms.includes('csonify') 			then 'csonify'
+					when @pathExt is 'yml'		and not @allTransforms.includes('yamlify') 			then 'yamlify'
 				
 				transforms.unshift(forceTransform) if forceTransform
 				promiseBreak(content) if not transforms.length
@@ -253,7 +253,7 @@ class File
 				Promise.resolve()
 					.then ()=> getStream streamify(content).pipe(transformer.fn(@pathAbs, transformOpts, @))
 					.then (content)=>
-						if transformer.name.includes(/coffeeify|tsify/)
+						if transformer.name.includes(/coffeeify|typescript-compiler/)
 							@pathExt = 'js'
 						else if transformer.name.includes(/csonify|yamlify/)
 							@pathExt = 'json'
