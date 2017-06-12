@@ -1218,7 +1218,6 @@ suite "SimplyImport", ()->
 				
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({context, compiled, writeToDisc})->
-					writeToDisc()
 					assert.equal context.a.a, 'ghi-value'
 					assert.equal context.a.b, 'value-ghi'
 					assert.equal context.b.a, 'GhI-VALUE'
@@ -1369,7 +1368,7 @@ suite "SimplyImport", ()->
 					assert.equal context.d.b, 'inner-value'
 
 
-		test.only "typescript files will be automatically transformed by default", ()->
+		test "typescript files will be automatically transformed by default", ()->
 			Promise.resolve()
 				.then ()-> fs.dir temp(), empty:true
 				.then ()->
@@ -1536,7 +1535,6 @@ suite "SimplyImport", ()->
 						"""
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({compiled, context, writeToDisc})->
-					writeToDisc()
 					assert.include compiled, 'require ='
 					assert.notInclude compiled, 'dataPointB'
 					assert.notInclude compiled, 'abc123'
