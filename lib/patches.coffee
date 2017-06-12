@@ -6,3 +6,6 @@ RegExp::test = do ()-> # RegExp::test function patch to reset index after each t
 		return result
 
 
+console.die = ()->
+	console.log arguments...
+	process.exit(1)

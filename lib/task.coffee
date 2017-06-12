@@ -326,7 +326,8 @@ class Task extends require('events')
 				return if not @options.dedupe
 				dupGroups = @importStatements.groupBy('target.hashPostTransforms')
 				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
-				for group in dupGroups
+				
+				for h,group of dupGroups
 					for statement,index in group when index > 0
 						statement.target = group[0].target
 				return

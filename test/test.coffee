@@ -914,6 +914,69 @@ suite "SimplyImport", ()->
 					assert.equal result.a, result.c
 
 
+	suite "deduping", ()->
+		# suiteTeardown ()-> fs.dirAsync temp(), empty:true 
+		
+		test "will be enabled by default", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							aaa = import 'module-a';
+							bbb = import 'module-b';
+							ccc = import 'module-c';
+							ddd = import 'module-d';
+						"""
+						"node_modules/module-a/index.js": """
+							module.exports = require('module-c')+'-aaa';
+						"""
+						"node_modules/module-b/index.js": """
+							module.exports = require('module-d')+'-bbb';
+						"""
+						"node_modules/module-c/index.js": """
+							module.exports = Math.floor((1+Math.random()) * 100000).toString(16);
+						"""
+						"node_modules/module-d/index.js": """
+							module.exports = Math.floor((1+Math.random()) * 100000).toString(16);
+						"""
+
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({context})->
+					assert.equal context.ccc, context.ddd, 'ccc === ddd'
+					assert.equal context.aaa, context.ddd+'-aaa'
+					assert.equal context.bbb, context.ddd+'-bbb'
+	
+
+		test "will be disabled when options.dedupe is false", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							aaa = import 'module-a';
+							bbb = import 'module-b';
+							ccc = import 'module-c';
+							ddd = import 'module-d';
+						"""
+						"node_modules/module-a/index.js": """
+							module.exports = require('module-c')+'-aaa';
+						"""
+						"node_modules/module-b/index.js": """
+							module.exports = require('module-d')+'-bbb';
+						"""
+						"node_modules/module-c/index.js": """
+							module.exports = Math.floor((1+Math.random()) * 100000).toString(16);
+						"""
+						"node_modules/module-d/index.js": """
+							module.exports = Math.floor((1+Math.random()) * 100000).toString(16);
+						"""
+
+				.then ()-> processAndRun file:temp('main.js'), dedupe:false
+				.then ({context})->
+					assert.notEqual context.ccc, context.ddd, 'ccc !== ddd'
+					assert.equal context.aaa, context.ccc+'-aaa'
+					assert.equal context.bbb, context.ddd+'-bbb'
+
+
 	suite "globals", ()->
 		test "the 'global' identifier will be polyfilled if detected in the code", ()->
 			Promise.resolve()
@@ -1048,8 +1111,9 @@ suite "SimplyImport", ()->
 							module.exports = 'no file name'
 						"""
 
-			.then ()-> processAndRun file:temp('nested/main.js')
-			.then ({compiled, result, context})->
+			.then ()-> processAndRun file:temp('nested/main.js'), dedupe:false
+			.then ({compiled, result, context, writeToDisc})->
+				writeToDisc()
 				assert.equal context.abc, '/abc.js'
 				assert.equal context.def, '/'
 				assert.equal context.def2, '/..'
@@ -1057,6 +1121,7 @@ suite "SimplyImport", ()->
 				assert.equal context.jkl, '/inner/jkl.js'
 				assert.equal context.lmn, 'no file name'
 				assert.deepEqual result, {file:'/main.js', dir:'/'}
+
 
 
 	suite "transforms", ()->
