@@ -11,6 +11,7 @@ sourcemapConvert = require 'convert-source-map'
 helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
+GLOBALS = require './constants/globals'
 RANGE_ARRAYS = ['conditionals', 'inlines', 'imports', 'exports']
 
 
@@ -77,7 +78,7 @@ class File
 				ends = []
 
 				@content.replace REGEX.ifStartStatement, (e, logic, offset)=>
-					starts.push [offset, logic.trim()]
+					starts.push [offset, offset+(e.length-logic.length), logic.trim()]
 				
 				@content.replace REGEX.ifEndStatement, (e, offset)=>
 					ends.push [offset]
@@ -90,31 +91,44 @@ class File
 						start: @linesOriginal.locationForIndex(start[0]).line
 						end: @linesOriginal.locationForIndex(end[0]).line
 						match: do ()=>
-							# matchTotal = true
-							rules = []
 							file = @
 							jsString = ''
-							tokens = Parser.tokenize(start[1])
-							
+							tokens = Parser.tokenize(start[2])
+
 							helpers.walkTokens tokens, @linesOriginal, null, (token)->
-								switch token.type
-									when 'Identifier'
-										value = process.env[token.value]
-										jsString += " process.env['#{token.value}']"
+								switch token.type.label
+									when 'name'
+										if @_prev?.value is '.' or GLOBALS.includes(token.value)
+											jsString += token.value
+										else
+											value = process.env[token.value]
+											jsString += " process.env['#{token.value}']"
 
-									when 'String','Literal'
-										jsString += " #{token.value}"
+									when 'string'
+										jsString += "'#{token.value}'"
 
-									when 'Punctuator'
+									when 'regexp'
+										jsString += "#{token.value.value}"
+
+									when '=','==/!=','||','|','&&','&'
 										jsString += ' ' + switch token.value
-											when '=' then '=='
-											when '!=' then '!='
+											when '=','==','===' then '=='
+											when '!=','!==' then '!='
 											when '||','|' then '||'
 											when '&&','&' then '&&'
+											else token.value
+									else
+										if token.type.keyword
+											jsString += " #{token.value} "
+										else
+											jsString += token.value
 
-									else file.task.emit 'ConditionalError', file, token, [start[0], end[0]]
-
-							return require('vm').runInNewContext(jsString)
+									# else file.task.emit 'ConditionalError', file, token.start+start[1], token.end+start[1]
+							try
+								return require('vm').runInNewContext(jsString, {process})
+							catch err
+								file.task.emit 'ConditionalError', file, err
+								return false
 
 			.tap ()-> promiseBreak() if not @conditionals.length
 			.then ()->
@@ -136,7 +150,7 @@ class File
 						outputLines.push(line)
 					else
 						index = @linesOriginal.indexForLocation line:index, column:0
-						@replacedRanges.push [index, index, line.length]
+						@replacedRanges.conditionals.push [index, index, line.length]
 
 				return outputLines.join('\n')
 
@@ -273,7 +287,7 @@ class File
 	tokenize: ()->
 		unless EXTENSIONS.nonJS.includes(@pathExt)
 			try
-				@Tokens = Array.from Parser.tokenize(@content, range:true, sourceType:'module')
+				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
 			catch err
 				@task.emit 'TokenizeError', @, err
 			

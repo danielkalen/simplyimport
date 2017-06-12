@@ -80,6 +80,10 @@ class Task extends require('events')
 			Error.captureStackTrace(err)
 			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
 		
+		@.on 'ConditionalError', (file, err, posStart, posEnd)=>
+			err ?= helpers.blankError helpers.annotateErrLocation(file, posStart, posEnd)
+			@throw formatError "#{LABELS.error} Invalid conditional syntax in #{file.pathDebug}", err
+		
 		@.on 'TransformError', (file, err, transformer)=>
 			name = chalk.dim transformer.name or String transformer.fn
 			@throw formatError "#{LABELS.error} Error while applying transform #{name} to #{file.pathDebug}", err

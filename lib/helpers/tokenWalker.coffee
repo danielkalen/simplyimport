@@ -40,7 +40,7 @@ module.exports = class TokenWalker
 		result = @callback(@current, @index)
 
 
-		if result
+		if result and typeof result is 'object'
 			result.tokenRange[0] = index
 			result.tokenRange[1] = @index
 			@results.push(result)

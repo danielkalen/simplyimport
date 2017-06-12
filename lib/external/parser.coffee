@@ -18,7 +18,7 @@ module.exports = new class Parser
 	parse: (code, opts)-> acornLoose.parse code, extend({}, acornOpts, opts)
 	parseStrict: (code, opts)-> acorn.parse code, extend({}, acornOpts, opts)
 	parseExpr: (code, opts)-> @parse(code, opts).body[0].expression
-	tokenize: (code, opts)-> acorn.tokenizer code, opts
+	tokenize: (code, opts)-> Array.from acorn.tokenizer code, opts
 	generate: (ast, opts)-> astring.generate ast, extend({}, astringOpts, opts)
 	attachComments: (ast)-> require('escodegen').attachComments ast, ast.comments, ast.tokens
 	check: (content, path, opts={sourceType:'module'})-> require('syntax-error-plus')(content, path, extend({}, acornOpts, opts))

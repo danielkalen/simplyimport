@@ -1659,6 +1659,198 @@ suite "SimplyImport", ()->
 
 
 
+	suite.only "conditionals", ()->
+		test "conditional blocks are marked by start/end comments and are removed if the statement in the start comment is falsey", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							abc = 'aaa';
+
+							// simplyimport:if VAR_A
+							def = 'bbb';
+							abc = def.slice(1)+abc.slice(2).toUpperCase()
+							// simplyimport:end
+
+							// simplyimport:if VAR_B
+							ghi = 'ccc';
+							abc = ghi.slice(1)+abc.slice(2).toUpperCase()
+							// simplyimport:end
+
+							result = abc;
+						"""
+
+				.then ()->
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'aaa'
+					assert.equal context.def, undefined
+					assert.equal context.ghi, undefined
+					assert.equal context.result, context.abc
+				
+				.then ()->
+					process.env.VAR_A = 1
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'bbA'
+					assert.equal context.def, 'bbb'
+					assert.equal context.ghi, undefined
+					assert.equal context.result, context.abc
+				
+				.then ()->
+					process.env.VAR_B = 1
+					processAndRun file:temp('main.js')
+				.then ({context, compiled})->
+					assert.equal context.abc, 'ccA'
+					assert.equal context.def, 'bbb'
+					assert.equal context.ghi, 'ccc'
+					assert.equal context.result, context.abc
+					assert.notInclude compiled, 'simplyimport'
+
+
+		test "names in statements will be treated as env variables", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							abc = 'aaa';
+
+							// simplyimport:if somevar = 'abc'
+							abc = 'bbb';
+							// simplyimport:end
+						"""
+
+				.then ()->
+					process.env.somevar = '123'
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'aaa'
+
+				.then ()->
+					process.env.somevar = 'abc'
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'bbb'
+
+
+		test "statements will be parsed as js expressions and can thus can have standard punctuators and invoke standard globals", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							abc = 'aaa';
+
+							// simplyimport:if VAR_A == 'abc' && VAR_B == 'def'
+							abc = 'bbb';
+							// simplyimport:end
+
+							// simplyimport:if /deff/.test(VAR_B) || /ghi/.test(VAR_C)
+							def = 'def';
+							// simplyimport:end
+						"""
+
+				.then ()->
+					process.env.VAR_A = 'abc'
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'aaa'
+					assert.equal context.def, undefined
+
+				.then ()->
+					process.env.VAR_B = 'def'
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'bbb'
+					assert.equal context.def, undefined
+
+				.then ()->
+					process.env.VAR_C = 'ghi'
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'bbb'
+					assert.equal context.def, 'def'
+
+
+		test "punctuator normalization (=|==|=== -> ==), (!=|!== -> !=), (| -> ||), (& -> &&)", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							aaa = 'aaa';
+
+							// simplyimport:if VAR_A = 'abc' | VAR_A === 123
+							bbb = 'bbb';
+							// simplyimport:end
+
+							// simplyimport:if typeof VAR_B = 'string' & VAR_B === 40 && parseFloat(VAR_C) !== 1.58 & parseFloat(VAR_C) === '12.58'
+							ccc = 'ccc';
+							// simplyimport:end
+
+							// simplyimport:if typeof VAR_C == 'object' | typeof parseInt(VAR_C) == 'number'
+							ddd = 'ddd';
+							// simplyimport:end
+
+							// simplyimport:if isNaN(VAR_D) & typeof parseInt(VAR_C) == 'number' && Boolean(12) = true
+							eee = 'eee';
+							// simplyimport:end
+
+							// simplyimport:if parseInt(VAR_E) == 3 && VAR_E.split('.')[1] === 23
+							fff = 'fff';
+							// simplyimport:end
+						"""
+
+				.then ()->
+					process.env.VAR_A = '123'
+					process.env.VAR_B = '40'
+					process.env.VAR_C = '12.58'
+					process.env.VAR_D = 'TEsT'
+					process.env.VAR_E = '3.23.10'
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.aaa, 'aaa'
+					assert.equal context.bbb, 'bbb'
+					assert.equal context.ccc, 'ccc'
+					assert.equal context.ddd, 'ddd'
+					assert.equal context.eee, 'eee'
+					assert.equal context.fff, 'fff'
+
+
+		test "if a 'simplyimport:end' comment is missing then it will be auto inserted at the file's end", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							aaa = 'aaa';
+
+							// simplyimport:if var1
+							bbb = 'bbb';
+							// simplyimport:end
+
+							// simplyimport:if !var2
+							ccc = 'ccc';
+
+
+							var result = aaa
+						"""
+
+				.then ()->
+					process.env.var1 = true
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.aaa, 'aaa'
+					assert.equal context.bbb, 'bbb'
+					assert.equal context.ccc, 'ccc'
+					assert.equal context.result, context.aaa
+
+				.then ()->
+					process.env.var2 = true
+					processAndRun file:temp('main.js')
+				.then ({context, writeToDisc})->
+					assert.equal context.aaa, 'aaa'
+					assert.equal context.bbb, 'bbb'
+					assert.equal context.ccc, undefined
+					assert.equal context.result, undefined
+
 
 
 
