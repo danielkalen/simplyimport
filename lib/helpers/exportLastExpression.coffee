@@ -34,8 +34,8 @@ module.exports = exportLastExpression = (file)->
 			else
 				if last.type.includes 'Expression'
 					return insertExport(last.start)
-				
-				find = require 'scrumpy'
+
+				find = require 'scrumpy-es5'
 				decs = find ast, type:'VariableDeclarator'
 				assigns = find ast, type:'AssignmentExpression'
 				funcs = find ast, type:'FunctionDeclaration'
