@@ -283,19 +283,18 @@ class Task extends require('events')
 			.map (statements)->
 				statements = statements.filter (statement)-> statement.type isnt 'inline-forced'
 
-				if statements.length > 1 or statements.some(helpers.isMixedExtStatement)
+				if statements.length > 1 or statements.some(helpers.isMixedExtStatement) or statements.some(helpers.isRecursiveImport)
 					targetType = 'module'
 
 				Promise.map statements, (statement)=>
 					statement.type = targetType or statement.target.type
-					
+
 					if statement.extract and statement.target.pathExt isnt 'json'
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
 					if statement.type is 'module' and statement.target.type is 'inline' and not statement.target.becameModule
 						statement.target.becameModule = true
 						statement.target.content = helpers.exportLastExpression(statement.target)
-
 
 			.then ()->
 				@files.filter(isDataType:true).map (file)=>
@@ -402,7 +401,7 @@ class Task extends require('events')
 			.then @replaceInlineImports
 			.then ()->
 				@importStatements
-					.filter(type:'module')
+					.filter (statement)=> statement.type is 'module' and statement.target isnt @entryFile
 					.unique('target')
 					.map('target')
 					.append(@entryFile, 0)
