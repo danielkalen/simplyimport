@@ -4,14 +4,14 @@ promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
 Path = require 'path'
-testModules = ['mocha', 'chai', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for', 'source-map-support', 'xmlhttprequest', 'location']
+testModules = ['mocha', 'chai', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for', 'source-map-support', 'xmlhttprequest', 'location', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
 process.env.SOURCE_MAPS = 1
 
 
 task 'test', ()->
 	Promise.resolve()
-		.then ()-> testModules.filter (module)-> not fs.exists Path.resolve('node_modules',module,'package.json')
+		.then ()-> testModules.filter (module)-> not moduleInstalled(module)
 		.tap (missingModules)-> promiseBreak() if missingModules.length is 0
 		.tap (missingModules)-> installModules(missingModules)
 		.catch promiseBreak.end
@@ -21,7 +21,7 @@ task 'test', ()->
 
 task 'coverage', ()->
 	Promise.resolve()
-		.then ()-> coverageModules.filter (module)-> not fs.exists Path.resolve('node_modules',module,'package.json')
+		.then ()-> coverageModules.filter (module)-> not moduleInstalled(module)
 		.tap (missingModules)-> promiseBreak() if missingModules.length is 0
 		.tap (missingModules)-> installModules(missingModules)
 		.catch promiseBreak.end
@@ -59,9 +59,15 @@ task 'coverage', ()->
 
 
 installModules = (targetModules)-> new Promise (resolve, reject)->
+	targetModules = targetModules.filter (module)-> if typeof module is 'string' then true else module[1]()
 	install = spawn('npm', ['install', '--no-save', '--no-purne', targetModules...], {stdio:'inherit'})
 	install.on 'error', reject
 	install.on 'close', resolve
+
+
+moduleInstalled = (targetModule)->
+	targetModule = targetModule[0] if typeof targetModule is 'object'
+	fs.exists Path.resolve('node_modules',targetModule,'package.json')
 
 
 runTests = ()->

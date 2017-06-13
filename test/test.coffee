@@ -6,10 +6,13 @@ vm = require 'vm'
 assert = require('chai').assert
 expect = require('chai').expect
 helpers = require './helpers'
-nodeVersion = parseFloat(process.version[1])
-badES6Support = nodeVersion < 6
+nodeVersion = parseFloat(process.version.slice(1))
+badES6Support = nodeVersion < 6.2
 bin = Path.resolve 'bin'
 SimplyImport = require '../'
+
+if nodeVersion < 5.1
+	Object.defineProperty Buffer,'from', value: (arg)-> new Buffer(arg)
 
 mocha.Runner::fail = do ()->
 	orig = mocha.Runner::fail
@@ -29,7 +32,12 @@ processAndRun = (opts, filename='script.js', context={})->
 	SimplyImport(opts).then (compiled)->
 		debugPath = debug(filename)
 		writeToDisc = ()-> fs.writeAsync(debugPath, compiled).timeout(500)
-		run = ()-> (new vm.Script(compiled, {filename})).runInNewContext(context)
+		run = ()->
+			script = if badES6Support then require('traceur').compile(compiled, script:true) else compiled
+			if script.includes('$traceurRuntime')
+				runtime = fs.read(Path.resolve 'node_modules','traceur','bin','traceur-runtime.js')
+				script = "#{runtime}\n\n#{script}"
+			(new vm.Script(script, {filename})).runInNewContext(context)
 		
 		Promise.resolve()
 			.then run
@@ -1128,7 +1136,9 @@ suite "SimplyImport", ()->
 				assert.include bundleA.compiled, require('../lib/builders/strings').globalDec(), 'global dec should be present in bundle A'
 				assert.notInclude bundleB.compiled, require('../lib/builders/strings').globalDec(), 'global dec should not be present in bundle B'
 				assert.notInclude bundleC.compiled, require('../lib/builders/strings').globalDec(), 'global dec should not be present in bundle C'
-				assert.deepEqual bundleA.result, bundleA.context
+				a = Object.exclude bundleA.result, (v,k)-> k is 'global'
+				b = Object.exclude bundleA.context, (v,k)-> k is 'global'
+				assert.deepEqual a, b
 				assert.equal bundleA.context.abc, 'abc123', 'bundleA.abc'
 				assert.equal bundleA.context.def, 'def456', 'bundleA.def'
 				assert.equal bundleA.context.valueABC, 'abc123', 'bundleA.global.valueABC'
@@ -1818,7 +1828,7 @@ suite "SimplyImport", ()->
 							}
 						"""
 				.then ()-> SimplyImport file:temp('main.js')
-				.catch (err)-> assert.include(err.message, '^'); 'failed as expected'
+				.catch (err)-> assert.include(err.message, 'Unexpected'); 'failed as expected'
 				.then (result)-> assert.equal result, 'failed as expected'
 
 

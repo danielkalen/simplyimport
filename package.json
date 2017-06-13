@@ -82,7 +82,7 @@
     "punycode": "^2.0.1",
     "querystring-es3": "^0.2.1",
     "read-pkg-up": "^2.0.0",
-    "scrumpy": "^0.1.0",
+    "scrumpy-es5": "^0.1.0",
     "stack-filter": "^1.0.1",
     "stream-browserify": "^2.0.1",
     "stream-http": "^2.5.0",
