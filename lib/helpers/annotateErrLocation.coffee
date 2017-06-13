@@ -13,6 +13,8 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 		console.warn chalk.yellow file.path
 		console.warn {posStart, posEnd, loc}
 		console.warn caretCount, line
+		console.warn chalk.dim file.content
+		console.warn file.content.lines()
 	
 	"""
 		\n
