@@ -4,7 +4,7 @@ LinesAndColumns = require('lines-and-columns').default
 module.exports = (file, posStart, posEnd=posStart+1)->
 	lines = new LinesAndColumns(file.content)
 	loc = lines.locationForIndex(posStart)
-	line = file.content.lines()[loc.line]
+	line = lineOrig = file.content.lines()[loc.line]
 	line = line.slice(0, Math.min(10,process.stderr.columns)) if line.length > process.stderr.columns
 	caretCount = Math.min line.length-loc.column, posEnd-posStart
 	loc.line += 1
@@ -12,9 +12,9 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 	if caretCount is Infinity or caretCount < 0
 		console.warn chalk.yellow file.path
 		console.warn {posStart, posEnd, loc}
-		console.warn caretCount, line
+		console.warn {caretCount, line, lineOrig, stderr:process.stderr.columns, stdout:process.stdout.columns}
 		console.warn chalk.dim file.content
-		console.warn file.content.lines()
+		# console.warn file.content.lines()
 	
 	"""
 		\n

@@ -618,7 +618,7 @@ suite "SimplyImport", ()->
 			.then (result)-> assert.equal result, 'failed as expected'
 
 
-	test "options.ignoreMissing will surpress missing file errors and will cause them to be replaced with an empty stub", ()->
+	test.only "options.ignoreMissing will surpress missing file errors and will cause them to be replaced with an empty stub", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.intercept.start('stderr')
