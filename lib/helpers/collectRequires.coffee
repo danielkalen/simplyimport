@@ -9,5 +9,5 @@ module.exports = collectRequires = (tokens, lines)->
 		output = helpers.newImportStatement()
 		output.target = @current.value.removeAll(REGEX.quotes).trim()
 
-		return null if @next().value is ','
+		return null if @next().value isnt ')'
 		return output

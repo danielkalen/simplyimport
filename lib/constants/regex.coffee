@@ -15,8 +15,8 @@ REGEX =
 	initialWhitespace: /^[ \t]+/
 	decKeyword: /var|let|const/
 	requireArg: /\brequire[,\)]/
-	processRequire: /\brequire[\(\s]['"]process['"]\)?/
-	processDec: /\bprocess\s?=\s?/
+	processDec: /\brequire[\(\s]['"]process['"]\)?|\bprocess\s?=\s?/
+	bufferDec: /\brequire[\(\s]['"]buffer['"]\)?|\bBuffer\s?=\s?/
 	globalCheck: /typeof global\b[^\.\[]/
 	moduleCheck: /typeof module\s?[\!=]==|=typeof module|if module\?/
 	defineCheck: /typeof define\s?[\!=]==|=typeof define|if define\?/
@@ -26,7 +26,7 @@ REGEX =
 	vars:
 		global: /\bglobal\b/
 		exports: /\bexports\b/
-		# process: /\bprocess\./
+		buffer: /\bBuffer\b/
 		process: /\bprocess\b/
 		__dirname: /\b\_\_dirname\b/
 		__filename: /\b\_\_filename\b/

@@ -66,7 +66,8 @@ class File
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle and not EXTENSIONS.static.includes(@pathExt)
 		@task.emit('requiredGlobal',@,'global') if REGEX.vars.global.test(@content) and not REGEX.globalCheck.test(@content)
-		@task.emit('requiredGlobal',@,'process') if REGEX.vars.process.test(@content) and not REGEX.processRequire.test(@content) and not REGEX.processDec.test(@content)
+		@task.emit('requiredGlobal',@,'Buffer') if REGEX.vars.buffer.test(@content) and not REGEX.bufferDec.test(@content)
+		@task.emit('requiredGlobal',@,'process') if REGEX.vars.process.test(@content) and not REGEX.processDec.test(@content)
 		@task.emit('requiredGlobal',@,'__dirname') if REGEX.vars.__dirname.test(@content)
 		@task.emit('requiredGlobal',@,'__filename') if REGEX.vars.__filename.test(@content)
 		return
@@ -181,6 +182,9 @@ class File
 	postTransforms: ()->
 		if @requiredGlobals.process
 			@contentPostTransforms = @content = "var process = require('process')\n#{@content}"
+		
+		if @requiredGlobals.Buffer
+			@contentPostTransforms = @content = "var Buffer = require('buffer').Buffer\n#{@content}"
 
 		@hashPostTransforms = md5(@contentPostTransforms)
 		@linesPostTransforms = new LinesAndColumns(@contentPostTransforms)

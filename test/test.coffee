@@ -977,7 +977,7 @@ suite "SimplyImport", ()->
 					assert.equal context.bbb, context.ddd+'-bbb'
 
 
-	suite "cyclic imports", ()->		
+	suite "cyclic imports", ()->
 		test "are supported between 2-chain imported modules", ()->
 			Promise.resolve()
 				.then ()->
@@ -1186,6 +1186,61 @@ suite "SimplyImport", ()->
 				assert.equal bundleB.context.ghi, 'gHi', 'bundleB.ghi'
 				assert.equal bundleB.result.valueGHI, 'gHi', 'bundleB.process.valueGHI'
 				assert.equal bundleB.result.value, undefined, 'bundleB.process.value'
+				assert.equal bundleC.result, 'JKL', 'bundleC.result'
+
+
+		test "the 'buffer' identifier will be polyfilled with a shared module if detected in the code", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'mainA.js': """
+							abc = import './abc'
+							def = require("./def")
+							module.exports = Buffer
+						"""
+						'mainB.js': """
+							ghi = import './ghi'
+							module.exports = ghi
+							return require('buffer').Buffer
+						"""
+						'mainC.js': """
+							jkl = import './jkl'
+							module.exports = jkl
+						"""
+						'abc.js': """
+							Buffer.valueABC = 'abc'
+							module.exports = Buffer.from(Buffer.valueABC)
+						"""
+						'def.js': """
+							Buffer.DEFJS = Buffer.alloc ? 'DEF' : 'def'
+							module.exports = Buffer.from(Buffer.DEFJS)
+						"""
+						"ghi.js": """
+							try {Buffer.value = 'gHi'} catch (e) {}
+							module.exports = require('buffer').Buffer.valueGHI = 'gHi'
+						"""
+						"jkl.js": """
+							Buffer = typeof Buffer === 'object' ? 'jkl' : 'JKL'
+							module.exports = Buffer
+						"""
+
+			.then ()->
+				Promise.all [
+					processAndRun file:temp('mainA.js')
+					processAndRun file:temp('mainB.js')
+					processAndRun file:temp('mainC.js')
+				]
+			.spread (bundleA, bundleB, bundleC)->
+				assert.notEqual bundleA.result, Buffer, 'bundleA'
+				assert.deepEqual bundleA.result.from('test'), Buffer.from('test'), 'buffer instances equality'
+				assert.equal bundleA.context.abc.toString(), 'abc', 'bundleA.abc'
+				assert.equal bundleA.context.def.toString(), 'DEF', 'bundleA.def'
+				assert.typeOf bundleA.result, 'function'
+				assert.equal bundleA.result.valueABC, 'abc', 'bundleA.buffer.valueABC'
+				assert.equal bundleA.result.DEFJS, 'DEF', 'bundleA.buffer.env.DEFJS'
+				assert.equal bundleB.context.ghi, 'gHi', 'bundleB.ghi'
+				assert.equal bundleB.result.valueGHI, 'gHi', 'bundleB.buffer.valueGHI'
+				assert.equal bundleB.result.value, undefined, 'bundleB.buffer.value'
 				assert.equal bundleC.result, 'JKL', 'bundleC.result'
 
 
@@ -2068,6 +2123,66 @@ suite "SimplyImport", ()->
 					assert.equal context.ccc, 'ccc'
 					assert.equal context.ddd, undefined
 					assert.equal context.eee, 'eee'
+
+
+	suite.only "core module shims", ()->
+		test "assert", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('assert')"
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})->
+					assert.typeOf result, 'function'
+					assert.doesNotThrow ()-> result.ok(true)
+					assert.throws ()-> result.ok(false)
+					assert.doesNotThrow ()-> result.deepEqual([10,20,30], [10,20,30])
+					assert.throws ()-> result.deepEqual([10,20,30,40],[10,20,30])
+
+
+		test "buffer", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('buffer')"
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})->
+					assert.typeOf result, 'object'
+					result = result.Buffer
+					assert.typeOf result, 'function'
+					assert.doesNotThrow ()-> result.from('test')
+					assert.equal 0, result.compare result.from('test'), result.from('test')
+
+
+		test "console", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('console')"
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})->
+					assert.typeOf result, 'object'
+					assert.typeOf result.log, 'function'
+					assert.doesNotThrow ()-> result.log 'test'
+					assert.doesNotThrow ()-> result.warn 'test'
+					assert.doesNotThrow ()-> result.trace 'test'
+
+
+		test "constants", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('constants')"
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})->
+					assert.typeOf result, 'object'
+					keys = Object.keys result
+					assert.include keys, 'NPN_ENABLED'
+					assert.include keys, 'F_OK'
+					assert.include keys, 'DH_NOT_SUITABLE_GENERATOR'
+
+
+		test.skip "crypto", ()->
+			@timeout 5e4
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('crypto')"
+				.then ()-> processAndRun file:temp('main.js'), usePaths:true
+				.then ({result})->
+					assert.typeOf result, 'object'
+					assert.typeOf result.createHmac, 'function'
+					assert.equal result.createHmac('sha256','abc').update('s').digest('hex'), require('crypto').createHmac('sha256','abc').update('s').digest('hex')
 
 
 
