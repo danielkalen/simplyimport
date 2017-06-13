@@ -13,5 +13,5 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 		\n
 		#{chalk.dim file.path+':'+loc.line+':'+loc.column} -
 			#{line}
-			#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount)}
+			#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount or 0)}
 	"""

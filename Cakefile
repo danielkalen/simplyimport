@@ -59,7 +59,10 @@ task 'coverage', ()->
 
 
 installModules = (targetModules)-> new Promise (resolve, reject)->
-	targetModules = targetModules.filter (module)-> if typeof module is 'string' then true else module[1]()
+	targetModules = targetModules
+		.filter (module)-> if typeof module is 'string' then true else module[1]()
+		.map (module)-> if typeof module is 'string' then module else module[0]
+	
 	install = spawn('npm', ['install', '--no-save', '--no-purne', targetModules...], {stdio:'inherit'})
 	install.on 'error', reject
 	install.on 'close', resolve
