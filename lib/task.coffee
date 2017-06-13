@@ -13,7 +13,7 @@ REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 debug = require('debug')('simplyimport')
-EMPTY_STUB = Path.join __dirname,'..','empty.js'
+{EMPTY_STUB} = require('./constants')
 
 class Task extends require('events')
 	constructor: (options)->
@@ -253,6 +253,9 @@ class Task extends require('events')
 			.then ()-> file.collectImports()
 			.filter (statement)-> statement.type isnt 'inline-forced'
 			.tap (imports)-> @importStatements.push(imports...)
+			# .tap (imports)->
+			# 	if file.pathRel is '../../node_modules/readable-stream/lib/_stream_readable.js'
+			# 		console.die Object.exclude imports.find(target:'util'), (k,v)-> v is 'source'
 			
 			.then (imports)-> imports.concat(importingExports)
 			.map (statement)->

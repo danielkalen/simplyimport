@@ -13,13 +13,13 @@ module.exports = (EMPTY_FILE)->
 	'crypto':					resolveModule.sync 'crypto-browserify', basedir
 	'domain':					resolveModule.sync 'domain-browser', basedir
 	'events':					resolveModule.sync 'events/', basedir
+	'http':						resolveModule.sync 'stream-http', basedir
 	'https':					resolveModule.sync 'https-browserify', basedir
 	'os':						resolveModule.sync 'os-browserify', basedir
 	'path':						resolveModule.sync 'path-browserify', basedir
 	'process':					resolveModule.sync 'process/', basedir
 	'punycode':					resolveModule.sync 'punycode/', basedir
 	'querystring':				resolveModule.sync 'querystring-es3', basedir
-	'http':						resolveModule.sync 'stream-http', basedir
 	'string_decoder':			resolveModule.sync 'string_decoder', basedir
 	'stream':					resolveModule.sync 'stream-browserify', basedir
 	'timers':					resolveModule.sync 'timers-browserify', basedir

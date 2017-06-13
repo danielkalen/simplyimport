@@ -3,8 +3,7 @@ findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
 resolveModule = Promise.promisify require('browser-resolve')
 helpers = require('./')
-EMPTY_FILE_END = Path.join('node_modules','browser-resolve','empty.js')
-EMPTY_FILE = Path.resolve(__dirname,'..',EMPTY_FILE_END)
+{EMPTY_FILE, EMPTY_FILE_END} = require('../constants')
 coreModuleShims = require('../constants/coreShims')(EMPTY_FILE)
 
 module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile)-> Promise.resolve().then ()->

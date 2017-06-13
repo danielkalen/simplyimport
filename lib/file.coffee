@@ -181,10 +181,10 @@ class File
 
 	postTransforms: ()->
 		if @requiredGlobals.process
-			@contentPostTransforms = @content = "var process = require('process')\n#{@content}"
+			@contentPostTransforms = @content = "var process = require('process');\n#{@content}"
 		
 		if @requiredGlobals.Buffer
-			@contentPostTransforms = @content = "var Buffer = require('buffer').Buffer\n#{@content}"
+			@contentPostTransforms = @content = "var Buffer = require('buffer').Buffer;\n#{@content}"
 
 		@hashPostTransforms = md5(@contentPostTransforms)
 		@linesPostTransforms = new LinesAndColumns(@contentPostTransforms)
@@ -473,6 +473,7 @@ class File
 				replacement = do ()=>
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
 					targetContent = helpers.prepareMultilineReplacement(content, targetContent, lines, statement.range)
+					targetContent = '{}' if not targetContent
 
 					if EXTENSIONS.compat.includes(statement.target.pathExt)
 						targetContent = "(#{targetContent})" if content[range[1]] is '.' or content[range[1]] is '('
