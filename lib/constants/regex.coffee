@@ -1,14 +1,14 @@
 REGEX = 
-	es6memberAlias: /\s+as\s+/
+	# es6memberAlias: /\s+as\s+/
 	quotes: /['"]/
-	commaSeparated: /,\s*/
+	# commaSeparated: /,\s*/
 	extractDelim: /\s*\$\s*/
 	endingSemi: /;$/
 	bracketStart: /^[\{\[\(]$/
 	bracketEnd: /^[\}\]\)]$/
 	squareBrackets: /[\[\]]/
 	curlyBrackets: /[\{\}]/
-	stringContents: /".+?"|'.+?'/g
+	# stringContents: /".+?"|'.+?'/g
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
@@ -143,9 +143,9 @@ REGEX =
 		(\S+?)					# filepath
 	$///gm
 
-	tsExport: ///
-		\bexport\s+=\s*
-	///
+	# tsExport: ///
+	# 	\bexport\s+=\s*
+	# ///
 
 	es6export: ///^
 		(
@@ -187,14 +187,14 @@ REGEX =
 		)?
 	///m
 
-	commonImport: ///^
-		\b
-		require 										# require reference
-		\( 												# trailing char after 'require' (bracket open)
-		\s*
-		(.+)
-		\) 												# trailing char after 'require' (bracket close)
-	$///
+	# commonImport: ///^
+	# 	\b
+	# 	require 										# require reference
+	# 	\( 												# trailing char after 'require' (bracket open)
+	# 	\s*
+	# 	(.+)
+	# 	\) 												# trailing char after 'require' (bracket close)
+	# $///
 
 	commonImportReal: ///^
 		\b
@@ -210,9 +210,9 @@ REGEX =
 	$///
 
 
-	comment:
-		singleLine: /([^:]|^)\/\/(.*)$/mg
-		multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg
+	# comment:
+	# 	singleLine: /([^:]|^)\/\/(.*)$/mg
+	# 	multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg
 
 	
 
