@@ -9,22 +9,5 @@ module.exports = collectRequires = (tokens, lines)->
 		output = helpers.newImportStatement()
 		output.target = @current.value.removeAll(REGEX.quotes).trim()
 
-		return output if @next().value isnt ','
-		return output if @next().type.label isnt 'string'
-		output.members ?= {}
-		output.members.default = @current.value.removeAll(REGEX.quotes).trim()
-
-		return output if @next().value isnt ','
-		return output if @next().type.label isnt 'string'
-		output.members ?= {}
-		members = @current.value.removeAll(REGEX.quotes).trim()
-
-		if members.startsWith '*'
-			split = members.split(REGEX.es6membersAlias)
-			output.alias = split[1]
-		else
-			members.split(/,\s*/).forEach (memberSignature)->
-				split = memberSignature.split(REGEX.es6membersAlias)
-				output.members[split[0]] = split[1] or split[0]
-
+		return null if @next().value is ','
 		return output
