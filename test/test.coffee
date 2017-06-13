@@ -1061,7 +1061,7 @@ suite "SimplyImport", ()->
 					assert.equal context.theResult, '2.5602'
 		
 
-		test.skip "inline imports will be transformed to modules", ()->
+		test "inline imports will be transformed to modules", ()->
 			Promise.resolve()
 				.then ()->
 					helpers.lib
@@ -1070,8 +1070,9 @@ suite "SimplyImport", ()->
 								this.version = '14';
 								this.hyperbole = function(){return this.version*100}
 							}
+							module['export'+'s'] = TheLib
 							TheLib.version = (import './a.js')()+'.'+(import './b.js');
-							theResult = TheLib.version
+							TheLib
 						"""
 						"a.js": """
 							aaa = function(){return parseFloat(require('./main').version[0]) * 2}
@@ -1081,8 +1082,8 @@ suite "SimplyImport", ()->
 						"""
 
 				.then ()-> processAndRun file:temp('main.js'), usePaths:true
-				.then ({context})->
-					assert.equal context.theResult, '2.5602'
+				.then ({context, result})->
+					assert.equal result.version, '2.5602'
 
 
 
@@ -2043,7 +2044,7 @@ suite "SimplyImport", ()->
 
 							// simplyimport:if !var5
 							importInline "./c"
-							importInline "./d"
+							import "./d"
 							// simplyimport:end
 
 							// simplyimport:if var5

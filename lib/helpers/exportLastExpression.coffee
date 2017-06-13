@@ -3,31 +3,32 @@ EXTENSIONS = require '../constants/extensions'
 
 module.exports = exportLastExpression = (file)->
 	return file.content if EXTENSIONS.static.includes(file.pathExt)
-	ast = try Parser.parseStrict(file.content, range:true)
+	ast = try Parser.parseStrict(file.contentSafe, range:true)
 	
 	if not ast
-		return "module.exports = #{file.content}"
+		return content:"module.exports = #{file.content}", offset:[0,17]
 	
 	else if ast.body.length
 		last = ast.body.last()
 		
 		insertExport = (pos)->
-			file.content.insert 'module.exports = ', pos
+			newContent = file.content.insert 'module.exports = ', pos
+			return content:newContent, offset:[pos,pos+17]
 		
 		switch last.type
 			when 'ThrowStatement'
-				return file.content
+				return content:file.content
 			
 			when 'Literal','Identifier','ClassDeclaration','FunctionDeclaration'
 				return insertExport(last.start)
 
 			when 'VariableDeclaration'
 				last = last.declarations.slice(-1)[0]
-				return "#{file.content}\nmodule.exports = #{last.id.name}"
+				return content:"#{file.content}\nmodule.exports = #{last.id.name}"
 
 			when 'ReturnStatement'
 				file.hasExplicitReturn = true
-				return file.content if not last.argument
+				return content:file.content if not last.argument
 				return insertExport(last.argument.start)
 
 			else
@@ -49,7 +50,12 @@ module.exports = exportLastExpression = (file)->
 					else # when 'AssignmentExpression'
 						lastDec.left.name
 
-				return "#{file.content}\nmodule.exports = #{id}"
+				return content:"#{file.content}\nmodule.exports = #{id}"
 	
 
-	return file.content
+	return content:file.content
+
+
+
+
+

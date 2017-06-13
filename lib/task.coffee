@@ -293,8 +293,10 @@ class Task extends require('events')
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
 					if statement.type is 'module' and statement.target.type is 'inline' and not statement.target.becameModule
+						{content, offset} = helpers.exportLastExpression(statement.target)
+						statement.target.addRangeOffset 'exports', [offset[0], offset[1], 17] if offset
+						statement.target.content = content
 						statement.target.becameModule = true
-						statement.target.content = helpers.exportLastExpression(statement.target)
 
 			.then ()->
 				@files.filter(isDataType:true).map (file)=>

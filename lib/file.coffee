@@ -16,6 +16,7 @@ RANGE_ARRAYS = ['inlines', 'imports', 'exports']
 
 
 class File
+	Object.defineProperty @::, 'contentSafe', get: -> @replaceES6Imports(false)
 	constructor: (@task, state)->
 		extend(@, state)
 		@IDstr = JSON.stringify(@ID)
@@ -326,9 +327,9 @@ class File
 		# 	mapping
 
 
-	replaceES6Imports: ()->
+	replaceES6Imports: (save=true)->
 		hasImports = false
-		@content = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)->
+		newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)->
 			hasImports = true
 			body = "#{childPath}"
 			body += ",'#{meta}'" if meta
@@ -340,7 +341,10 @@ class File
 			return replacement
 
 		if hasImports and @pathExt is 'ts'
-			@content = "declare function _$sm(...a: any[]): any;\n#{@content}"
+			newContent = "declare function _$sm(...a: any[]): any;\n#{newContent}"
+
+		@content = newContent if save
+		return newContent
 
 
 	restoreES6Imports: ()->
@@ -558,7 +562,7 @@ class File
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
 			range = @offsetRange(statement.range)
-			@replacedRanges.exports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+			@addRangeOffset 'exports', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
 		content += "\nexports.__esModule=true" if @exportStatements.length

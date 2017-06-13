@@ -3,6 +3,7 @@ helpers = require('./')
 
 module.exports = collectExports = (tokens, lines)->
 	@walkTokens tokens, lines, 'export', ()->
+		return if @current.type.keyword isnt 'export'
 		output = helpers.newExportStatement()
 		@next()
 
