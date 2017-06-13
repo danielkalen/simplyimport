@@ -8,10 +8,15 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 	line = line.slice(0, Math.min(10,process.stderr.columns)) if line.length > process.stderr.columns
 	caretCount = Math.min line.length-loc.column, posEnd-posStart
 	loc.line += 1
+
+	if caretCount is Infinity or caretCount < 0
+		console.warn chalk.yellow file
+		console.warn {posStart, posEnd, loc}
+		console.warn caretCount, line
 	
 	"""
 		\n
 		#{chalk.dim file.path+':'+loc.line+':'+loc.column} -
 			#{line}
-			#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount or 0)}
+			#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount)}
 	"""

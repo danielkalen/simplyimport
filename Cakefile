@@ -3,6 +3,7 @@ Promise.config longStackTraces:true if process.env.CI
 promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
+chalk = require 'chalk'
 Path = require 'path'
 testModules = ['mocha', 'chai', 'browserify', 'axios', 'babelify', 'babel-preset-es2015-script', 'jquery-selector-cache', 'timeunits', 'yo-yo', 'envify', 'icsify', 'smart-extend', 'p-wait-for', 'source-map-support', 'xmlhttprequest', 'location', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
@@ -62,6 +63,9 @@ installModules = (targetModules)-> new Promise (resolve, reject)->
 	targetModules = targetModules
 		.filter (module)-> if typeof module is 'string' then true else module[1]()
 		.map (module)-> if typeof module is 'string' then module else module[0]
+	
+	return resolve() if not targetModules.length
+	console.log "#{chalk.yellow('Installing')} #{chalk.dim targetModules.join ', '}"
 	
 	install = spawn('npm', ['install', '--no-save', '--no-purne', targetModules...], {stdio:'inherit'})
 	install.on 'error', reject
