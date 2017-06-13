@@ -81,8 +81,8 @@ runTests = ()->
 	mocha = new (require 'mocha')
 		ui: 'tdd'
 		bail: not process.env.CI
-		timeout: 8000
-		slow: 1500
+		timeout: if process.env.CI then 20000 else 8000
+		slow: if process.env.CI then 7000 else 1500
 		userColors: true
 
 	mocha.addFile Path.join('test','test.coffee')
