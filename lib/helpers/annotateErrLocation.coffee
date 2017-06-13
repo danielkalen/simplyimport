@@ -17,9 +17,9 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 				#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount)}
 		"""
 	catch err
-		console.warn chalk.yellow file.path
-		console.warn {posStart, posEnd, loc}
-		console.warn {caretCount, line, lineOrig, stderr:process.stderr.columns, stdout:process.stdout.columns}
+		console.log chalk.yellow file.path
+		console.log {posStart, posEnd, loc}
+		console.log {caretCount, line, lineOrig, stderr:process.stderr.columns, stdout:process.stdout.columns}
 		console.log chalk.dim file.content
 		# console.warn file.content.lines()
 		throw err
