@@ -9,16 +9,17 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 	caretCount = Math.min line.length-loc.column, posEnd-posStart
 	loc.line += 1
 
-	if caretCount is Infinity or caretCount < 0
+	try
+		return """
+			\n
+			#{chalk.dim file.path+':'+loc.line+':'+loc.column} -
+				#{line}
+				#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount)}
+		"""
+	catch err
 		console.warn chalk.yellow file.path
 		console.warn {posStart, posEnd, loc}
 		console.warn {caretCount, line, lineOrig, stderr:process.stderr.columns, stdout:process.stdout.columns}
-		console.warn chalk.dim file.content
+		console.log chalk.dim file.content
 		# console.warn file.content.lines()
-	
-	"""
-		\n
-		#{chalk.dim file.path+':'+loc.line+':'+loc.column} -
-			#{line}
-			#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount)}
-	"""
+		throw err

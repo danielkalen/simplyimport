@@ -644,7 +644,7 @@ suite "SimplyImport", ()->
 			.tapCatch (err)-> helpers.intercept.stop()
 
 
-	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
+	test.only "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
