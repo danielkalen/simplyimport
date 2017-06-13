@@ -10,7 +10,7 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 	loc.line += 1
 
 	if caretCount is Infinity or caretCount < 0
-		console.warn chalk.yellow file
+		console.warn chalk.yellow file.path
 		console.warn {posStart, posEnd, loc}
 		console.warn caretCount, line
 	

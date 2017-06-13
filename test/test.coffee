@@ -1041,7 +1041,6 @@ suite "SimplyImport", ()->
 
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({context, writeToDisc})->
-					writeToDisc()
 					assert.equal context.aaa, 'aaa-bbb-ccc-ddd-[object Object]'
 		
 
@@ -1289,7 +1288,6 @@ suite "SimplyImport", ()->
 
 			.then ()-> processAndRun file:temp('nested/main.js'), dedupe:false
 			.then ({compiled, result, context, writeToDisc})->
-				writeToDisc()
 				assert.equal context.abc, '/abc.js'
 				assert.equal context.def, '/'
 				assert.equal context.def2, '/..'
@@ -2210,7 +2208,6 @@ suite "SimplyImport", ()->
 				.then ()-> helpers.lib "main.js": "module.exports = require('http')"
 				.then ()-> processAndRun file:temp('main.js'), usePaths:true, null, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
 				.then ({result, writeToDisc})->
-					writeToDisc()
 					assert.typeOf result, 'object'
 					assert.typeOf result.get, 'function'
 					result.get('http://google.com').abort()
@@ -2221,7 +2218,6 @@ suite "SimplyImport", ()->
 				.then ()-> helpers.lib "main.js": "module.exports = require('https')"
 				.then ()-> processAndRun file:temp('main.js'), usePaths:true, null, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
 				.then ({result, writeToDisc})->
-					writeToDisc()
 					assert.typeOf result, 'object'
 					assert.typeOf result.get, 'function'
 					result.get('https://google.com').abort()
