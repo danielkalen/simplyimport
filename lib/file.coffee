@@ -263,15 +263,24 @@ class File
 	applyTransforms: (content, transforms)->
 		lastTransformer = null
 		
-		Promise.resolve(transforms)
-			.map (transform)=> helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
-			.reduce((content, transformer)=>
+		Promise.resolve(transforms).bind(@)
+			.map (transform)-> helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
+			.reduce((content, transformer)->
 				lastTransformer = transformer
 				transformOpts = extend {_flags:@task.options}, transformer.opts
 
-				Promise.resolve()
-					.then ()=> getStream streamify(content).pipe(transformer.fn(@pathAbs, transformOpts, @))
-					.then (content)=>
+				Promise.bind(@)
+					.then ()-> transformer.fn(@pathAbs, transformOpts, @, content)
+					.tap (result)->
+						switch
+							when helpers.isStream(result) then result
+							when typeof result is 'string' then promiseBreak(result)
+							when typeof result is 'function' then promiseBreak(result(content))
+							else throw new Error "invalid result of type '#{typeof result}' received from transformer"
+					
+					.then (transformStream)-> getStream streamify(content).pipe(transformStream)
+					.catch promiseBreak.end
+					.then (content)->
 						if transformer.name.includes(/coffeeify|typescript-compiler/)
 							@pathExt = 'js'
 						else if transformer.name.includes(/csonify|yamlify/)
@@ -284,7 +293,7 @@ class File
 						return content
 				
 			, content)
-			.catch (err)=>
+			.catch (err)->
 				@task.emit 'TransformError', @, err, lastTransformer
 
 

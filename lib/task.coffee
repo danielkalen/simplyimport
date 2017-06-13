@@ -332,6 +332,7 @@ class Task extends require('events')
 				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
 				
 				for h,group of dupGroups
+					continue if group.some((s)-> s.target.options.dedupe is false)
 					for statement,index in group when index > 0
 						statement.target = group[0].target
 				return

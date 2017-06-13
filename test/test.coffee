@@ -1564,6 +1564,15 @@ suite "SimplyImport", ()->
 					assert.equal received.content, "'def-value'"
 
 
+		# test "transforms will receive the file's content as the 4rd argument", ()->
+
+
+		# test "transforms can return a promise", ()->
+
+
+		# test "transforms can return a function which will be invoked with the file's content", ()->
+
+
 		test "coffeescript files will be automatically transformed by default", ()->
 			Promise.resolve()
 				.then ()->
