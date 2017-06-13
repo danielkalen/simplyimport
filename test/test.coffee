@@ -618,7 +618,7 @@ suite "SimplyImport", ()->
 			.then (result)-> assert.equal result, 'failed as expected'
 
 
-	test.only "options.ignoreMissing will surpress missing file errors and will cause them to be replaced with an empty stub", ()->
+	test "options.ignoreMissing will surpress missing file errors and will cause them to be replaced with an empty stub", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.intercept.start('stderr')
@@ -644,7 +644,7 @@ suite "SimplyImport", ()->
 			.tapCatch (err)-> helpers.intercept.stop()
 
 
-	test.only "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
+	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib
