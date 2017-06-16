@@ -1,5 +1,5 @@
 global.Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.CI 
+Promise.config longStackTraces:true if process.env.DEBUG 
 promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
@@ -80,9 +80,9 @@ moduleInstalled = (targetModule)->
 runTests = ()->
 	mocha = new (require 'mocha')
 		ui: 'tdd'
-		bail: not process.env.CI
-		timeout: if process.env.CI then 20000 else 8000
-		slow: if process.env.CI then 7000 else 1500
+		bail: not process.env.DEBUG
+		timeout: if process.env.DEBUG then 20000 else 8000
+		slow: if process.env.DEBUG then 7000 else 1500
 		userColors: true
 
 	mocha.addFile Path.join('test','test.coffee')
