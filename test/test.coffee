@@ -1298,7 +1298,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite "transforms", ()->
+	suite.only "transforms", ()->
 		test "provided through-stream transform functions will be passed each file's content prior to import/export scanning", ()->
 			through = require('through2')
 			customTransform = (file)->
@@ -1564,13 +1564,112 @@ suite "SimplyImport", ()->
 					assert.equal received.content, "'def-value'"
 
 
-		# test "transforms will receive the file's content as the 4rd argument", ()->
+		test "transforms will receive the file's content as the 4rd argument", ()->
+			received = null
+			target = null
+			customTransform = (file, opts, file_, content)->
+				received = content if file is target
+				require('through2')()
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'abcc/index.js': "module.exports = 'def-value'"
+						'deff/index.js': "import 'abcc'"
+				
+				.then ()-> assert.equal received, null
+				.then ()-> target = temp('abcc/index.js')
+				.then ()-> SimplyImport src:"importInline './abcc'", context:temp(), transform:customTransform
+				.then ()-> assert.equal received, "module.exports = 'def-value'"
+				
+				.then ()-> target = temp('deff/index.js')
+				.then ()-> SimplyImport src:"importInline './deff'", context:temp(), transform:customTransform
+				.then ()-> assert.equal received, "_$sm('abcc' )"
 
 
-		# test "transforms can return a promise", ()->
+		test "transforms can return a string", ()->
+			customTransform = (file, o, d, content)->
+				content.replace /(...)-value/g, (e,word)-> "#{word.toUpperCase()}---value"
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.first = import './abc'
+							exports.second = import './deff'
+							exports.third = import './ghi'
+						"""
+						'abc.js': "'abc-value'"
+						'deff/index.js': "'def-value'"
+						'ghi.js': "module.exports = 'ghi-value'+'___jkl-value'"
+				
+				.then ()-> processAndRun file:temp('main.js'), transform:customTransform
+				.then ({result})->
+					assert.equal result.first, 'ABC---value'
+					assert.equal result.second, 'DEF---value'
+					assert.equal result.third, 'GHI---value___JKL---value'
 
 
-		# test "transforms can return a function which will be invoked with the file's content", ()->
+		test "transforms can return a function which will be invoked with the file's content", ()->
+			customTransform = (file)->
+				assert.include file, temp()
+				return (content)->
+					content.replace /(...)-value/g, (e,word)-> "#{word.toUpperCase()}---value"
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.first = import './abc'
+							exports.second = import './deff'
+							exports.third = import './ghi'
+						"""
+						'abc.js': "'abc-value'"
+						'deff/index.js': "'def-value'"
+						'ghi.js': "module.exports = 'ghi-value'+'___jkl-value'"
+				
+				.then ()-> processAndRun file:temp('main.js'), transform:customTransform
+				.then ({result})->
+					assert.equal result.first, 'ABC---value'
+					assert.equal result.second, 'DEF---value'
+					assert.equal result.third, 'GHI---value___JKL---value'
+
+
+		test "transforms can return a promise who's value will be followed (function or string)", ()->
+			customTransformA = (file, o, d, content)->
+				Promise.resolve()
+					.delay(10)
+					.then ()-> content.replace /(...)-value/g, (e,word)-> "#{word.toUpperCase()}---value"
+					.delay(5)
+			
+			customTransformB = (file)->
+				Promise.resolve()
+					.delay(10)
+					.then -> (content)-> content.replace /(...)-value/g, (e,word)-> "#{word.toUpperCase()}---value"
+					.delay(5)
+
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.first = import './abc'
+							exports.second = import './deff'
+							exports.third = import './ghi'
+						"""
+						'abc.js': "'abc-value'"
+						'deff/index.js': "'def-value'"
+						'ghi.js': "module.exports = 'ghi-value'+'___jkl-value'"
+				
+				.then ()->
+					Promise.all [
+						processAndRun file:temp('main.js'), transform:customTransformA
+						processAndRun file:temp('main.js'), transform:customTransformB
+					]
+				.then ([moduleA, moduleB])->
+					assert.equal moduleA.result.first, 'ABC---value'
+					assert.equal moduleA.result.second, 'DEF---value'
+					assert.equal moduleA.result.third, 'GHI---value___JKL---value'
+					assert.deepEqual moduleA.result, moduleB.result
 
 
 		test "coffeescript files will be automatically transformed by default", ()->
