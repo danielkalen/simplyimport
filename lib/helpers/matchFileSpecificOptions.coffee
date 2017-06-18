@@ -1,3 +1,4 @@
+helpers = require './'
 globMatch = require 'micromatch'
 
 module.exports = matchFileSpecificOptions = (config, specificOptions)-> switch
@@ -8,14 +9,5 @@ module.exports = matchFileSpecificOptions = (config, specificOptions)-> switch
 		return specificOptions[config.pathBase]
 		
 	else
-		matchingGlob = null
-		opts = matchBase:true
-		
-		for glob of specificOptions
-			if globMatch.isMatch(config.pathAbs, glob, opts) or
-				globMatch.isMatch(config.pathAbs, glob) or
-				globMatch.isMatch(config.path, glob) or
-				globMatch.isMatch(config.suppliedPath, glob, opts)
-					matchingGlob = glob
-
+		matchingGlob = helpers.matchGlob config, Object.keys(specificOptions)
 		return specificOptions[matchingGlob] or {}

@@ -107,6 +107,14 @@ class Task extends require('events')
 				statement.extract = undefined
 
 
+	handleIgnoredFile: (file, statement)->
+		Promise.bind(@)
+			.then ()-> @initFile EMPTY_STUB, file, false, false
+			.then (emptyFile)->
+				statement.target = emptyFile
+				statement.extract = undefined
+
+
 	initEntryFile: ()->
 		Promise.bind(@)
 			.then ()-> helpers.resolveEntryPackage(@)
@@ -160,13 +168,17 @@ class Task extends require('events')
 				return module.file
 			
 			.then (input)->
-				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile))
+				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile), suppliedPath)
 			
 			.tap (config)-> debug "creating #{config.pathDebug}"
 			.tap (config)->
 				if @cache[config.pathAbs]
 					debug "using cached #{config.pathDebug}"
 					promiseBreak(@cache[config.pathAbs])
+
+			.tap (config)->
+				if helpers.matchGlob(config, @options.ignoreFile)
+					throw new Error('ignored')
 
 			.tap (config)->
 				fs.existsAsync(config.pathAbs).then (exists)->
@@ -183,7 +195,6 @@ class Task extends require('events')
 					else if @options.usePaths then config.pathRel
 					else ++@currentID
 				config.type = config.ID if isForceInlined
-				config.suppliedPath = suppliedPath
 				config.pkgFile = pkgFile or {}
 				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
 				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
@@ -231,6 +242,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
@@ -253,9 +265,6 @@ class Task extends require('events')
 			.then ()-> file.collectImports()
 			.filter (statement)-> statement.type isnt 'inline-forced'
 			.tap (imports)-> @importStatements.push(imports...)
-			# .tap (imports)->
-			# 	if file.pathRel is '../../node_modules/readable-stream/lib/_stream_readable.js'
-			# 		console.die Object.exclude imports.find(target:'util'), (k,v)-> v is 'source'
 			
 			.then (imports)-> imports.concat(importingExports)
 			.map (statement)->
@@ -263,6 +272,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			

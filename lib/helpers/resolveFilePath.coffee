@@ -7,7 +7,7 @@ fs = require 'fs-jetpack'
 chalk = require 'chalk'
 debug = require('debug')('simplyimport:fs')
 
-module.exports = resolveFilePath = (input, entryContext, cache)->
+module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 	params = Path.parse(Path.resolve(input))
 	isFile = false
 	
@@ -65,4 +65,4 @@ module.exports = resolveFilePath = (input, entryContext, cache)->
 			pathExt = Path.extname(pathAbs).toLowerCase().slice(1)
 			pathExt = 'yml' if pathExt is 'yaml'
 			pathBase = Path.basename(pathAbs)
-			return {path, pathDebug, pathAbs, pathRel, pathBase, pathExt, context, contextRel}
+			return {path, pathDebug, pathAbs, pathRel, pathBase, pathExt, context, contextRel, suppliedPath}

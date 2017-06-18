@@ -13,6 +13,7 @@ acornOpts =
 
 astringOpts =
 	comments: true
+	indent: ''
 
 module.exports = new class Parser
 	parse: (code, opts)-> acornLoose.parse code, extend({}, acornOpts, opts)

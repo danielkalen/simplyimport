@@ -923,6 +923,33 @@ suite "SimplyImport", ()->
 					assert.equal result.a, result.c
 
 
+	test.skip "files matching globs specified in options.ignoreFile shall be replaced via an empty stub", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'entry.js': """
+						exports.a = require('./a')
+						exports.b = require('./b')
+						exports.c = require('./c')
+						exports.d = require('./d')
+						exports.e = require('./e')
+					"""
+					'a.js': "module.exports = 'file a.js!'"
+					'b.js': "module.exports = 'file b.js!'"
+					'c.js': "module.exports = 'file c.js!'"
+					'd.js': "module.exports = 'file d.js!'"
+					'e.js': "module.exports = 'file e.js!'"
+
+			.then ()-> processAndRun file:temp('entry.js'), ignoreFile:['b.js', '**/temp/d.*']
+			.then ({result, writeToDisc})->
+				writeToDisc()
+				assert.deepEqual result.a, 'file a.js!'
+				assert.deepEqual result.b, {}
+				assert.deepEqual result.c, 'file c.js!'
+				assert.deepEqual result.d, {}
+				assert.deepEqual result.e, 'file e.js!'
+
+
 	suite "deduping", ()->
 		# suiteTeardown ()-> fs.dirAsync temp(), empty:true 
 		
@@ -1298,7 +1325,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite.only "transforms", ()->
+	suite "transforms", ()->
 		test "provided through-stream transform functions will be passed each file's content prior to import/export scanning", ()->
 			through = require('through2')
 			customTransform = (file)->
@@ -1911,12 +1938,13 @@ suite "SimplyImport", ()->
 								var b = function(a,b = 10){return a * b}
 							"""
 					.then ()-> processAndRun file:temp('main.js'), transform:'es6ify'
-					.then ({result, context, writeToDisc})->
+					.then ({compiled, result, context, writeToDisc})->
 						assert.equal result.first, 'theFirst'
 						assert.equal result.second, 'theSecond'
 						assert.equal (new result.Custom 'dan').name, 'dan'
 						assert.equal result.b(15), 150
 						assert.equal result.b(15, 4), 60
+						assert.notInclude compiled, 'class'
 
 
 
