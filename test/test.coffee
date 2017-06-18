@@ -1771,6 +1771,154 @@ suite "SimplyImport", ()->
 					assert.equal context.d.b, 'inner-value'
 
 
+		test "cson files will be automatically transformed by default", ()->
+			Promise.resolve()
+				.then ()-> fs.dirAsync temp(), empty:true
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a.cson'
+							b = require('b')
+						"""
+						'a.cson': """
+							dataA:
+								abc123: 1
+								def456: 2
+						"""
+						'b/index.cson': """
+							dataB: [
+								4
+								0
+								1
+							]
+							dataB2: 123
+						"""
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({compiled, context, writeToDisc})->
+					assert.include compiled, 'require ='
+					assert.deepEqual context.a, {dataA: {abc123:1, def456:2}}
+					assert.deepEqual context.b, {dataB:[4,0,1], dataB2:123}
+
+
+		test "yml files will be automatically transformed by default", ()->
+			Promise.resolve()
+				.then ()-> fs.dirAsync temp(), empty:true
+				.then ()->
+					helpers.lib
+						'main.js': """
+							a = import './a'
+							b = require('b')
+						"""
+						'a.yml': """
+							dataA:
+							  abc123: 1
+							  def456: 2
+						"""
+						'b/index.yml': """
+							dataB:
+							  - 4
+							  - 0
+							  - 1
+							dataB2: 123
+						"""
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({compiled, context, writeToDisc})->
+					assert.include compiled, 'require ='
+					assert.deepEqual context.a, {dataA: {abc123:1, def456:2}}
+					assert.deepEqual context.b, {dataB:[4,0,1], dataB2:123}
+
+
+		suite "popular transforms", ()-> # testing some real-world scenarios
+			test "envify", ()->
+				Promise.resolve()
+					.then ()->
+						helpers.lib
+							'main.js': """
+								exports.main = process.env.VAR1
+								if (process.env.VAR2 === 'chocolate') {
+									a = import './a'
+								} 
+								b = require('b')
+							"""
+							'a.js': """
+								module.exports = JSON.parse(process.env.VAR3)
+							"""
+							'b.js': """
+								process.env.VAR4
+							"""
+					.then ()->
+						process.env.VAR1 = 'the main file'
+						process.env.VAR2 = 'chocolate'
+						process.env.VAR3 = '{"a":10, "b":20, "c":30}'
+						process.env.VAR4 = 'the last env var'
+						processAndRun file:temp('main.js'), transform:'envify'
+					
+					.then ({result, context, writeToDisc})->
+						assert.equal result.main, 'the main file'
+						assert.deepEqual context.a, {a:10,b:20,c:30}
+						assert.equal context.b, 'the last env var'
+		
+
+			test "brfs", ()->
+				Promise.resolve()
+					.then ()->
+						helpers.lib
+							'main.js': """
+								main = require('fs').readFileSync(__dirname+'/first.html', 'utf8')
+								a = import './a'
+								b = import './b'
+								c = b.toUpperCase()
+							"""
+							'a.js': """
+								module.exports = require('fs').readFileSync(__dirname+'/second.html', 'utf8')
+							"""
+							'b.js': """
+								require('fs').readFileSync(__dirname+'/third.html', 'utf8')
+							"""
+							'first.html': "<p>beep boop</p>"
+							'second.html': "<div class=\"wrapper\">\n<p>beep boop</p>\n</div>"
+							'third.html': "<div id='superWrapper'>\n<div class=\"wrapper\">\n<p>beep boop</p>\n</div>\n</div>"
+					.then ()-> processAndRun file:temp('main.js'), transform:'brfs'
+					.then ({context, writeToDisc})->
+						assert.equal context.main, fs.read temp 'first.html'
+						assert.equal context.a, fs.read temp 'second.html'
+						assert.equal context.b, third=fs.read temp 'third.html'
+						assert.equal context.c, third.toUpperCase()
+
+
+			test "es6ify", ()->
+				Promise.resolve()
+					.then ()->
+						helpers.lib
+							'main.js': """
+								var {first, second} = import './a'
+								class Custom {
+									constructor(name) {
+										this.name = name
+									}
+								}
+								require('./b')
+								exports.b = b
+								exports.first = first
+								exports.second = second
+								exports.Custom = Custom
+							"""
+							'a.js': """
+								var first = 'theFirst', second = 'theSecond';
+								module.exports = {first, second}
+							"""
+							'b.js': """
+								var b = function(a,b = 10){return a * b}
+							"""
+					.then ()-> processAndRun file:temp('main.js'), transform:'es6ify'
+					.then ({result, context, writeToDisc})->
+						assert.equal result.first, 'theFirst'
+						assert.equal result.second, 'theSecond'
+						assert.equal (new result.Custom 'dan').name, 'dan'
+						assert.equal result.b(15), 150
+						assert.equal result.b(15, 4), 60
+
+
 
 	suite "extraction", ()->
 		suiteSetup ()-> fs.dirAsync temp(), empty:true
