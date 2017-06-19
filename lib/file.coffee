@@ -277,7 +277,7 @@ class File
 							when typeof result is 'string' then promiseBreak(result)
 							when typeof result is 'function' then promiseBreak(result(content))
 							else throw new Error "invalid result of type '#{typeof result}' received from transformer"
-					
+
 					.then (transformStream)-> getStream streamify(content).pipe(transformStream)
 					.catch promiseBreak.end
 					.then (content)->
@@ -471,15 +471,16 @@ class File
 		@replaceInlineImports('inline-forced')
 
 
-	replaceInlineImports: (targetType='inline')->
+	replaceInlineImports: (type='inline')->
 		content = @content
-		lines = @linesPostTransforms or @linesOriginal # the latter will be used when targetType==='inline-forced'
+		lines = @linesPostTransforms or @linesOriginal # the latter will be used when type==='inline-forced'
 
 		Promise.bind(@)
-			.then ()-> @importStatements.filter (statement)-> statement.type is targetType
+			.then ()-> @importStatements.filter {type}
 			.map (statement)->
 				range = @offsetRange(statement.range)
 				replacement = do ()=>
+					return '' if statement.excluded
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
 					targetContent = helpers.prepareMultilineReplacement(content, targetContent, lines, statement.range)
 					targetContent = '{}' if not targetContent
@@ -488,7 +489,7 @@ class File
 						targetContent = "(#{targetContent})" if content[range[1]] is '.' or content[range[1]] is '('
 
 					return targetContent
-				
+
 				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -499,6 +500,7 @@ class File
 		for statement in @importStatements when statement.type is 'module'
 
 			replacement = do ()=>
+				return "require('#{statement.target}')" if statement.excluded
 				if not statement.members and not statement.alias
 					replacement = "require(#{statement.target.IDstr})"
 					if statement.extract

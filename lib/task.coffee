@@ -97,9 +97,11 @@ class Task extends require('events')
 		throw err unless @options.ignoreErrors
 
 
-	handleMissingFile: (file, statement)->
-		@emit 'missingImport', file, statement.target, statement.range[0]
+	handleExcludedFile: (file, statement)->
+		file.excluded = true
 
+
+	handleIgnoredFile: (file, statement)->
 		Promise.bind(@)
 			.then ()-> @initFile EMPTY_STUB, file, false, false
 			.then (emptyFile)->
@@ -107,7 +109,9 @@ class Task extends require('events')
 				statement.extract = undefined
 
 
-	handleIgnoredFile: (file, statement)->
+	handleMissingFile: (file, statement)->
+		@emit 'missingImport', file, statement.target, statement.range[0]
+
 		Promise.bind(@)
 			.then ()-> @initFile EMPTY_STUB, file, false, false
 			.then (emptyFile)->
@@ -177,13 +181,9 @@ class Task extends require('events')
 					debug "using cached #{config.pathDebug}"
 					promiseBreak(@cache[config.pathAbs])
 
-			.tap (config)->
-				if helpers.matchGlob(config, @options.ignoreFile)
-					throw new Error('ignored')
-
-			.tap (config)->
-				fs.existsAsync(config.pathAbs).then (exists)->
-					throw new Error('missing') if not exists
+			.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile)
+			.tap (config)-> throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
+			.tap (config)-> throw new Error('missing') if not fs.exists(config.pathAbs)
 			
 			.tap (config)->
 				fs.readAsync(config.pathAbs).then (content)->
@@ -203,12 +203,10 @@ class Task extends require('events')
 				config.options = helpers.matchFileSpecificOptions(config, specificOptions)
 				
 			
-			.then (config)->
-				new File(@, config)
-			.tap (config)-> debug "created #{config.pathDebug}"
-			.tap (file)->
-				@files.push file
+			.then (config)-> new File(@, config)
 			
+			.tap (config)-> debug "created #{config.pathDebug}"
+			.tap (file)-> @files.push file
 			.catch promiseBreak.end
 
 
@@ -243,11 +241,12 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch message:'excluded', ()-> statement.type = 'inline-forced'; statement.excluded = true
 					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
-			.filter (statement)-> not statement.target.scannedForceInlineImports
+			.filter (statement)-> not statement.excluded and not statement.target.scannedForceInlineImports
 			.map (statement)-> @scanForceInlineImports(statement.target)
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
@@ -273,12 +272,13 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
+					.catch message:'excluded', ()-> statement.type = 'module'; statement.excluded = true
 					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
-			.map (statement)-> @scanImportsExports(statement.target, depth, currentDepth)
+			.map (statement)-> @scanImportsExports(statement.target, depth, currentDepth) unless statement.excluded
 			
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
@@ -295,7 +295,7 @@ class Task extends require('events')
 				Object.values(@imports)
 			
 			.map (statements)->
-				statements = statements.filter (statement)-> statement.type isnt 'inline-forced'
+				statements = statements.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
 
 				if statements.length > 1 or statements.some(helpers.isMixedExtStatement) or statements.some(helpers.isRecursiveImport)
 					targetType = 'module'
@@ -339,7 +339,7 @@ class Task extends require('events')
 
 			.then ()->
 				return if not @options.dedupe
-				dupGroups = @importStatements.groupBy('target.hashPostTransforms')
+				dupGroups = @importStatements.filter(excluded:undefined).groupBy('target.hashPostTransforms')
 				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
 				
 				for h,group of dupGroups
@@ -357,7 +357,7 @@ class Task extends require('events')
 		file.insertedForceInline = true
 		
 		Promise.resolve(file.importStatements).bind(file)
-			.map (statement)=> @replaceForceInlineImports(statement.target)
+			.map (statement)=> @replaceForceInlineImports(statement.target) unless statement.excluded
 			.then file.replaceForceInlineImports
 			.then file.saveContentMilestone.bind(file, 'contentPostForceInlinement')
 
@@ -373,7 +373,7 @@ class Task extends require('events')
 				file.importStatements
 		
 		Promise.resolve(file.importStatements).bind(file)
-			.map (statement)=> @replaceInlineImports(statement.target)
+			.map (statement)=> @replaceInlineImports(statement.target) unless statement.excluded
 			.return(null)
 			.tap ()-> debug "replacing inline imports #{file.pathDebug}"
 			.then file.replaceInlineImports
@@ -392,7 +392,7 @@ class Task extends require('events')
 			.then file.replaceExportStatements
 			.then file.saveContent
 			.return file.importStatements.concat(file.exportStatements)
-			.filter (statement)-> statement.type isnt 'inline-forced'
+			.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
 			.map (statement)=> @replaceImportsExports(statement.target)
 			.return(file)
 
@@ -418,7 +418,7 @@ class Task extends require('events')
 			.then @replaceInlineImports
 			.then ()->
 				@importStatements
-					.filter (statement)=> statement.type is 'module' and statement.target isnt @entryFile
+					.filter (statement)=> statement.type is 'module' and not statement.excluded and statement.target isnt @entryFile
 					.unique('target')
 					.map('target')
 					.append(@entryFile, 0)

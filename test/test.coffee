@@ -662,13 +662,55 @@ suite "SimplyImport", ()->
 					'e.js': "module.exports = 'file e.js!'"
 
 			.then ()-> processAndRun file:temp('entry.js'), ignoreFile:['b.js', '**/temp/d.*']
-			.then ({result, writeToDisc})->
-				writeToDisc()
+			.then ({result})->
 				assert.deepEqual result.a, 'file a.js!'
 				assert.deepEqual result.b, {}
 				assert.deepEqual result.c, 'file c.js!'
 				assert.deepEqual result.d, {}
 				assert.deepEqual result.e, 'file e.js!'
+
+
+	test "files matching globs specified in options.excludeFile shall be not be included in the package", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'entry.js': """
+						exports.a = require('./a')
+						try {
+							exports.b = import './b'
+						} catch (e) {
+							exports.b = 'excluded';
+						}
+						exports.c = require('./c')
+						try {
+							exports.d = require('./d')
+						} catch (e) {
+							exports.d = 'excluded';
+						}
+						exports.e = require('./e')
+						importInline './f'
+						importInline './g'
+					"""
+					'a.js': "module.exports = 'file a.js!'"
+					'b.js': "module.exports = 'file b.js!'"
+					'c.js': "module.exports = 'file c.js!'"
+					'd.js': "module.exports = 'file d.js!'"
+					'e.js': "module.exports = 'file e.js!'"
+					'f.js': "inline1 = 'file f.js!'"
+					'g.js': "inline2 = 'file g.js!'"
+
+			.then ()-> processAndRun file:temp('entry.js'), excludeFile:['b.js', '**/temp/d.*', '**/f.js']
+			.then ({compiled, context, result})->
+				assert.deepEqual result.a, 'file a.js!'
+				assert.deepEqual result.b, 'excluded'
+				assert.deepEqual result.c, 'file c.js!'
+				assert.deepEqual result.d, 'excluded'
+				assert.deepEqual result.e, 'file e.js!'
+				assert.equal context.inline1, undefined
+				assert.equal context.inline2, 'file g.js!'
+				assert.notInclude compiled, 'inline1'
+				assert.notInclude compiled, "import './b'"
+				assert.include compiled, "require('./b')"
 
 
 	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
