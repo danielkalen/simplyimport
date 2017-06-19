@@ -74,7 +74,14 @@ installModules = (targetModules)-> new Promise (resolve, reject)->
 
 moduleInstalled = (targetModule)->
 	targetModule = targetModule[0] if typeof targetModule is 'object'
-	fs.exists Path.resolve('node_modules',targetModule,'package.json')
+	pkgFile = Path.resolve('node_modules',targetModule,'package.json')
+	exists = fs.exists(pkgFile)
+	
+	if exists and targetModule is 'source-map-support'
+		version = fs.read(pkgFile, 'json').version
+		exists = parseInt(version.split('.')[1]) >= 4
+
+	return exists
 
 
 runTests = ()->
