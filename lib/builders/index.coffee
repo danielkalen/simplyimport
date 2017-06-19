@@ -3,7 +3,8 @@ stringBuilders = require './strings'
 b = require('ast-types').builders
 
 exports.bundle = (task)->
-	args = ['require']; values = ['null']
+	args = ['require']
+	values = [if task.options.target is 'node' then "typeof require === 'function' && require" else "null"]
 	body = switch
 		when task.options.umd
 			stringBuilders.umd(task.options.umd, task.entryFile.idstr)
@@ -18,8 +19,9 @@ exports.bundle = (task)->
 	
 	return Parser.parse stringBuilders.iife(args, values, body)
 
-exports.loader = ()->
-	loader = Parser.parse(stringBuilders.loader()).body[0]
+exports.loader = (target)->
+	targetLoader = if target is 'node' then 'loaderNode' else 'loaderBrowser'
+	loader = Parser.parse(stringBuilders[targetLoader]()).body[0]
 	modules = loader.expression.right.arguments[1].properties
 	return {loader, modules}
 

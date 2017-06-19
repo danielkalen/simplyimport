@@ -12,6 +12,7 @@ File = require './file'
 REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
+BUILTINS = require('./constants/coreShims').builtins
 debug = require('debug')('simplyimport')
 {EMPTY_STUB} = require('./constants')
 
@@ -110,6 +111,9 @@ class Task extends require('events')
 
 
 	handleMissingFile: (file, statement)->
+		# if @options.target is 'node' and BUILTINS.includes(statement.target)
+		# 	statement.excluded = true
+		# 	return statement
 		@emit 'missingImport', file, statement.target, statement.range[0]
 
 		Promise.bind(@)
@@ -166,7 +170,7 @@ class Task extends require('events')
 		Promise.resolve(prev).bind(@)
 			.catch ()-> null # If prev was rejected with ignored/missing error
 			.then ()->
-				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile)
+				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile, @options.target)
 
 			.then (module)->
 				pkgFile = module.pkg
@@ -181,7 +185,7 @@ class Task extends require('events')
 					debug "using cached #{config.pathDebug}"
 					promiseBreak(@cache[config.pathAbs])
 
-			.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile)
+			.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or @options.target is 'node' and BUILTINS.includes(suppliedPath)
 			.tap (config)-> throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
 			.tap (config)-> throw new Error('missing') if not fs.exists(config.pathAbs)
 			
@@ -224,7 +228,7 @@ class Task extends require('events')
 			.catch promiseBreak.end
 			.then file.restoreES6Imports
 			.then file.checkIfIsThirdPartyBundle
-			.then file.collectRequiredGlobals
+			.then(file.collectRequiredGlobals unless @options.target is 'node')
 			.then file.postTransforms
 			.then file.determineType
 			.then file.tokenize
@@ -427,7 +431,7 @@ class Task extends require('events')
 			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
 			.then (files)->
 				bundle = builders.bundle(@)
-				{loader, modules} = builders.loader()
+				{loader, modules} = builders.loader(@options.target)
 				
 				files.sortBy('hash').forEach (file)->
 					modules.push builders.moduleProp(file)

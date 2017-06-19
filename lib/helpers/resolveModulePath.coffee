@@ -1,21 +1,18 @@
 Path = require 'path'
 findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
-resolveModule = Promise.promisify require('browser-resolve')
 helpers = require('./')
 {EMPTY_FILE, EMPTY_FILE_END} = require('../constants')
-coreModuleShims = require('../constants/coreShims')(EMPTY_FILE)
+coreModuleShims = require('../constants/coreShims')
 
-module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile)-> Promise.resolve().then ()->
+module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile, target)-> Promise.resolve().then ()->
+	resolveModule = Promise.promisify if target is 'node' then require('resolve') else require('browser-resolve')
 	fullPath = Path.resolve(basedir, moduleName)
 	output = 'file':fullPath
-	
+
 	if helpers.isLocalModule(moduleName)
-		if pkgFile and typeof pkgFile.browser is 'object'
-			replacedPath = pkgFile.browser[fullPath]
-			replacedPath ?= pkgFile.browser[fullPath+'.js']
-			replacedPath ?= pkgFile.browser[fullPath+'.ts']
-			replacedPath ?= pkgFile.browser[fullPath+'.coffee']
+		if pkgFile and typeof pkgFile.browser is 'object' and target isnt 'node'
+			replacedPath = helpers.resolveBrowserFieldPath(pkgFile, moduleName, basedir)
 			
 			if replacedPath?
 				if typeof replacedPath isnt 'string'
@@ -44,5 +41,5 @@ module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile)-> 
 
 			.catch(
 				(err)-> err.message.startsWith('Cannot find module')
-				()-> helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile)
+				()-> helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile, target)
 			)

@@ -4,14 +4,24 @@ exports.iife = (args, values, body)-> """
 	}).call(#{['this'].concat(values).join(',')})
 """
 
-exports.loader = ()-> """
-require = (function(cache,modules){
-	return function(r){
-		if (!modules[r]) throw new Error(r+' is not a module')
-		return cache[r] ? cache[r].exports
-						: ( cache[r]={exports:{}}, cache[r].exports=modules[r](require, cache[r], cache[r].exports) );
-	};
-})({},{});
+exports.loaderBrowser = ()-> """
+	require = (function(cache,modules){
+		return function(r){
+			if (!modules[r]) throw new Error(r+' is not a module')
+			return cache[r] ? cache[r].exports
+							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](require, cache[r], cache[r].exports) );
+		};
+	})({},{});
+"""
+
+exports.loaderNode = ()-> """
+	require = (function(cache,modules,nativeRequire){
+		return function(r){
+			if (!modules[r]) return nativeRequire(r)
+			return cache[r] ? cache[r].exports
+							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](require, cache[r], cache[r].exports) );
+		};
+	})({},{},require);
 """
 
 

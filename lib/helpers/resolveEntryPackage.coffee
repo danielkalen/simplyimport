@@ -9,7 +9,7 @@ module.exports = resolveEntryPackage = (task)->
 			helpers.resolvePackagePaths(result.pkg, result.path)
 			task.options.pkgFile = pkgFile = result.pkg
 			
-			unless task.options.src
+			unless task.options.src or task.options.target is 'node'
 				if typeof pkgFile.browser is 'object' and pkgFile.browser[task.entryInput]
 					task.entryInput = pkgFile.browser[task.entryInput]
 
