@@ -160,6 +160,7 @@ class Task extends require('events')
 
 		@prevFileInit =
 		Promise.resolve(prev).bind(@)
+			.catch ()-> null # If prev was rejected with ignored/missing error
 			.then ()->
 				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile)
 

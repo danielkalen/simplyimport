@@ -644,6 +644,33 @@ suite "SimplyImport", ()->
 			.tapCatch (err)-> helpers.intercept.stop()
 
 
+	test "files matching globs specified in options.ignoreFile shall be replaced via an empty stub", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'entry.js': """
+						exports.a = require('./a')
+						exports.b = require('./b')
+						exports.c = require('./c')
+						exports.d = require('./d')
+						exports.e = require('./e')
+					"""
+					'a.js': "module.exports = 'file a.js!'"
+					'b.js': "module.exports = 'file b.js!'"
+					'c.js': "module.exports = 'file c.js!'"
+					'd.js': "module.exports = 'file d.js!'"
+					'e.js': "module.exports = 'file e.js!'"
+
+			.then ()-> processAndRun file:temp('entry.js'), ignoreFile:['b.js', '**/temp/d.*']
+			.then ({result, writeToDisc})->
+				writeToDisc()
+				assert.deepEqual result.a, 'file a.js!'
+				assert.deepEqual result.b, {}
+				assert.deepEqual result.c, 'file c.js!'
+				assert.deepEqual result.d, {}
+				assert.deepEqual result.e, 'file e.js!'
+
+
 	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
 		Promise.resolve()
 			.then ()->
@@ -921,33 +948,6 @@ suite "SimplyImport", ()->
 					assert.deepEqual result.a, {__esModule:true, abc:'abc', def:'DEF'}
 					assert.equal result.a, result.b
 					assert.equal result.a, result.c
-
-
-	test.skip "files matching globs specified in options.ignoreFile shall be replaced via an empty stub", ()->
-		Promise.resolve()
-			.then ()->
-				helpers.lib
-					'entry.js': """
-						exports.a = require('./a')
-						exports.b = require('./b')
-						exports.c = require('./c')
-						exports.d = require('./d')
-						exports.e = require('./e')
-					"""
-					'a.js': "module.exports = 'file a.js!'"
-					'b.js': "module.exports = 'file b.js!'"
-					'c.js': "module.exports = 'file c.js!'"
-					'd.js': "module.exports = 'file d.js!'"
-					'e.js': "module.exports = 'file e.js!'"
-
-			.then ()-> processAndRun file:temp('entry.js'), ignoreFile:['b.js', '**/temp/d.*']
-			.then ({result, writeToDisc})->
-				writeToDisc()
-				assert.deepEqual result.a, 'file a.js!'
-				assert.deepEqual result.b, {}
-				assert.deepEqual result.c, 'file c.js!'
-				assert.deepEqual result.d, {}
-				assert.deepEqual result.e, 'file e.js!'
 
 
 	suite "deduping", ()->
