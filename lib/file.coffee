@@ -264,7 +264,11 @@ class File
 		lastTransformer = null
 		
 		Promise.resolve(transforms).bind(@)
-			.map (transform)-> helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
+			.filter (transform)-> not @task.options.ignoreTransform.includes(transform)
+			.map (transform)->
+				lastTransformer = name:transform, fn:transform
+				helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
+			
 			.reduce((content, transformer)->
 				lastTransformer = transformer
 				transformOpts = extend {_flags:@task.options}, transformer.opts
