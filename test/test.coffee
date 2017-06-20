@@ -1183,7 +1183,6 @@ suite "SimplyImport", ()->
 
 
 
-
 	suite "deduping", ()->
 		# suiteTeardown ()-> fs.dirAsync temp(), empty:true 
 		
@@ -2684,6 +2683,23 @@ suite "SimplyImport", ()->
 					assert.equal context.ccc, 'ccc'
 					assert.equal context.ddd, undefined
 					assert.equal context.eee, 'eee'
+
+
+
+	suite.skip "UMD bundles", ()->
+		test "can be imported", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.a = import 'moment/src/moment.js'
+							exports.b = import 'moment/moment.js'
+						"""
+
+				.then ()-> processAndRun file:temp('main.js'),usePaths:true#, specific:{'moment/src/moment.js':transform:['es6ify']}
+				.then ({result})->
+					assert.notEqual result.a, result.b
+
 
 
 	suite "core module shims", ()->

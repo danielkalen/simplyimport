@@ -24,12 +24,12 @@ module.exports = class TokenWalker
 	next: ()->
 		@current = @tokens[++@index] or PLACEHOLDER
 
-	nextUntil: (stopAt, invalidValue, invalidType)->
+	nextUntil: (stopAt, invalid)->
 		pieces = []
 		while @next().value isnt stopAt
 			pieces.push(@current)
 			
-			if @current.value is invalidValue or @current.type.label is invalidType
+			if invalid(@current, @_prev)
 				throw @newError()
 
 		return pieces
@@ -122,7 +122,7 @@ module.exports = class TokenWalker
 			
 
 	storeMembers: (store)->
-		items = @nextUntil '}', 'from', 'string'
+		items = @nextUntil '}', (token, prev)-> token.type.label is 'string'
 
 		items.reduce (store, token, index)->
 			if token.value isnt 'as' and (token.type.label is 'name' or token.type.keyword is 'default')
@@ -145,7 +145,8 @@ module.exports = class TokenWalker
 				@storeMembers(output.members ?= Object.create(null))
 
 			when '['
-				output.conditions = @nextUntil(']', 'from', 'string').map('value').exclude(',')
+				invalidator = (token)-> token.type.label is 'string'
+				output.conditions = @nextUntil(']', invalidator).map('value').exclude(',')
 	
 
 	handleDefault: (output)->

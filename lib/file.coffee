@@ -368,7 +368,7 @@ class File
 		@content = @content.replace REGEX.tempImport, (entire, childPath, meta='')->
 			childPath = childPath.slice(1,-1)
 			meta = meta.slice(1,-1)
-			body = if meta then " #{meta}" else ""
+			body = if meta then "#{meta}" else ""
 			body += "'#{childPath}'"
 			replacement = "import #{body}"
 			return replacement
@@ -482,7 +482,7 @@ class File
 		Promise.bind(@)
 			.then ()-> @importStatements.filter {type}
 			.map (statement)->
-				range = @offsetRange(statement.range)
+				range = @offsetRange(statement.range, null, 'inlines')
 				replacement = do ()=>
 					return '' if statement.excluded
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
@@ -522,8 +522,13 @@ class File
 						replacement += ", #{decs.join ', '};"
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
-			
-			range = @offsetRange(statement.range)
+
+			range = @offsetRange(statement.range, null, 'imports')
+			# if @path.endsWith('src/lib/locale/prototype.js')
+			# 	console.log statement.range, range, [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+			# 	console.log require('chalk').yellow content.slice(range[0], range[1])
+			# 	console.log require('chalk').green replacement
+			# 	console.log '\n\n'
 			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -531,7 +536,7 @@ class File
 
 
 	replaceExportStatements: (content)->
-		for statement in @exportStatements
+		for statement,index in @exportStatements
 			
 			replacement = do ()=>
 				replacement = ''
@@ -576,12 +581,12 @@ class File
 						if statement.keyword# and not isDec # function or class
 							replacement += "#{statement.keyword} "
 							if statement.identifier
-								replacement += statement.identifier
+								replacement = "var #{statement.identifier} = #{replacement}"
 				
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
-			range = @offsetRange(statement.range)
+			range = @offsetRange(statement.range, null, 'exports')
 			@addRangeOffset 'exports', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -603,11 +608,12 @@ class File
 			return if typeof result is 'object' then JSON.stringify(result) else String(result)
 
 
-	offsetRange: (range, targetArrays)->
+	offsetRange: (range, targetArrays, sourceArray)->
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
-		for array in targetArrays
-			offset += helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array])
+		for array,index in targetArrays
+			rangeOffset = if index > targetArrays.indexOf(sourceArray) then offset else 0
+			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, rangeOffset)
 
 		return if not offset then range else [range[0]+offset, range[1]+offset]
 
@@ -615,7 +621,7 @@ class File
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
 		for array in targetArrays
-			offset += helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array])
+			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset)
 
 		return if not offset then range else [range[0]-offset, range[1]-offset]
 
