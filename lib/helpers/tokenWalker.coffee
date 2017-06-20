@@ -125,7 +125,8 @@ module.exports = class TokenWalker
 		items = @nextUntil '}', (token, prev)-> token.type.label is 'string'
 
 		items.reduce (store, token, index)->
-			if token.value isnt 'as' and (token.type.label is 'name' or token.type.keyword is 'default')
+			isConnector = token.value is 'as' and items[index-1]?.type.label is 'name'
+			if not isConnector and (token.type.label is 'name' or token.type.keyword is 'default' or token.type.keyword is 'from')
 				if items[index-1]?.value is 'as'
 					store[items[index-2].value] = token.value
 				else

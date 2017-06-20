@@ -156,17 +156,17 @@ class File
 
 				return outputLines.join('\n')
 
-			.then @saveContentMilestone.bind(@, 'contentPostConditionals')
+			.then @saveContent.bind(@, 'contentPostConditionals')
 			.catch promiseBreak.end
 
 
-	saveContent: (content)->
-		throw new Error("content is undefined") if content is undefined
+	saveContent: (milestone, content)->
+		if arguments.length is 1
+			content = arguments[0]
+		else
+			@[milestone] = content
+
 		@content = content
-
-
-	saveContentMilestone: (milestone, content)->
-		@[milestone] = @saveContent(content)
 
 
 	determineType: ()->
@@ -349,7 +349,7 @@ class File
 		newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)->
 			hasImports = true
 			body = "#{childPath}"
-			body += ",'#{meta}'" if meta
+			body += ",'#{meta.replace /\s+from\s+/, ''}'" if meta
 			replacement = "_$sm(#{body})"
 			lenDiff = original.length - replacement.length
 			if lenDiff > 0
@@ -368,7 +368,7 @@ class File
 		@content = @content.replace REGEX.tempImport, (entire, childPath, meta='')->
 			childPath = childPath.slice(1,-1)
 			meta = meta.slice(1,-1)
-			body = if meta then "#{meta}" else ""
+			body = if meta then "#{meta} from " else ""
 			body += "'#{childPath}'"
 			replacement = "import #{body}"
 			return replacement
@@ -501,7 +501,7 @@ class File
 
 
 	replaceImportStatements: (content)->
-		for statement in @importStatements when statement.type is 'module'
+		for statement,index in @importStatements when statement.type is 'module'
 
 			replacement = do ()=>
 				return "require('#{statement.target}')" if statement.excluded
@@ -524,11 +524,6 @@ class File
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
 			range = @offsetRange(statement.range, null, 'imports')
-			# if @path.endsWith('src/lib/locale/prototype.js')
-			# 	console.log statement.range, range, [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-			# 	console.log require('chalk').yellow content.slice(range[0], range[1])
-			# 	console.log require('chalk').green replacement
-			# 	console.log '\n\n'
 			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 

@@ -222,7 +222,7 @@ class Task extends require('events')
 			.then ()=> @replaceForceInlineImports(file)
 			.then file.replaceES6Imports
 			.then file.applyAllTransforms
-			.then file.saveContentMilestone.bind(file, 'contentPostTransforms')
+			.then file.saveContent.bind(file, 'contentPostTransforms')
 			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.checkSyntaxErrors
 			.catch promiseBreak.end
@@ -232,6 +232,7 @@ class Task extends require('events')
 			.then file.postTransforms
 			.then file.determineType
 			.then file.tokenize
+			.then file.saveContent.bind(file, 'contentPostTokenize')
 			.return(file)
 
 
@@ -292,13 +293,11 @@ class Task extends require('events')
 
 	calcImportTree: ()->
 		Promise.bind(@)
-			.then ()->
-				@imports = @importStatements.groupBy('target.pathAbs')
+			.then ()-> @imports = @importStatements.groupBy('target.pathAbs')
 
-			.then ()->
-				Object.values(@imports)
+			.then ()-> Object.values(@imports)
 			
-			.map (statements)->
+			.map (statements)-> # determine statement types
 				statements = statements.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
 
 				if statements.length > 1 or statements.some(helpers.isMixedExtStatement) or statements.some(helpers.isRecursiveImport)
@@ -316,7 +315,8 @@ class Task extends require('events')
 						statement.target.content = content
 						statement.target.becameModule = true
 
-			.then ()->
+			
+			.then ()-> # perform data extractions
 				@files.filter(isDataType:true).map (file)=>
 					statements = @imports[file.pathAbs]
 					someExtract = statements.some((s)-> s.extract)
@@ -341,7 +341,7 @@ class Task extends require('events')
 						file.content = "module.exports = #{file.content}"
 
 
-			.then ()->
+			.then ()-> # perform dedupe
 				return if not @options.dedupe
 				dupGroups = @importStatements.filter(excluded:undefined).groupBy('target.hashPostTransforms')
 				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
@@ -363,7 +363,7 @@ class Task extends require('events')
 		Promise.resolve(file.importStatements).bind(file)
 			.map (statement)=> @replaceForceInlineImports(statement.target) unless statement.excluded
 			.then file.replaceForceInlineImports
-			.then file.saveContentMilestone.bind(file, 'contentPostForceInlinement')
+			.then file.saveContent.bind(file, 'contentPostForceInlinement')
 
 
 
@@ -381,7 +381,7 @@ class Task extends require('events')
 			.return(null)
 			.tap ()-> debug "replacing inline imports #{file.pathDebug}"
 			.then file.replaceInlineImports
-			.then file.saveContentMilestone.bind(file, 'contentPostInlinement')
+			.then file.saveContent.bind(file, 'contentPostInlinement')
 			.return(file)
 
 	
@@ -392,9 +392,9 @@ class Task extends require('events')
 		Promise.resolve(file.content).bind(file)
 			.tap ()-> debug "replacing imports/exports #{file.pathDebug}"
 			.then file.replaceImportStatements
-			.then file.saveContent
+			.then file.saveContent.bind(file, 'contentPostImports')
 			.then file.replaceExportStatements
-			.then file.saveContent
+			.then file.saveContent.bind(file, 'contentPostExports')
 			.return file.importStatements.concat(file.exportStatements)
 			.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
 			.map (statement)=> @replaceImportsExports(statement.target)

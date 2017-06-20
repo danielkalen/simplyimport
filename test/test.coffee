@@ -2686,8 +2686,8 @@ suite "SimplyImport", ()->
 
 
 
-	suite.skip "UMD bundles", ()->
-		test "can be imported", ()->
+	suite "UMD bundles", ()->
+		test.only "can be imported", ()->
 			Promise.resolve()
 				.then ()->
 					helpers.lib
@@ -2696,8 +2696,9 @@ suite "SimplyImport", ()->
 							exports.b = import 'moment/moment.js'
 						"""
 
-				.then ()-> processAndRun file:temp('main.js'),usePaths:true#, specific:{'moment/src/moment.js':transform:['es6ify']}
-				.then ({result})->
+				.then ()-> processAndRun file:temp('main.js'),usePaths:false#, specific:{'moment/src/moment.js':transform:['es6ify']}
+				.then ({result, writeToDisc})->
+					writeToDisc()
 					assert.notEqual result.a, result.b
 
 
@@ -2994,7 +2995,7 @@ suite "SimplyImport", ()->
 
 		test "moment", ()->
 			Promise.resolve()
-				.then ()-> helpers.lib "main.js": "module.exports = require('moment')"
+				.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({result})->
 					assert.typeOf result, 'function'
