@@ -1,7 +1,12 @@
-module.exports = accumulateRangeOffsetBelow = (pos, ranges, offset, rangeOffset=0)->
+module.exports = accumulateRangeOffsetBelow = (pos, ranges, offset, rangeOffset=0, noNegative)->
 	for range in ranges
-		sourceSTART = if offset > 0 then pos[0]+offset else pos[0]
-		sourceEND = if offset > 0 then pos[1]+offset else pos[1]
+		if offset < 0 and noNegative
+			sourceSTART = pos[0]
+			sourceEND = pos[1]
+		else
+			sourceSTART = pos[0]+offset
+			sourceEND = pos[1]+offset
+
 		rangeSTART = range[0]+rangeOffset
 		rangeEND = range[1]+rangeOffset
 		

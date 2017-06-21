@@ -1,7 +1,4 @@
-
-
-module.exports = newExportStatement = ()->
-	# id: null
+module.exports = ()->
 	range: []
 	tokenRange: []
 	source: null

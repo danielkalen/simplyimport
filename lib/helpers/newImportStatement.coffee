@@ -1,7 +1,4 @@
-
-
-module.exports = newImportStatement = (keyword='require')->
-	# id: null
+module.exports = (keyword='require')->
 	type: ''
 	keyword: keyword
 	range: []

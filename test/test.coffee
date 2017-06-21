@@ -779,7 +779,7 @@ suite "SimplyImport", ()->
 			.then ()->
 				helpers.lib
 					'main.js': """
-						aaa = import 'a'
+						import * as aaa from 'a'
 						exports.a = aaa
 						import * as bbb from 'b'
 						exports.b = bbb
@@ -821,9 +821,10 @@ suite "SimplyImport", ()->
 						export function ccc(a,b) {return a-b}
 					"""
 					'd.js': """
-						export default abc = 'abc'
+						var abc = 'abc'
 						export {abc}
 						exports.def = 456
+						export default abc
 					"""
 					'e.js': """
 						export default abc = 'abc'
@@ -2686,23 +2687,6 @@ suite "SimplyImport", ()->
 
 
 
-	suite "UMD bundles", ()->
-		test.only "can be imported", ()->
-			Promise.resolve()
-				.then ()->
-					helpers.lib
-						'main.js': """
-							exports.a = import 'moment/src/moment.js'
-							exports.b = import 'moment/moment.js'
-						"""
-
-				.then ()-> processAndRun file:temp('main.js'),usePaths:false#, specific:{'moment/src/moment.js':transform:['es6ify']}
-				.then ({result, writeToDisc})->
-					writeToDisc()
-					assert.notEqual result.a, result.b
-
-
-
 	suite "core module shims", ()->
 		test "assert", ()->
 			Promise.resolve()
@@ -2945,6 +2929,26 @@ suite "SimplyImport", ()->
 					assert.deepEqual result.net, {}
 					assert.deepEqual result.readline, {}
 					assert.deepEqual result.repl, {}
+
+
+
+	suite "UMD bundles", ()->
+		test "can be imported", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.a = import 'moment/moment.js'
+							exports.b = import 'moment/src/moment.js'
+						"""
+
+				.then ()-> processAndRun file:temp('main.js'),usePaths:true#, specific:{'moment/src/moment.js':transform:['es6ify']}
+				.then ({result, writeToDisc})->
+					writeToDisc()
+					assert.notEqual result.a, result.b
+					assert.typeOf result.a, 'function'
+					assert.typeOf result.b, 'function'
+
 
 
 	suite "common modules", ()->

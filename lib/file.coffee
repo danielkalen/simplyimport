@@ -466,6 +466,7 @@ class File
 						statement.decs[dec] = @content.slice(range.start, range.end)
 
 				@exportStatements.push(statement)
+				@hasDefaultExport = true if statement.default
 
 
 		return @exportStatements
@@ -503,12 +504,17 @@ class File
 	replaceImportStatements: (content)->
 		for statement,index in @importStatements when statement.type is 'module'
 
+			range = @offsetRange(statement.range, null, 'imports')
 			replacement = do ()=>
 				return "require('#{statement.target}')" if statement.excluded
-				if not statement.members and not statement.alias
+				if not statement.members and not statement.alias # commonJS import / side-effects es6 import
 					replacement = "require(#{statement.target.IDstr})"
 					if statement.extract
 						replacement += "['#{statement.extract}']"
+					
+					else if statement.target.hasDefaultExport
+						replacement = "#{replacement} ? #{replacement}.default : #{replacement}"
+						replacement = "(#{replacement})" if content[range[1]] is '.' or content[range[1]] is '('
 
 				else
 					alias = statement.alias or helpers.randomVar()
@@ -523,7 +529,6 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
-			range = @offsetRange(statement.range, null, 'imports')
 			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -533,6 +538,7 @@ class File
 	replaceExportStatements: (content)->
 		for statement,index in @exportStatements
 			
+			range = @offsetRange(statement.range, null, 'exports')
 			replacement = do ()=>
 				replacement = ''
 			
@@ -568,7 +574,7 @@ class File
 					else
 						if statement.default
 							replacement += "exports.default = "
-							replacement += " #{statement.identifier} = " if statement.identifier
+							replacement += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
 						
 						else if statement.identifier
 							replacement += "exports.#{statement.identifier} = "
@@ -581,7 +587,6 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 			
-			range = @offsetRange(statement.range, null, 'exports')
 			@addRangeOffset 'exports', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -616,7 +621,7 @@ class File
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
 		for array in targetArrays
-			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset)
+			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, 0, true)
 
 		return if not offset then range else [range[0]-offset, range[1]-offset]
 

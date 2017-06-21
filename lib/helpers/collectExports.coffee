@@ -49,12 +49,13 @@ module.exports = collectExports = (tokens, lines)->
 					if not output.keyword # assignment-expr
 						@current.end++ # will be the '=' punctuator
 					
-					else # function-args-start|class-block-start
-						@prev()
+					# else # function-args-start|class-block-start
+					# 	@prev()
 				
 
-				else if @current.value isnt '=' # funciton-args-start|class-block-start
-					@prev()
+				# else if @current.value isnt '=' # funciton-args-start|class-block-start
+				# 	@prev()
+				@prev()
 
 
 			else throw @newError()
