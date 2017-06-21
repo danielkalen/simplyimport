@@ -993,6 +993,42 @@ suite "SimplyImport", ()->
 					assert.equal result.a, result.c
 
 
+	test "commonJS (and commonJS-style) imports importing es6 modules should extract the 'default' property", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						exports.a1 = require('./a')
+						exports.a2 = import './a'
+						import * as a3 from './a'
+						exports.a3 = a3
+						exports.b1 = require('./b')
+						exports.b2 = import './b'
+						import * as b3 from './a'
+						exports.b3 = b3
+					"""
+					'a.js': """
+						export default abc = 123
+						export var def = 456
+					"""
+					'b.js': """
+						exports.default = 123
+						exports.def = 456
+					"""
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({result})->
+				delete result.b1.__esModule
+				delete result.b2.__esModule
+				delete result.b3.__esModule
+				assert.deepEqual result.a1, 123
+				assert.deepEqual result.a2, 123
+				assert.deepEqual result.a3, {default:123, def:456}
+				assert.deepEqual result.b1, {default:123, def:456}
+				assert.deepEqual result.b2, {default:123, def:456}
+				assert.deepEqual result.b3, {default:123, def:456}
+
+
 	suite "the module loader should be returned when options.returnLoader is set", ()->
 		test "when identifiers are numeric", ()->
 			Promise.resolve()
