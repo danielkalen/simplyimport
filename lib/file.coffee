@@ -617,6 +617,7 @@ class File
 
 		return if not offset then range else [range[0]+offset, range[1]+offset]
 
+
 	deoffsetRange: (range, targetArrays)->
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS

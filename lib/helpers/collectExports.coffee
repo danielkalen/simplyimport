@@ -45,16 +45,7 @@ module.exports = collectExports = (tokens, lines)->
 					output.identifier = @current.value
 					while @next().type.label and @current.value is '.' or @current.type.label is 'name'
 						output.identifier += @current.value
-					
-					if not output.keyword # assignment-expr
-						@current.end++ # will be the '=' punctuator
-					
-					# else # function-args-start|class-block-start
-					# 	@prev()
-				
-
-				# else if @current.value isnt '=' # funciton-args-start|class-block-start
-				# 	@prev()
+														
 				@prev()
 
 

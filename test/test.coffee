@@ -1006,6 +1006,9 @@ suite "SimplyImport", ()->
 						exports.b2 = import './b'
 						import * as b3 from './a'
 						exports.b3 = b3
+						exports.c1 = require('./c')(4,5)
+						exports.c2 = (import './c')(7,5)
+						exports.c3 = require('./c').inner
 					"""
 					'a.js': """
 						export default abc = 123
@@ -1014,6 +1017,10 @@ suite "SimplyImport", ()->
 					'b.js': """
 						exports.default = 123
 						exports.def = 456
+					"""
+					'c.js': """
+						export default function abc(a,b){return a*b};
+						abc.inner = 'innerValue'
 					"""
 
 			.then ()-> processAndRun file:temp('main.js')
@@ -1027,6 +1034,9 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.b1, {default:123, def:456}
 				assert.deepEqual result.b2, {default:123, def:456}
 				assert.deepEqual result.b3, {default:123, def:456}
+				assert.deepEqual result.c1, 20
+				assert.deepEqual result.c2, 35
+				assert.deepEqual result.c3, 'innerValue'
 
 
 	suite "the module loader should be returned when options.returnLoader is set", ()->
@@ -1149,7 +1159,6 @@ suite "SimplyImport", ()->
 						processAndRun file:temp('main.js'), target:'node'
 					]
 				.then ([browser, node])->
-					browser.writeToDisc()
 					assert.notEqual browser.compiled, node.compiled
 					assert.equal browser.result.a, 'b.js file'
 					assert.equal browser.result.b, 'b.js file'
@@ -1210,7 +1219,6 @@ suite "SimplyImport", ()->
 					]
 
 				.then ([browser, node])->
-					node.writeToDisc()
 					assert.notEqual browser.compiled, node.compiled
 					assert.typeOf browser.result.os, 'object'
 					assert.typeOf node.result.os, 'object'
@@ -2978,9 +2986,8 @@ suite "SimplyImport", ()->
 							exports.b = import 'moment/src/moment.js'
 						"""
 
-				.then ()-> processAndRun file:temp('main.js'),usePaths:true#, specific:{'moment/src/moment.js':transform:['es6ify']}
+				.then ()-> processAndRun file:temp('main.js'),usePaths:true
 				.then ({result, writeToDisc})->
-					writeToDisc()
 					assert.notEqual result.a, result.b
 					assert.typeOf result.a, 'function'
 					assert.typeOf result.b, 'function'
