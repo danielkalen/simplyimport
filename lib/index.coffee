@@ -1,4 +1,3 @@
-require('./sugar')
 require('./patches')
 Promise = require 'bluebird'
 formatError = require './external/formatError'

@@ -26,18 +26,19 @@ sample = ()-> Path.join __dirname,'samples',arguments...
 debug = ()-> Path.join __dirname,'debug',arguments...
 temp = ()-> Path.join __dirname,'temp',arguments...
 
+runCompiled = (filename, compiled, context)->
+	script = if badES6Support then require('traceur').compile(compiled, script:true) else compiled
+	if script.includes('$traceurRuntime')
+		runtime = fs.read(Path.resolve 'node_modules','traceur','bin','traceur-runtime.js')
+		script = "#{runtime}\n\n#{script}"
+	(new vm.Script(script, {filename})).runInNewContext(context)
 
 processAndRun = (opts, filename='script.js', context={})->
 	context.global ?= context
 	SimplyImport(opts).then (compiled)->
 		debugPath = debug(filename)
 		writeToDisc = ()-> fs.writeAsync(debugPath, compiled).timeout(500)
-		run = ()->
-			script = if badES6Support then require('traceur').compile(compiled, script:true) else compiled
-			if script.includes('$traceurRuntime')
-				runtime = fs.read(Path.resolve 'node_modules','traceur','bin','traceur-runtime.js')
-				script = "#{runtime}\n\n#{script}"
-			(new vm.Script(script, {filename})).runInNewContext(context)
+		run = ()-> runCompiled(filename, compiled, context)
 		
 		Promise.resolve()
 			.then run
@@ -711,6 +712,50 @@ suite "SimplyImport", ()->
 				assert.notInclude compiled, 'inline1'
 				assert.notInclude compiled, "import './b'"
 				assert.include compiled, "require('./b')"
+
+
+	test.only "files external to the importer shall be not be included in the package when options.bundleExternal is false", ()->
+		Promise.resolve()
+			.then ()-> fs.dirAsync temp(), empty:true
+			.then ()->
+				helpers.lib
+					'main.js': """
+						exports.a = require('./a')
+						try {
+							exports.b = import 'b'
+						} catch (e) {
+							exports.b = 'excluded';
+						}
+						exports.c = require('c')
+						try {
+							exports.d = require('d')
+						} catch (e) {
+							exports.d = 'excluded';
+						}
+					"""
+					'a.js': "module.exports = 'file a.js!'"
+					'node_modules/b/index.js': "module.exports = 'file b.js!'"
+					'node_modules/b/package.json': JSON.stringify main:'index.js'
+					'c.js': "module.exports = 'file c.js!'"
+					'node_modules/d/index.js': "module.exports = 'file d.js!'"
+					'node_modules/d/package.json': JSON.stringify main:'index.js'
+
+			.then ()->
+				Promise.all [
+					processAndRun file:temp('main.js')
+					processAndRun file:temp('main.js'), bundleExternal:false
+				]
+			.then ([bundleA, bundleB])->
+				assert.notEqual bundleA.compiled, bundleB.compiled
+				assert.deepEqual bundleA.result.a, 'file a.js!'
+				assert.deepEqual bundleA.result.b, 'file b.js!'
+				assert.deepEqual bundleA.result.c, 'file c.js!'
+				assert.deepEqual bundleA.result.d, 'file d.js!'
+				
+				assert.deepEqual bundleB.result.a, 'file a.js!'
+				assert.deepEqual bundleB.result.b, 'excluded'
+				assert.deepEqual bundleB.result.c, 'file c.js!'
+				assert.deepEqual bundleB.result.d, 'excluded'
 
 
 	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
@@ -3051,6 +3096,59 @@ suite "SimplyImport", ()->
 
 
 
+	suite.skip "browserify compatibility", ()->
+		test "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
+			compiled = null
+			Promise.resolve()
+				.then ()-> fs.dirAsync temp(), empty:true
+				.then ()->
+					helpers.lib
+						'node_modules/sm-module/main.js': """
+							exports.a = import './a'
+							exports.b = import './b $ nested.data'
+							importInline './exportC'
+							exports.d = (function(){
+								return import './d'
+							})()
+							exports.another = import 'another-module'
+						"""
+						'node_modules/sm-module/a.js': """
+							module.exports = 'abc-value';
+						"""
+						'node_modules/sm-module/b.js': """
+							{"nested":{"data":"def-value"}}
+						"""
+						'node_modules/sm-module/c.yml': """
+							nested: data: 'gHi-value'
+						"""
+						'node_modules/sm-module/exportC.js': """
+							exports.b = require('c $ nested.data')
+						"""
+						'node_modules/sm-module/package.json': JSON.stringify
+							main: 'index.js'
+							browser: 'main.js'
+							browserify: transform: ['simplyimport/compat', 'test/helpers/replacerTransform']
+					
+						'node_modules/other-module/package.json': JSON.stringify main:'index.js'
+						'node_modules/other-module/index.js': "module.exports = 'abc123'"
+
+				.then ()->
+					Streamify = require 'streamify-string'
+					Browserify = require 'browserify'
+					Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
+					Browserify(Streamify("module.exports = require('sm-module');")).bundleAsync()
+				
+				.then (result)-> runCompiled('browserify.js', compiled=result, {})
+				.then (result)->
+					console.log result
+					assert.typeOf result, 'object'
+					assert.equal result.exported.a, 'abc-value'
+					assert.equal result.exported.b, 'def-value'
+					assert.equal result.exported.c, 'GHI-value'
+					assert.equal result.exported.d, 'abc123'
+
+
+		test.skip "simplyimport bundles will skip 'simplyimport/compat'", ()->
 
 
 

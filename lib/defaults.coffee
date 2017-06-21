@@ -16,3 +16,4 @@ module.exports =
 	target: 'browser'
 	umd: ''
 	returnLoader: false
+	bundleExternal: true

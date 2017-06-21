@@ -21,7 +21,6 @@ compile = (file, src, attachSourceMap)->
 	task = new (require './task')({src:src, file:file})
 	
 	Promise.bind(task)
-		.then task.resolveEntryPackage
 		.then task.initEntryFile
 		.then task.processFile
 		.then task.scanImportsExports

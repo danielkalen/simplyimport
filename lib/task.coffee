@@ -185,14 +185,14 @@ class Task extends require('events')
 					debug "using cached #{config.pathDebug}"
 					promiseBreak(@cache[config.pathAbs])
 
-			.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or @options.target is 'node' and BUILTINS.includes(suppliedPath)
+			.tap (config)->
+				config.pkgFile = pkgFile or {}
+				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
+				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
+
+			.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or config.isExternal and not @options.bundleExternal or @options.target is 'node' and BUILTINS.includes(suppliedPath)
 			.tap (config)-> throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
 			.tap (config)-> throw new Error('missing') if not fs.exists(config.pathAbs)
-			
-			.tap (config)->
-				fs.readAsync(config.pathAbs).then (content)->
-					config.content = content
-					config.hash = md5(content)
 
 			.tap (config)->
 				config.ID =
@@ -200,13 +200,14 @@ class Task extends require('events')
 					else if @options.usePaths then config.pathRel
 					else ++@currentID
 				config.type = config.ID if isForceInlined
-				config.pkgFile = pkgFile or {}
-				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
-				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
 				specificOptions = if config.isExternal then extend({}, config.pkgFile.simplyimport, @options.specific) else @options.specific
 				config.options = helpers.matchFileSpecificOptions(config, specificOptions)
-				
 			
+			.tap (config)->
+				fs.readAsync(config.pathAbs).then (content)->
+					config.content = content
+					config.hash = md5(content)
+				
 			.then (config)-> new File(@, config)
 			
 			.tap (config)-> debug "created #{config.pathDebug}"
