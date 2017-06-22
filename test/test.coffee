@@ -3126,7 +3126,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite.skip "browserify compatibility", ()->
+	suite "browserify compatibility", ()->
 		test "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
 			compiled = null
 			Promise.resolve()
@@ -3173,17 +3173,17 @@ suite "SimplyImport", ()->
 					Streamify = require 'streamify-string'
 					Browserify = require 'browserify'
 					Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
-					Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp()).bundleAsync()
+					Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp(), moduleName:'bundled').bundleAsync()
 				
 				.then (result)-> result.toString()
 				.then (result)-> runCompiled('browserify.js', compiled=result, {})
 				.then (result)->
-					console.log result
-					assert.typeOf result, 'object'
-					assert.equal result.exported.a, 'abc-value'
-					assert.equal result.exported.b, 'def-value'
-					assert.equal result.exported.c, 'GHI-value'
-					assert.equal result.exported.d, 'abc123'
+					assert.typeOf result, 'function'
+					assert.typeOf theModule=result(1), 'object'
+					assert.equal theModule.a, 'abc-value'
+					assert.equal theModule.b, 'def-value'
+					assert.equal theModule.c, 'gHi-value'
+					assert.equal theModule.d, 'jkl-value'
 
 
 		test.skip "simplyimport bundles will skip 'simplyimport/compat'", ()->

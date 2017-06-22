@@ -23,6 +23,7 @@ compile = (file, src, flags)->
 	# console.log file, flags
 	result=require('./').compile {
 		file, src
+		umd: 'theBundle'
 		debug: flags.debug
 		bundleExternal: false
 		usePaths: flags.fullPaths

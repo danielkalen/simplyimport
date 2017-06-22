@@ -8,7 +8,7 @@ exports.bundle = (task)->
 	values = [if task.options.target is 'node' then "typeof require === 'function' && require" else "null"]
 	body = switch
 		when task.options.umd
-			stringBuilders.umd(loaderName, task.options.umd, task.entryFile.idstr)
+			stringBuilders.umd(loaderName, task.options.umd, task.entryFile.IDstr)
 		when task.options.returnLoader
 			"return #{loaderName}"
 		else
