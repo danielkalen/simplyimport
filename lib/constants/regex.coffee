@@ -13,6 +13,7 @@ REGEX =
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
 	initialWhitespace: /^[ \t]+/
+	initialExport: /^module\.exports\s*=\s*/
 	decKeyword: /var|let|const/
 	requireArg: /\brequire[,\)]/
 	processDec: /\brequire[\(\s]['"]process['"]\)?|\bprocess\s?=\s?/

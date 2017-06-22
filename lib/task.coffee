@@ -20,7 +20,6 @@ class Task extends require('events')
 	constructor: (options)->
 		options = file:options if typeof options is 'string'
 		throw new Error("either options.file or options.src must be provided") if not options.file and not options.src
-		@entryInput = options.file or options.src
 		@currentID = -1
 		@files = []
 		@importStatements = []
@@ -29,14 +28,14 @@ class Task extends require('events')
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
-		@options.context ?= if @options.file then helpers.getNormalizedDirname(@entryInput) else process.cwd()
+		@options.context ?= if @options.file then helpers.getNormalizedDirname(@options.file) else process.cwd()
 		if @options.file
-			@options.ext = Path.extname(@entryInput).replace('.','') or 'js'
-			@options.suppliedPath = @entryInput = Path.resolve(@entryInput)
+			@options.ext = Path.extname(@options.file).replace('.','') or 'js'
+			@options.suppliedPath = Path.resolve(@options.file)
 		else
 			@options.ext ?= 'js'
 			@options.suppliedPath = Path.resolve("entry.#{@options.ext}")
-		
+
 		super
 		@attachListeners()
 
@@ -130,9 +129,9 @@ class Task extends require('events')
 				if pkgFile and pkgFile['simplyimport:specific'] and Object.keys(@options.specific).length is 0
 					@options.specific = normalizeSpecificOpts(pkgFile['simplyimport:specific'])
 			
-			.then ()-> promiseBreak(@entryInput) if @options.src
-			.then ()-> fs.existsAsync(@entryInput).then (exists)=> if not exists then @emit 'missingEntry'
-			.then ()-> fs.readAsync(@entryInput)
+			.then ()-> promiseBreak(@options.src) if @options.src
+			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
+			.then ()-> fs.readAsync(@options.file)
 			.catch promiseBreak.end
 			.then (content)->
 				path = helpers.simplifyPath(@options.suppliedPath)
@@ -143,7 +142,7 @@ class Task extends require('events')
 					content: content
 					hash: md5(content)
 					pkgFile: @options.pkgFile
-					suppliedPath: if @options.src then '' else @entryInput
+					suppliedPath: @options.file or ''
 					context: @options.context
 					contextRel: ''
 					pathAbs: @options.suppliedPath
@@ -306,6 +305,7 @@ class Task extends require('events')
 
 				Promise.map statements, (statement)=>
 					statement.type = targetType or statement.target.type
+					# console.log statement.target.pathExt, statement.target.pathExtOriginal
 
 					if statement.extract and statement.target.pathExt isnt 'json'
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"

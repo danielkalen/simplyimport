@@ -272,6 +272,7 @@ class File
 			.reduce((content, transformer)->
 				lastTransformer = transformer
 				transformOpts = extend {_flags:@task.options}, transformer.opts
+				prevContent = content
 
 				Promise.bind(@)
 					.then ()-> transformer.fn(@pathAbs, transformOpts, @, content)
@@ -285,10 +286,13 @@ class File
 					.then (transformStream)-> getStream streamify(content).pipe(transformStream)
 					.catch promiseBreak.end
 					.then (content)->
+						return content if content is prevContent
 						if transformer.name.includes(/coffeeify|typescript-compiler/)
 							@pathExt = 'js'
 						else if transformer.name.includes(/csonify|yamlify/)
 							@pathExt = 'json'
+							content = content.replace /^module\.exports\s*=\s*/, ''
+							content = content.slice(0,-1) if content[content.length-1] is ';'
 						
 						if @pathExt isnt @pathExtOriginal
 							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
@@ -395,7 +399,7 @@ class File
 				try
 					requires = helpers.collectRequires(tokens, @linesPostTransforms)
 					imports = helpers.collectImports(tokens, @linesPostTransforms)
-					statements = imports.concat(requires)
+					statements = imports.concat(requires).sortBy('tokenRange[0]')
 				catch err
 					if err.name is 'TokenError'
 						@task.emit('TokenError', @, err)
@@ -404,12 +408,14 @@ class File
 
 					return
 
-				statements.forEach (statement)=>
+
+				statements.forEach (statement, index)=>
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
 					statement.range[0] = tokens[statement.tokenRange[0]].start
 					statement.range[1] = tokens[statement.tokenRange[1]].end
+					prevRange = statement.range
 					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
 					statement.source = @
 					@importStatements.push(statement)
@@ -494,6 +500,7 @@ class File
 						targetContent = "(#{targetContent})" if content[range[1]] is '.' or content[range[1]] is '('
 
 					return targetContent
+				
 
 				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
@@ -586,7 +593,7 @@ class File
 				
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
-			
+
 			@addRangeOffset 'exports', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -613,7 +620,9 @@ class File
 		targetArrays ?= RANGE_ARRAYS
 		for array,index in targetArrays
 			rangeOffset = if index > targetArrays.indexOf(sourceArray) then offset else 0
-			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, rangeOffset)
+			considerDiff = sourceArray isnt 'imports' or array is sourceArray
+			breakOnInnerRange = array isnt 'exports'
+			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, {rangeOffset, considerDiff, breakOnInnerRange})
 
 		return if not offset then range else [range[0]+offset, range[1]+offset]
 
@@ -622,7 +631,7 @@ class File
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
 		for array in targetArrays
-			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, 0, true)
+			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, isDeoffset:true)
 
 		return if not offset then range else [range[0]-offset, range[1]-offset]
 

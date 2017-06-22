@@ -714,7 +714,7 @@ suite "SimplyImport", ()->
 				assert.include compiled, "require('./b')"
 
 
-	test.only "files external to the importer shall be not be included in the package when options.bundleExternal is false", ()->
+	test "files external to the importer shall be not be included in the package when options.bundleExternal is false", ()->
 		Promise.resolve()
 			.then ()-> fs.dirAsync temp(), empty:true
 			.then ()->
@@ -821,6 +821,7 @@ suite "SimplyImport", ()->
 
 	test "es6 exports will be transpiled to commonJS exports", ()->
 		Promise.resolve()
+			.then ()-> fs.dirAsync temp(), empty:true
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -2130,6 +2131,7 @@ suite "SimplyImport", ()->
 						'main.js': """
 							a = import './a.cson'
 							b = require('b')
+							b2 = import './b'
 						"""
 						'a.cson': """
 							dataA:
@@ -2159,6 +2161,7 @@ suite "SimplyImport", ()->
 						'main.js': """
 							a = import './a'
 							b = require('b')
+							b2 = import './b'
 						"""
 						'a.yml': """
 							dataA:
@@ -2476,8 +2479,12 @@ suite "SimplyImport", ()->
 				.then ()->
 					helpers.lib
 						'main.js': """
-							a = import './a.cson $ dataPointA.simply import.abc[1]'
+							import './insertA'
 							b = require('a.cson $ dataPointA[13-seep].def[0]')
+							c = require('b.cson$dataPointC.inner')
+						"""
+						'insertA.js': """
+							a = import './a.cson $ dataPointA.simply import.abc[1]'
 						"""
 						'a.cson': """
 							dataPointA:
@@ -2491,15 +2498,24 @@ suite "SimplyImport", ()->
 							
 							"dataPointB": {"b":2, "B":20, "BB":200}
 						"""
+						'b.cson': """
+							dataPointC:
+								inner: 20
+							dataPointD:
+								inner: 30
+						"""
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({compiled, context, writeToDisc})->
 					assert.include compiled, 'require ='
 					assert.notInclude compiled, 'dataPointB'
 					assert.notInclude compiled, 'abc123'
+					assert.notInclude compiled, 'dataPointD'
 					assert.typeOf context.a, 'object'
 					assert.typeOf context.b, 'object'
+					assert.typeOf context.c, 'number'
 					assert.deepEqual context.a, {"ABC":456}
 					assert.deepEqual context.b, {"DEF":123}
+					assert.deepEqual context.c, 20
 
 
 		test "data can be extracted from yml files", ()->
@@ -2507,8 +2523,12 @@ suite "SimplyImport", ()->
 				.then ()->
 					helpers.lib
 						'main.js': """
-							a = import './a.yml $ dataPointA.simply import.abc[1]'
+							importInline './insertA'
 							b = require('a.yml $ dataPointA[13-seep].def[0]')
+							c = require('b.yml$dataPointC.inner')
+						"""
+						'insertA.js': """
+							a = import './a.yml $ dataPointA.simply import.abc[1]'
 						"""
 						'a.yml': """
 							dataPointA:
@@ -2527,15 +2547,25 @@ suite "SimplyImport", ()->
 							  B:20
 							  BB:200
 						"""
+						'b.yml': """
+							dataPointC:
+							  inner: 20
+							dataPointD:
+							  inner: 30
+						"""
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({compiled, context, writeToDisc})->
+					writeToDisc()
 					assert.include compiled, 'require ='
 					assert.notInclude compiled, 'dataPointB'
 					assert.notInclude compiled, 'abc123'
+					assert.notInclude compiled, 'dataPointD'
 					assert.typeOf context.a, 'object'
 					assert.typeOf context.b, 'object'
+					assert.typeOf context.c, 'number'
 					assert.deepEqual context.a, {"ABC":456}
 					assert.deepEqual context.b, {"DEF":123}
+					assert.deepEqual context.c, 20
 
 
 
@@ -3101,6 +3131,7 @@ suite "SimplyImport", ()->
 			compiled = null
 			Promise.resolve()
 				.then ()-> fs.dirAsync temp(), empty:true
+				.then ()-> fs.symlinkAsync process.cwd(), temp('node_modules/simplyimport')
 				.then ()->
 					helpers.lib
 						'node_modules/sm-module/main.js': """
@@ -3110,33 +3141,39 @@ suite "SimplyImport", ()->
 							exports.d = (function(){
 								return import './d'
 							})()
-							exports.another = import 'another-module'
+							exports.other = import 'other-module'
 						"""
 						'node_modules/sm-module/a.js': """
 							module.exports = 'abc-value';
 						"""
-						'node_modules/sm-module/b.js': """
+						'node_modules/sm-module/b.json': """
 							{"nested":{"data":"def-value"}}
 						"""
 						'node_modules/sm-module/c.yml': """
-							nested: data: 'gHi-value'
+							nested:
+                              data: 'gHi-value'
 						"""
+						'node_modules/sm-module/d.js': """
+							export default jkl = 'jkl-value';
+						"""
+							# exports.c = require('c $ nested.data')
 						'node_modules/sm-module/exportC.js': """
-							exports.b = require('c $ nested.data')
+							exports.c = import 'c $ nested.data'
 						"""
 						'node_modules/sm-module/package.json': JSON.stringify
 							main: 'index.js'
 							browser: 'main.js'
-							browserify: transform: ['simplyimport/compat', 'test/helpers/replacerTransform']
+							browserify: transform: ['simplyimport/compat']
 					
 						'node_modules/other-module/package.json': JSON.stringify main:'index.js'
 						'node_modules/other-module/index.js': "module.exports = 'abc123'"
 
+				.tap ()-> processAndRun(src:"module.exports = require('sm-module');", context:temp()).then(console.log).then ()-> process.exit()
 				.then ()->
 					Streamify = require 'streamify-string'
 					Browserify = require 'browserify'
 					Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
-					Browserify(Streamify("module.exports = require('sm-module');")).bundleAsync()
+					Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp()).bundleAsync()
 				
 				.then (result)-> runCompiled('browserify.js', compiled=result, {})
 				.then (result)->
