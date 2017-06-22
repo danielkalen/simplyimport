@@ -2611,7 +2611,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite.only "conditionals", ()->
+	suite "conditionals", ()->
 		test "conditional blocks are marked by start/end comments and are removed if the statement in the start comment is falsey", ()->
 			Promise.resolve()
 				.then ()->
@@ -3382,6 +3382,23 @@ suite "SimplyImport", ()->
 						'main2.js': ['main.js', (content)-> content.replace "import './c'", "importInline './c'"]
 						'main.cyclic.js': ['main.js', (content)-> content.replace "from './d'", "from './d2'"]
 						'main.errors.js': ['main.js', (content)-> content.replace "from './d'", "from './d3'"]
+						"main.conditionals.js": """
+							import './a'
+
+							// simplyimport:if VAR_A == 'abc' && VAR_B == 'def'
+							require('b')
+							// simplyimport:end
+
+							// simplyimport:if /deff/.test(VAR_B) || /ghi/.test(VAR_C)
+							import './c'
+							// simplyimport:end
+
+							import d from './d'
+
+							// simplyimport:if VAR_A == 'gibberish'
+							import * as e from './e'
+							// simplyimport:end
+						"""
 						'a.js': "import 'a2'"
 						'a2.js': "module.exports = 'file a2.js'"
 						'b.js': "module.exports = 'file b.js'"
@@ -3713,6 +3730,39 @@ suite "SimplyImport", ()->
 							]
 						]
 					]
+
+
+		test "imports inside conditionals will be included", ()->
+			Promise.resolve()
+				.then ()-> SimplyImport.scan file:temp('main.conditionals.js'), depth:Infinity
+				.then (result)->
+					assert Array.isArray(result)
+					assert.include result,		temp 'a.js'
+					assert.include result,		temp 'a2.js'
+					assert.include result,		temp 'b.js'
+					assert.include result,		temp 'c.js'
+					assert.include result,		temp 'c2/index.coffee'
+					assert.include result,		temp 'c2/nested.coffee'
+					assert.include result,		temp 'd/index.js'
+					assert.include result,		temp 'e.js'
+
+
+		test "imports inside conditionals will not be included when options.matchAllConditions is false", ()->
+			Promise.resolve()
+				.then ()->
+					process.env.VAR_A = 'abc'
+					process.env.VAR_B = 'def'
+				.then ()-> SimplyImport.scan file:temp('main.conditionals.js'), depth:Infinity, matchAllConditions:false
+				.then (result)->
+					assert Array.isArray(result)
+					assert.include result,		temp 'a.js'
+					assert.include result,		temp 'a2.js'
+					assert.include result,		temp 'b.js'
+					assert.notInclude result,	temp 'c.js'
+					assert.notInclude result,	temp 'c2/index.coffee'
+					assert.notInclude result,	temp 'c2/nested.coffee'
+					assert.include result,		temp 'd/index.js'
+					assert.notInclude result,	temp 'e.js'
 
 
 
