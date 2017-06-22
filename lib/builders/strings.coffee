@@ -4,24 +4,24 @@ exports.iife = (args, values, body)-> """
 	}).call(#{['this'].concat(values).join(',')})
 """
 
-exports.loaderBrowser = ()-> """
-	require = (function(cache,modules){
+exports.loaderBrowser = (loader)-> """
+	#{loader} = (function(cache,modules){
 		return function(r){
 			if (!modules[r]) throw new Error(r+' is not a module')
 			return cache[r] ? cache[r].exports
-							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](require, cache[r], cache[r].exports) );
+							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](#{loader}, cache[r], cache[r].exports) );
 		};
 	})({},{});
 """
 
-exports.loaderNode = ()-> """
-	require = (function(cache,modules,nativeRequire){
+exports.loaderNode = (loader)-> """
+	#{loader} = (function(cache,modules,nativeRequire){
 		return function(r){
 			if (!modules[r]) return nativeRequire(r)
 			return cache[r] ? cache[r].exports
-							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](require, cache[r], cache[r].exports) );
+							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](#{loader}, cache[r], cache[r].exports) );
 		};
-	})({},{},require);
+	})({},{},#{loader});
 """
 
 
@@ -29,13 +29,13 @@ exports.globalDec = ()-> """
 	typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : this
 """
 
-exports.umdResult = (name, entryID)-> """
+exports.umd = (loader, name, entryID)-> """
 	if (typeof define === 'function' && define.umd) {
-		define(function(){return require(#{entryID})})
+		define(function(){return #{loader}(#{entryID})})
 	} else if (typeof module === 'object' && module.exports) {
-		module.exports = require(#{entryID})
+		module.exports = #{loader}(#{entryID})
 	} else {
-		return this['#{name}'] = require(#{entryID})
+		return this['#{name}'] = #{loader}(#{entryID})
 	}
 """
 

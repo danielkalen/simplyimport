@@ -3,15 +3,16 @@ stringBuilders = require './strings'
 b = require('ast-types').builders
 
 exports.bundle = (task)->
-	args = ['require']
+	loaderName = task.options.loaderName
+	args = [loaderName]
 	values = [if task.options.target is 'node' then "typeof require === 'function' && require" else "null"]
 	body = switch
 		when task.options.umd
-			stringBuilders.umd(task.options.umd, task.entryFile.idstr)
+			stringBuilders.umd(loaderName, task.options.umd, task.entryFile.idstr)
 		when task.options.returnLoader
-			"return require"
+			"return #{loaderName}"
 		else
-			"return require(#{task.entryFile.IDstr})"
+			"return #{loaderName}(#{task.entryFile.IDstr})"
 	
 	if task.requiredGlobals.global
 		args.push 'global'
@@ -19,18 +20,18 @@ exports.bundle = (task)->
 	
 	return Parser.parse stringBuilders.iife(args, values, body)
 
-exports.loader = (target)->
+exports.loader = (target, loaderName)->
 	targetLoader = if target is 'node' then 'loaderNode' else 'loaderBrowser'
-	loader = Parser.parse(stringBuilders[targetLoader]()).body[0]
+	loader = Parser.parse(stringBuilders[targetLoader](loaderName)).body[0]
 	modules = loader.expression.right.arguments[1].properties
 	return {loader, modules}
 
 
-exports.moduleProp = (file)->
-	b.property 'init', b.literal(file.ID), exports.moduleFn(file)
+exports.moduleProp = (file, loaderName)->
+	b.property 'init', b.literal(file.ID), exports.moduleFn(file, loaderName)
 
 
-exports.moduleFn = (file)->
+exports.moduleFn = (file, loaderName)->
 	body = moduleBody = []
 	
 	if Object.keys(file.requiredGlobals).length
@@ -55,7 +56,7 @@ exports.moduleFn = (file)->
 
 	b.functionExpression(
 		null
-		[b.identifier('require'), b.identifier('module'), b.identifier('exports')]
+		[b.identifier(loaderName), b.identifier('module'), b.identifier('exports')]
 		b.blockStatement(body)
 	)
 

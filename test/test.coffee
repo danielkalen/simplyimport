@@ -2500,7 +2500,7 @@ suite "SimplyImport", ()->
 						"""
 						'b.cson': """
 							dataPointC:
-								inner: 20
+								inner: 'theString'
 							dataPointD:
 								inner: 30
 						"""
@@ -2512,10 +2512,10 @@ suite "SimplyImport", ()->
 					assert.notInclude compiled, 'dataPointD'
 					assert.typeOf context.a, 'object'
 					assert.typeOf context.b, 'object'
-					assert.typeOf context.c, 'number'
+					assert.typeOf context.c, 'string'
 					assert.deepEqual context.a, {"ABC":456}
 					assert.deepEqual context.b, {"DEF":123}
-					assert.deepEqual context.c, 20
+					assert.deepEqual context.c, 'theString'
 
 
 		test "data can be extracted from yml files", ()->
@@ -3134,10 +3134,11 @@ suite "SimplyImport", ()->
 				.then ()-> fs.symlinkAsync process.cwd(), temp('node_modules/simplyimport')
 				.then ()->
 					helpers.lib
+							# importInline './exportC'
 						'node_modules/sm-module/main.js': """
 							exports.a = import './a'
 							exports.b = import './b $ nested.data'
-							importInline './exportC'
+							exports.c = import 'c $ nested.data'
 							exports.d = (function(){
 								return import './d'
 							})()
@@ -3156,7 +3157,6 @@ suite "SimplyImport", ()->
 						'node_modules/sm-module/d.js': """
 							export default jkl = 'jkl-value';
 						"""
-							# exports.c = require('c $ nested.data')
 						'node_modules/sm-module/exportC.js': """
 							exports.c = import 'c $ nested.data'
 						"""
@@ -3168,13 +3168,14 @@ suite "SimplyImport", ()->
 						'node_modules/other-module/package.json': JSON.stringify main:'index.js'
 						'node_modules/other-module/index.js': "module.exports = 'abc123'"
 
-				.tap ()-> processAndRun(src:"module.exports = require('sm-module');", context:temp()).then(console.log).then ()-> process.exit()
+				# .tap ()-> processAndRun(src:"module.exports = require('sm-module');", context:temp()).then(console.log).then ()-> process.exit()
 				.then ()->
 					Streamify = require 'streamify-string'
 					Browserify = require 'browserify'
 					Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
 					Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp()).bundleAsync()
 				
+				.then (result)-> result.toString()
 				.then (result)-> runCompiled('browserify.js', compiled=result, {})
 				.then (result)->
 					console.log result

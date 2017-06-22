@@ -171,7 +171,6 @@ class File
 
 	determineType: ()->
 		@type = switch
-			# when @isEntry then 'module'
 			when @pathExtOriginal is 'ts' then 'module'
 			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
 			else 'module'
@@ -408,7 +407,6 @@ class File
 
 					return
 
-
 				statements.forEach (statement, index)=>
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
@@ -417,6 +415,9 @@ class File
 					statement.range[1] = tokens[statement.tokenRange[1]].end
 					prevRange = statement.range
 					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
+					# console.log (-> {index, @target, @range}).call(statement)
+					# console.log(@contentPostTokenize) if statement.target is 'c'
+					# console.log(tokens.map (i)-> [i.start, i.end]) if statement.target is 'c'
 					statement.source = @
 					@importStatements.push(statement)
 
@@ -501,7 +502,12 @@ class File
 
 					return targetContent
 				
-
+				# if @path.endsWith('moment/src/lib/units/timezone.js')
+				# console.log statement.range, range, [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+				# console.log require('chalk').yellow content.slice(range[0], range[1])
+				# console.log require('chalk').green replacement
+				# console.log require('chalk').dim content
+				# console.log '\n\n'
 				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -509,13 +515,14 @@ class File
 
 
 	replaceImportStatements: (content)->
+		loader = @task.options.loaderName
 		for statement,index in @importStatements when statement.type is 'module'
 
 			range = @offsetRange(statement.range, null, 'imports')
 			replacement = do ()=>
 				return "require('#{statement.target}')" if statement.excluded
 				if not statement.members and not statement.alias # commonJS import / side-effects es6 import
-					replacement = "require(#{statement.target.IDstr})"
+					replacement = "#{loader}(#{statement.target.IDstr})"
 					if statement.extract
 						replacement += "['#{statement.extract}']"
 					
@@ -525,7 +532,7 @@ class File
 
 				else
 					alias = statement.alias or helpers.randomVar()
-					replacement = "var #{alias} = require(#{statement.target.IDstr})"
+					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})"
 
 					if statement.members
 						nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
@@ -543,6 +550,7 @@ class File
 
 
 	replaceExportStatements: (content)->
+		loader = @task.options.loaderName
 		for statement,index in @exportStatements
 			
 			range = @offsetRange(statement.range, null, 'exports')
@@ -551,7 +559,7 @@ class File
 			
 				if statement.target isnt statement.source
 					alias = helpers.randomVar()
-					replacement = "var #{alias} = require(#{statement.target.IDstr})\n"
+					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})\n"
 
 					if statement.members
 						decs = []
@@ -612,7 +620,7 @@ class File
 		else
 			result = @parsed[key] or Object.get(@parsed, key)
 			return result if returnActual
-			return if typeof result is 'object' then JSON.stringify(result) else String(result)
+			return JSON.stringify(result)
 
 
 	offsetRange: (range, targetArrays, sourceArray)->

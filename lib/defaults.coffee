@@ -17,3 +17,4 @@ module.exports =
 	umd: ''
 	returnLoader: false
 	bundleExternal: true
+	loaderName: 'require'

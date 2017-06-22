@@ -432,10 +432,10 @@ class Task extends require('events')
 			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
 			.then (files)->
 				bundle = builders.bundle(@)
-				{loader, modules} = builders.loader(@options.target)
+				{loader, modules} = builders.loader(@options.target, @options.loaderName)
 				
-				files.sortBy('hash').forEach (file)->
-					modules.push builders.moduleProp(file)
+				files.sortBy('hash').forEach (file)=>
+					modules.push builders.moduleProp(file, @options.loaderName)
 
 				bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
 				return bundle
