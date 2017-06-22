@@ -410,22 +410,15 @@ class File
 						@task.emit('GeneralError', @, err)
 
 					return
-				# console.log @pathDebug
-				# console.log @replacedRanges
-				# console.log tokens[tokens.findIndex (t)-> t.start is 122] if @path.endsWith('main.js')
-				# console.log @contentSafe
-				# console.log '\n\n'
-				statements.forEach (statement, index)=>
+
+
+				statements.forEach (statement)=>
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
 					statement.range[0] = tokens[statement.tokenRange[0]].start
 					statement.range[1] = tokens[statement.tokenRange[1]].end
-					prevRange = statement.range
 					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
-					# console.log (-> {i:index, @target, @range, prevRange}).call(statement)
-					# console.log(@contentPostTokenize) if statement.target is 'c'
-					# console.log(tokens.map (i)-> [i.start, i.end]) if statement.target is 'c'
 					statement.source = @
 					@importStatements.push(statement)
 

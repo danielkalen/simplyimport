@@ -10,7 +10,14 @@ module.exports = (dest, files)->
 		dest = Path.resolve 'test','temp'
 	
 	Promise.resolve(Object.keys(files))
-		.map (fileName)-> fs.writeAsync Path.join(dest, fileName), files[fileName]
+		.map (fileName)->
+			content = files[fileName]
+			
+			if Array.isArray(content)
+				content = content[1](files[content[0]])
+			
+			fs.writeAsync Path.join(dest, fileName), content
+		
 		.return(dest)
 
 

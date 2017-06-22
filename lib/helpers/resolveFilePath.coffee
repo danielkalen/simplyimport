@@ -65,4 +65,5 @@ module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 			pathExt = Path.extname(pathAbs).toLowerCase().slice(1)
 			pathExt = 'yml' if pathExt is 'yaml'
 			pathBase = Path.basename(pathAbs)
-			return {path, pathDebug, pathAbs, pathRel, pathBase, pathExt, context, contextRel, suppliedPath}
+			pathName = Path.basename pathAbs, Path.extname(pathAbs)
+			return {path, pathDebug, pathAbs, pathRel, pathBase, pathExt, pathName, context, contextRel, suppliedPath}

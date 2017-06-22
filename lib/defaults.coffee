@@ -8,6 +8,7 @@ module.exports =
 	ignoreMissing: false
 	ignoreErrors: false
 	ignoreSyntaxErrors: false
+	matchAllConditions: false
 	transform: []
 	globalTransform: []
 	ignoreTransform: []

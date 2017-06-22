@@ -1,5 +1,6 @@
 require('./patches')
 Promise = require 'bluebird'
+Path = require 'path'
 formatError = require './external/formatError'
 Task = require './task'
 REGEX = require './constants/regex'
@@ -32,8 +33,16 @@ SimplyImport.compile = (options, returnStream)->
 
 SimplyImport.scan = (options)->
 	options.ignoreErrors ?= true
+	options.relativePaths ?= false
+	options.flat ?= true
+	options.cyclic ?= false
 	options.depth ?= 0
 	task = new Task(options)
+
+	resolveImportPath = (file)->
+		context = file.context
+		context = Path.relative(process.cwd(), context) if options.relativePaths
+		return Path.join(context, file.pathBase)
 
 	Promise.bind(task)
 		.then task.initEntryFile
@@ -41,24 +50,29 @@ SimplyImport.scan = (options)->
 		.then ()-> task.scanImportsExports(task.entryFile, options.depth)
 		.then task.calcImportTree
 		.then ()->
-			task.entryFile.importStatements
-				.filter (validImport)-> validImport
-				.sort (hashA, hashB)-> subjectFile.orderRefs.findIndex((ref)->ref is hashA) - subjectFile.orderRefs.findIndex((ref)->ref is hashB)
-				.map (childHash, childIndex)->
-					childPath = subjectFile.importRefs[childHash].pathAbs
-					childPath = childPath.replace opts.context+'/', '' if not opts.withContext
-
-					if opts.pathOnly
-						return childPath
-					else
-						importStats = {}
-						entireLine = subjectFile.contentLines[lineRefs[childIndex]]
-						entireLine.replace REGEX.import, (entireLine, priorContent='', spacing='', conditions)->
-							importStats = {entireLine, priorContent, spacing, conditions, path:childPath}
-						
-						return importStats
-
+			if options.flat
+				Object.values(task.imports).flatten().map('target').map(resolveImportPath)
+			else
+				output = []
+				includedFiles = {}
+				includedFiles[task.entryFile.pathAbs] = file:task.entryFile.pathAbs, imports:output
 				
+				walkImports = (file, output)->
+					includedFiles[file.pathAbs] ?= 'Cyclic'
+					fileImports = file.importStatements.map('target')
+					fileExports = file.exportStatements.filter((s)-> s.target isnt s.source).map('target')
+					fileImports = fileImports.concat(fileExports).unique()
+
+					for child in fileImports# when child isnt file
+						if not includedFiles[child.pathAbs]
+							output.push childData = includedFiles[child.pathAbs] = 'file':resolveImportPath(child), 'imports':[]
+							walkImports(child, childData.imports)
+
+						else if options.cyclic
+							output.push includedFiles[child.pathAbs]
+
+				walkImports(task.entryFile, output)
+				return output
 
 
 

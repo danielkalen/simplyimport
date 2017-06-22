@@ -282,7 +282,7 @@ class Task extends require('events')
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
-			.tap ()-> promiseBreak(@importStatements) if ++currentDepth >= depth
+			.tap ()-> promiseBreak(@importStatements) if ++currentDepth > depth
 			.map (statement)-> @scanImportsExports(statement.target, depth, currentDepth) unless statement.excluded
 			
 			.catch promiseBreak.end
