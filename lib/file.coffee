@@ -426,25 +426,25 @@ class File
 
 			when @pathExt is 'pug' or @pathExt is 'jade'
 				@collectedImports = true
-				@content.replace REGEX.pugImport, (entireLine, priorContent='', keyword, childPath, offset)=>
+				@content.replace REGEX.pugImport, (entireLine, priorContent='', childPath, offset)=>
 					statement = helpers.newImportStatement()
 					statement.source = @
 					statement.target = childPath.removeAll(REGEX.quotes).trim()
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
-					statement.type = 'inline-forced'
+					statement.type = 'inline'
 					@importStatements.push(statement)
 
 
 			when @pathExt is 'sass' or @pathExt is 'scss'
 				@collectedImports = true
-				@content.replace REGEX.cssImport, (entireLine, priorContent='', keyword, childPath, offset)=>
+				@content.replace REGEX.cssImport, (entireLine, priorContent='', childPath, offset)=>
 					statement = helpers.newImportStatement()
 					statement.source = @
 					statement.target = childPath.removeAll(REGEX.quotes).trim()
 					statement.range[0] = offset + priorContent.length
 					statement.range[1] = offset + entireLine.length
-					statement.type = 'inline-forced'
+					statement.type = 'inline'
 					@importStatements.push(statement)
 
 

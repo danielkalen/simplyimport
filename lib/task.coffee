@@ -375,7 +375,7 @@ class Task extends require('events')
 				file.importStatements.filter(type:'inline')
 			else
 				file.importStatements
-		
+
 		Promise.resolve(file.importStatements).bind(file)
 			.map (statement)=> @replaceInlineImports(statement.target) unless statement.excluded
 			.return(null)
