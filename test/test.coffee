@@ -3326,7 +3326,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite.only "scan imports", ()->
+	suite "scan imports", ()->
 		suiteSetup ()->
 			Promise.resolve()
 				.then ()-> fs.dirAsync temp(), empty:true
