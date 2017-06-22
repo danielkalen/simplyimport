@@ -15,7 +15,7 @@ fs = require 'fs-jetpack'
 inputPath = args.i or args.input or args._[0]
 outputPath = args.o or args.output or args._[1]
 help = args.h or args.help
-outputIsFile = fs.inspect(outputPath)?.type is 'file'
+outputIsFile = outputPath and fs.inspect(outputPath)?.type is 'file'
 passedOptions = 
 	'transform': helpers.normalizeTransformOpts args.t or args.transform
 	'globalTransform': helpers.normalizeTransformOpts args.g or args.globalTransform

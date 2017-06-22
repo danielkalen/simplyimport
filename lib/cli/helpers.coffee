@@ -1,13 +1,13 @@
 minimist = require 'minimist'
-regEx = require './regex'
+REGEX = require '../constants/regex'
 
 module.exports = 
 	normalizeTransformOpts: (transforms)-> if transforms
 		transforms = [].concat(transforms)
 		transforms.map (transform)->
-			if regEx.hasSquareBrackets.test(transform)
-				transform = transform.match(regEx.bracketContents)[1]
-				transformer = transform.match(regEx.firstWord)[1]
+			if REGEX.hasSquareBrackets.test(transform)
+				transform = transform.match(REGEX.bracketContents)[1]
+				transformer = transform.match(REGEX.firstWord)[1]
 				opts = transform.split(/\s+/)
 				opts = minimist(opts)
 				return [transformer, opts]

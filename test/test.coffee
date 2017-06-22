@@ -2611,7 +2611,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite "conditionals", ()->
+	suite.only "conditionals", ()->
 		test "conditional blocks are marked by start/end comments and are removed if the statement in the start comment is falsey", ()->
 			Promise.resolve()
 				.then ()->
@@ -2845,6 +2845,43 @@ suite "SimplyImport", ()->
 					assert.equal context.ccc, 'ccc'
 					assert.equal context.ddd, undefined
 					assert.equal context.eee, 'eee'
+
+
+		test "all conditionals will be included when options.matchAllConditions is set", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							abc = 'aaa';
+
+							// simplyimport:if VAR_A == 'abc' && VAR_B == 'def'
+							abc = 'bbb';
+							// simplyimport:end
+
+							// simplyimport:if /deff/.test(VAR_B) || /ghi/.test(VAR_C)
+							def = 'def';
+							// simplyimport:end
+
+							// simplyimport:if VAR_C
+							ghi = 'ghi';
+							// simplyimport:end
+
+							// simplyimport:if VAR_A == 'gibberish'
+							jkl = 'jkl';
+							// simplyimport:end
+						"""
+
+				.then ()->
+					process.env.VAR_A = 'abc'
+					delete process.env.VAR_B
+					delete process.env.VAR_C
+					processAndRun file:temp('main.js'), matchAllConditions:true
+
+				.then ({context, writeToDisc})->
+					assert.equal context.abc, 'bbb'
+					assert.equal context.def, 'def'
+					assert.equal context.ghi, 'ghi'
+					assert.equal context.jkl, 'jkl'
 
 
 

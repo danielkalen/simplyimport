@@ -96,7 +96,7 @@ class File
 						range: [start[0], end[0]]
 						start: @linesOriginal.locationForIndex(start[0]).line
 						end: @linesOriginal.locationForIndex(end[0]).line
-						match: do ()=>
+						match: @task.options.matchAllConditions or do ()=>
 							file = @
 							jsString = ''
 							tokens = Parser.tokenize(start[2])

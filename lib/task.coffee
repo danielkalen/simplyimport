@@ -305,7 +305,6 @@ class Task extends require('events')
 
 				Promise.map statements, (statement)=>
 					statement.type = targetType or statement.target.type
-					# console.log statement.target.pathExt, statement.target.pathExtOriginal
 
 					if statement.extract and statement.target.pathExt isnt 'json'
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"

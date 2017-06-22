@@ -1,3 +1,7 @@
 #!/usr/bin/env node
 require('coffee-register');
+
+if (process.env.SOURCE_MAPS) // Always set in Cakefile
+	require('source-map-support').install({hookRequire:true})
+
 require('./lib/cli');
