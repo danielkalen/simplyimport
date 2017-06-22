@@ -32,8 +32,12 @@ class File
 		@linesOriginal = new LinesAndColumns(@content)
 		@options.transform ?= []
 		
-		if  @pkgTransform = @pkgFile.browserify?.transform
-			@pkgTransform = [@pkgTransform] if not helpers.isValidTransformerArray(@pkgTransform)
+		if @pkgTransform = @pkgFile.browserify?.transform then switch
+			when helpers.isValidTransformerArray(@pkgTransform) or typeof @pkgTransform is 'string'
+				@pkgTransform = [@pkgTransform]
+
+			when Array.isArray(@pkgTransform)
+				@pkgTransform = @pkgTransform
 
 		return @task.cache[@pathAbs] = @
 

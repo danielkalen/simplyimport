@@ -18,3 +18,4 @@ module.exports = resolveTransformer = (transformer, basedir)-> Promise.resolve()
 			template(transformPath, transformer)
 
 	else throw new Error "Invalid transformer provided (must be a function or a string representing the file/module path of the transform function). Received:'#{String(transformer)}'"
+

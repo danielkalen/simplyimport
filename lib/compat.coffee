@@ -11,7 +11,7 @@ transform = (file, opts)->
 		
 		(done)->
 			Promise.resolve()
-				.then ()-> compile(file, Buffer.concat(chunks).toString(), flags)
+				.then ()-> compile(file, Buffer.concat(chunks).toString(), flags, opts)
 				# .then (compiled)-> console.log(compiled) or process.exit()
 				.then (compiled)=> @push(compiled)
 				.then ()-> done()
@@ -19,13 +19,13 @@ transform = (file, opts)->
 	)
 
 
-compile = (file, src, flags)->
-	# console.log file, flags
-	result=require('./').compile {
+compile = (file, src, flags, opts)->
+	require('./').compile {
 		file, src
-		umd: 'theBundle'
+		umd: opts.umd
 		debug: flags.debug
 		bundleExternal: false
+		returnExports: true
 		usePaths: flags.fullPaths
 		ignoreMissing: flags.ignoreMissing
 		ignoreTransform: flags.ignoreTransform

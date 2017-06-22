@@ -3,6 +3,7 @@ module.exports =
 	usePaths: false
 	sourceMap: null
 	debug: false
+	bundleExternal: true
 	ignoreGlobals: false
 	ignoreMissing: false
 	ignoreErrors: false
@@ -13,8 +14,8 @@ module.exports =
 	ignoreFile: []
 	excludeFile: []
 	specific: {}
+	loaderName: 'require'
 	target: 'browser'
 	umd: ''
 	returnLoader: false
-	bundleExternal: true
-	loaderName: 'require'
+	returnExports: false

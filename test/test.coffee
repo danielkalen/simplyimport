@@ -10,6 +10,7 @@ nodeVersion = parseFloat(process.version.slice(1))
 badES6Support = nodeVersion < 6.2
 bin = Path.resolve 'bin'
 SimplyImport = require '../'
+Browserify = Streamify = null
 
 if nodeVersion < 5.1
 	Object.defineProperty Buffer,'from', value: (arg)-> new Buffer(arg)
@@ -965,78 +966,78 @@ suite "SimplyImport", ()->
 
 
 	test "es6 imports/exports can be placed in nested scopes", ()->
-			Promise.resolve()
-				.then ()->
-					helpers.lib
-						'main.js': """
-							load = function(){
-								import a from './a'
-								import * as b from './b'
-								import * as c from './c'
-								return {a:a, b:b, c:c}
-							}
-							module.exports = load()
-						"""
-						'a.js': """
-							export var abc = 123
-							load = function(){
-								var def = 456, ghi = 789, jkl = 999;
-								export default result = {abc:abc, def:def, ghi:ghi, jkl:jkl}
-							}
-							load()
-						"""
-						'b.js': """
-							export var abc = 123;
-							load = function(){
-								var ghi = 789, jkl = 999;
-								export let def = 456
-								(function(){export {ghi, jkl}})()
-							}
-							load()
-						"""
-						'c.js': """
-							export var abc = 123
-							load = function(){
-								var ghi = 789, jkl = 999;
-								export let def = 456
-								(function(){export {ghi, jkl}})()
-							}
-						"""
-				.then ()-> processAndRun file:temp('main.js')
-				.then ({compiled, result, writeToDisc})->
-					assert.deepEqual result.a, {abc:123, def:456, ghi:789, jkl:999}
-					assert.deepEqual result.b, {__esModule:true, abc:123, def:456, ghi:789, jkl:999}
-					assert.deepEqual result.c, {__esModule:true, abc:123}
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						load = function(){
+							import a from './a'
+							import * as b from './b'
+							import * as c from './c'
+							return {a:a, b:b, c:c}
+						}
+						module.exports = load()
+					"""
+					'a.js': """
+						export var abc = 123
+						load = function(){
+							var def = 456, ghi = 789, jkl = 999;
+							export default result = {abc:abc, def:def, ghi:ghi, jkl:jkl}
+						}
+						load()
+					"""
+					'b.js': """
+						export var abc = 123;
+						load = function(){
+							var ghi = 789, jkl = 999;
+							export let def = 456
+							(function(){export {ghi, jkl}})()
+						}
+						load()
+					"""
+					'c.js': """
+						export var abc = 123
+						load = function(){
+							var ghi = 789, jkl = 999;
+							export let def = 456
+							(function(){export {ghi, jkl}})()
+						}
+					"""
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result, writeToDisc})->
+				assert.deepEqual result.a, {abc:123, def:456, ghi:789, jkl:999}
+				assert.deepEqual result.b, {__esModule:true, abc:123, def:456, ghi:789, jkl:999}
+				assert.deepEqual result.c, {__esModule:true, abc:123}
 
 
 	test "imports/exports should be live", ()->
-			Promise.resolve()
-				.then ()->
-					helpers.lib
-						'main.js': """
-							import * as a from './a'
-							import * as b from './b'
-							import * as c from './c'
-							module.exports = {a:a,b:b,c:c}
-						"""
-						'a.js': """
-							export var abc = 'abc'
-							module.exports.def = 'def'
-						"""
-						'b.js': """
-							import * as a from './a'
-							module.exports = a
-						"""
-						'c.js': """
-							import * as a from './a'
-							module.exports = a
-							a.def = a.def.toUpperCase()
-						"""
-				.then ()-> processAndRun file:temp('main.js')
-				.then ({compiled, result})->
-					assert.deepEqual result.a, {__esModule:true, abc:'abc', def:'DEF'}
-					assert.equal result.a, result.b
-					assert.equal result.a, result.c
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						import * as a from './a'
+						import * as b from './b'
+						import * as c from './c'
+						module.exports = {a:a,b:b,c:c}
+					"""
+					'a.js': """
+						export var abc = 'abc'
+						module.exports.def = 'def'
+					"""
+					'b.js': """
+						import * as a from './a'
+						module.exports = a
+					"""
+					'c.js': """
+						import * as a from './a'
+						module.exports = a
+						a.def = a.def.toUpperCase()
+					"""
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result})->
+				assert.deepEqual result.a, {__esModule:true, abc:'abc', def:'DEF'}
+				assert.equal result.a, result.b
+				assert.equal result.a, result.c
 
 
 	test "commonJS (and commonJS-style) imports importing es6 modules should extract the 'default' property", ()->
@@ -1778,7 +1779,7 @@ suite "SimplyImport", ()->
 			Promise.resolve()
 				.then ()->
 					helpers.lib
-						'package.json': '{"browserify":{"transform":"test/helpers/replacerTransform"}}'
+						'package.json': JSON.stringify browserify:{transform:'test/helpers/replacerTransform'}
 						'main.js': """
 							a = import 'module-a'
 							b = import 'module-b'
@@ -1789,7 +1790,7 @@ suite "SimplyImport", ()->
 							ghi = 'gHi-value'
 						"""
 					
-						'node_modules/module-a/package.json': '{"browserify":{"transform":"test/helpers/lowercaseTransform"}}'
+						'node_modules/module-a/package.json': JSON.stringify browserify:{transform:['test/helpers/lowercaseTransform']}
 						'node_modules/module-a/index.js': """
 							exports.a = import './a'
 							exports.b = 'vaLUe-gHi'
@@ -1798,7 +1799,7 @@ suite "SimplyImport", ()->
 							result = 'gHi-VALUE'
 						"""
 					
-						'node_modules/module-b/package.json': '{"browserify":{"transform":"test/helpers/replacerTransform"}}'
+						'node_modules/module-b/package.json': JSON.stringify browserify:{transform:[["test/helpers/replacerTransform", {someOpt:true}]]}
 						'node_modules/module-b/index.js': """
 							exports.a = import './a'
 							exports.b = 'vaLUe-gHi'
@@ -3126,7 +3127,13 @@ suite "SimplyImport", ()->
 
 
 
-	suite "browserify compatibility", ()->
+	suite.only "browserify compatibility", ()->
+		suiteSetup ()->
+			Streamify = require 'streamify-string'
+			Browserify = require 'browserify'
+			Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
+		
+
 		test "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
 			compiled = null
 			Promise.resolve()
@@ -3163,18 +3170,14 @@ suite "SimplyImport", ()->
 						'node_modules/sm-module/package.json': JSON.stringify
 							main: 'index.js'
 							browser: 'main.js'
-							browserify: transform: ['simplyimport/compat']
+							browserify: transform: [['simplyimport/compat', {'myOpts':true}]]
 					
 						'node_modules/other-module/package.json': JSON.stringify main:'index.js'
 						'node_modules/other-module/index.js': "module.exports = 'abc123'"
 
 				# .tap ()-> processAndRun(src:"module.exports = require('sm-module');", context:temp()).then(console.log).then ()-> process.exit()
-				.then ()->
-					Streamify = require 'streamify-string'
-					Browserify = require 'browserify'
-					Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
-					Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp(), moduleName:'bundled').bundleAsync()
-				
+				.then ()-> Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp()).bundleAsync()
+				# .tap (result)-> fs.writeAsync debug('browserify.js'), result
 				.then (result)-> result.toString()
 				.then (result)-> runCompiled('browserify.js', compiled=result, {})
 				.then (result)->
@@ -3184,9 +3187,102 @@ suite "SimplyImport", ()->
 					assert.equal theModule.b, 'def-value'
 					assert.equal theModule.c, 'gHi-value'
 					assert.equal theModule.d, 'jkl-value'
+					assert.equal theModule.other, 'abc123'
+					assert.include compiled, 'MODULE_NOT_FOUND'
+		
+
+		test "'simplyimport/compat' accepts a 'umd' option", ()->
+			compiled = null
+			Promise.resolve()
+				.then ()-> fs.dirAsync temp(), empty:true
+				.then ()-> fs.symlinkAsync process.cwd(), temp('node_modules/simplyimport')
+				.then ()->
+					helpers.lib
+						'node_modules/sm-module/main.js': """
+							exports.a = import './a'
+							exports.b = import './b $ nested.data'
+							exports.c = require('c $ nested.data')
+							exports.d = (function(){
+								return import './d'
+							})()
+							exports.other = import 'other-module'
+						"""
+						'node_modules/sm-module/a.js': """
+							module.exports = 'abc-value';
+						"""
+						'node_modules/sm-module/b.json': """
+							{"nested":{"data":"def-value"}}
+						"""
+						'node_modules/sm-module/c.yml': """
+							nested:
+                              data: 'gHi-value'
+						"""
+						'node_modules/sm-module/d.js': """
+							export default jkl = 'jkl-value';
+						"""
+						'node_modules/sm-module/package.json': JSON.stringify
+							main: 'index.js'
+							browser: 'main.js'
+							browserify: transform: [['simplyimport/compat', {'umd':'SMBundle'}]]
+					
+						'node_modules/other-module/package.json': JSON.stringify main:'index.js'
+						'node_modules/other-module/index.js': "module.exports = 'abc123'"
+
+				.then ()-> Browserify(Streamify("module.exports = require('sm-module');"), basedir:temp()).bundleAsync()
+				.then (result)-> result.toString()
+				.then (result)-> runCompiled('browserify.js', compiled=result, {})
+				.then (result)->
+					assert.typeOf result, 'function'
+					assert.typeOf theModule=result(1), 'object'
+					assert.equal theModule.a, 'abc-value'
+					assert.equal theModule.b, 'def-value'
+					assert.equal theModule.c, 'gHi-value'
+					assert.equal theModule.d, 'jkl-value'
+					assert.equal theModule.other, 'abc123'
+					assert.include compiled, 'SMBundle'
 
 
-		test.skip "simplyimport bundles will skip 'simplyimport/compat'", ()->
+		test "simplyimport bundles will skip 'simplyimport/compat'", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'package.json': JSON.stringify browserify:{transform:['simplyimport/compat','test/helpers/replacerTransform']}
+						'main.js': """
+							a = import 'module-a'
+							b = import 'module-b'
+							c = import './c'
+							d = 'gHi'
+						"""
+						'c.js': """
+							ghi = 'gHi-value'
+						"""
+					
+						'node_modules/module-a/package.json': JSON.stringify browserify:{transform:[['simplyimport/compat', data:1], 'test/helpers/lowercaseTransform']}
+						'node_modules/module-a/index.js': """
+							exports.a = import './a'
+							exports.b = 'vaLUe-gHi'
+						"""
+						'node_modules/module-a/a.js': """
+							result = 'gHi-VALUE'
+						"""
+					
+						'node_modules/module-b/package.json': JSON.stringify browserify:{transform:[["test/helpers/replacerTransform", {someOpt:true}]]}
+						'node_modules/module-b/index.js': """
+							exports.a = import './a'
+							exports.b = 'vaLUe-gHi'
+						"""
+						'node_modules/module-b/a.js': """
+							result = 'gHi-VALUE'
+						"""
+				
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a.a, 'ghi-value'
+					assert.equal context.a.b, 'value-ghi'
+					assert.equal context.b.a, 'GhI-VALUE'
+					assert.equal context.b.b, 'vaLUe-GhI'
+					assert.equal context.c, 'GhI-value'
+					assert.equal context.d, 'GhI'
 
 
 

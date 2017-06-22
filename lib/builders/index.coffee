@@ -11,6 +11,8 @@ exports.bundle = (task)->
 			stringBuilders.umd(loaderName, task.options.umd, task.entryFile.IDstr)
 		when task.options.returnLoader
 			"return #{loaderName}"
+		when task.options.returnExports
+			"return module.exports = #{loaderName}(#{task.entryFile.IDstr})"
 		else
 			"return #{loaderName}(#{task.entryFile.IDstr})"
 	

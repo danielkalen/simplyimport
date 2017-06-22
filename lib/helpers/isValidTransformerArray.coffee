@@ -1,6 +1,4 @@
-
-
-module.exports = isValidTransformerArray = (transformer)->
+module.exports = (transformer)->
 	Array.isArray(transformer) and
 	transformer.length is 2 and
 	typeof transformer[0] is 'string' and
