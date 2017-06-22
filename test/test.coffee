@@ -3127,25 +3127,24 @@ suite "SimplyImport", ()->
 
 
 
-	suite.only "browserify compatibility", ()->
+	suite "browserify compatibility", ()->
 		suiteSetup ()->
 			Streamify = require 'streamify-string'
 			Browserify = require 'browserify'
 			Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
 		
 
-		test "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
+		test.skip "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
 			compiled = null
 			Promise.resolve()
 				.then ()-> fs.dirAsync temp(), empty:true
 				.then ()-> fs.symlinkAsync process.cwd(), temp('node_modules/simplyimport')
 				.then ()->
 					helpers.lib
-							# importInline './exportC'
 						'node_modules/sm-module/main.js': """
 							exports.a = import './a'
 							exports.b = import './b $ nested.data'
-							exports.c = import 'c $ nested.data'
+							importInline './exportC'
 							exports.d = (function(){
 								return import './d'
 							})()

@@ -12,7 +12,6 @@ transform = (file, opts)->
 		(done)->
 			Promise.resolve()
 				.then ()-> compile(file, Buffer.concat(chunks).toString(), flags, opts)
-				# .then (compiled)-> console.log(compiled) or process.exit()
 				.then (compiled)=> @push(compiled)
 				.then ()-> done()
 				.catch done

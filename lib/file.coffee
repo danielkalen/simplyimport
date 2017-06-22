@@ -410,7 +410,11 @@ class File
 						@task.emit('GeneralError', @, err)
 
 					return
-
+				# console.log @pathDebug
+				# console.log @replacedRanges
+				# console.log tokens[tokens.findIndex (t)-> t.start is 122] if @path.endsWith('main.js')
+				# console.log @contentSafe
+				# console.log '\n\n'
 				statements.forEach (statement, index)=>
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
@@ -419,7 +423,7 @@ class File
 					statement.range[1] = tokens[statement.tokenRange[1]].end
 					prevRange = statement.range
 					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
-					# console.log (-> {index, @target, @range}).call(statement)
+					# console.log (-> {i:index, @target, @range, prevRange}).call(statement)
 					# console.log(@contentPostTokenize) if statement.target is 'c'
 					# console.log(tokens.map (i)-> [i.start, i.end]) if statement.target is 'c'
 					statement.source = @
@@ -506,12 +510,13 @@ class File
 
 					return targetContent
 				
-				# if @path.endsWith('moment/src/lib/units/timezone.js')
-				# console.log statement.range, range, [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-				# console.log require('chalk').yellow content.slice(range[0], range[1])
-				# console.log require('chalk').green replacement
-				# console.log require('chalk').dim content
-				# console.log '\n\n'
+				# if @path.endsWith('main.js')
+				# 	debugger; @offsetRange(statement.range, null, 'inlines')
+				# 	console.log statement.range, range, [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
+				# 	console.log require('chalk').yellow content.slice(range[0], range[1])
+				# 	console.log require('chalk').green replacement
+				# 	# console.log require('chalk').dim content
+				# 	console.log '\n\n'
 				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
 				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
 
@@ -653,7 +658,7 @@ class File
 		ranges.push(range)
 		ranges.sortBy('0')
 		insertedIndex = i = ranges.indexOf(range)
-		
+
 		if insertedIndex < ranges.length - 1
 			while largerRange = ranges[++i]
 				largerRange[0] += range[2]
