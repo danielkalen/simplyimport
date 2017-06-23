@@ -119,30 +119,19 @@ REGEX =
 	///g
 
 
-	pugImport: ///^
-		(
-			.*					# prior content
-			\W?					# no letters
-				|				# or if above aren't present
-			\W?					# no letters
-		)
+	pugImport: ///
+		\b
 		include					# import keyword
 		\s+						# whitespace after import keyword
-		(\S+?)					# filepath
-	$///gm
+		(.+)					# filepath
+	///g
 
 
-	cssImport: ///^
-		(
-			.*					# prior content
-			\W?					# no letters
-				|				# or if above aren't present
-			\W?					# no letters
-		)
+	cssImport: ///
 		@import					# import keyword
 		\s+						# whitespace after import keyword
-		(\S+?)					# filepath
-	$///gm
+		(.+)					# filepath
+	///g
 
 	# tsExport: ///
 	# 	\bexport\s+=\s*

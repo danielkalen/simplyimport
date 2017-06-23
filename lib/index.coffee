@@ -5,6 +5,7 @@ formatError = require './external/formatError'
 Task = require './task'
 REGEX = require './constants/regex'
 helpers = require './helpers'
+{EMPTY_STUB} = require('./constants')
 
 Promise.onPossiblyUnhandledRejection (err, promise)->
 	console.error formatError(err)
@@ -52,7 +53,12 @@ SimplyImport.scan = (options)->
 		.then task.calcImportTree
 		.then ()->
 			if options.flat
-				Object.values(task.imports).flatten().map('target').map(resolveImportPath)
+				Object.values(task.imports)
+					.flatten()
+					.map('target')
+					.filter (file)-> file.pathAbs isnt EMPTY_STUB
+					.map(resolveImportPath)
+					.unique()
 			else
 				output = []
 				includedFiles = {}
@@ -65,6 +71,8 @@ SimplyImport.scan = (options)->
 					fileImports = fileImports.concat(fileExports).unique()
 
 					for child in fileImports# when child isnt file
+						continue if child.pathAbs is EMPTY_STUB
+						
 						if not includedFiles[child.pathAbs]
 							output.push childData = includedFiles[child.pathAbs] = 'file':resolveImportPath(child), 'imports':[]
 							walkImports(child, childData.imports)

@@ -174,7 +174,7 @@ class Task extends require('events')
 			.then (module)->
 				pkgFile = module.pkg
 				return module.file
-			
+
 			.then (input)->
 				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile), suppliedPath)
 			

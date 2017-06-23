@@ -3747,6 +3747,27 @@ suite "SimplyImport", ()->
 					assert.include result,		temp 'e.js'
 
 
+		test.skip "empty stubs will be removed in flat scans", ()->
+			Promise.resolve()
+				.then ()-> SimplyImport.scan file:temp('main.emptyStubs.js')#, depth:Infinity
+				.then (result)->
+					assert Array.isArray(result)
+
+
+		test.skip "empty stubs will be removed in nested scans", ()->
+			Promise.resolve()
+				.then ()-> SimplyImport.scan file:temp('main.emptyStubs.js'), nested:true#, depth:Infinity
+				.then (result)->
+					assert Array.isArray(result)
+
+
+		test.skip "no duplicates", ()->
+			Promise.resolve()
+				.then ()-> SimplyImport.scan file:temp('main.duplicates.js')#, depth:Infinity
+				.then (result)->
+					assert Array.isArray(result)
+
+
 		test "imports inside conditionals will not be included when options.matchAllConditions is false", ()->
 			Promise.resolve()
 				.then ()->
