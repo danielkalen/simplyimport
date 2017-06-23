@@ -313,10 +313,10 @@ class File
 		unless EXTENSIONS.nonJS.includes(@pathExt)
 			try
 				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
+				@Tokens.forEach (token, index)-> token.index = index
 			catch err
 				@task.emit 'TokenizeError', @, err
 			
-			@Tokens.forEach (token, index)-> token.index = index
 
 		return @content
 

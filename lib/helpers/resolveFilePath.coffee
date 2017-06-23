@@ -23,7 +23,7 @@ module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 			helpers.getDirListing(params.dir, cache)
 		
 		.then (dirListing)-> # if the dir has a single match then return it, otherwise find closest match
-			candidates = dirListing.filter (targetPath)-> targetPath.includes(params.base)
+			candidates = if not dirListing then [] else dirListing.filter (targetPath)-> targetPath.includes(params.base)
 
 			if candidates.length
 				exactMatch = candidates.find(params.base) # Can be dir or file i.e. if provided /path/to/module and /path/to contains 'module.js' or 'module'
