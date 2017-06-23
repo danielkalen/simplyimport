@@ -265,6 +265,7 @@ class File
 
 	applyTransforms: (content, transforms)->
 		lastTransformer = null
+		prevContent = content
 		
 		Promise.resolve(transforms).bind(@)
 			.filter (transform)-> not @task.options.ignoreTransform.includes(transform)
@@ -306,6 +307,7 @@ class File
 			, content)
 			.catch (err)->
 				@task.emit 'TransformError', @, err, lastTransformer
+				return prevContent
 
 
 

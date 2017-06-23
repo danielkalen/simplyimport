@@ -5,23 +5,23 @@ exports.iife = (args, values, body)-> """
 """
 
 exports.loaderBrowser = (loader)-> """
-	#{loader} = (function(cache,modules){
+	#{loader} = (function(cache,modules,cx){
 		return function(r){
 			if (!modules[r]) throw new Error(r+' is not a module')
 			return cache[r] ? cache[r].exports
-							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](#{loader}, cache[r], cache[r].exports) );
+							: ( cache[r]={exports:{}}, cache[r].exports=modules[r].call(cx, #{loader}, cache[r], cache[r].exports) );
 		};
-	})({},{});
+	})({},{}this,);
 """
 
 exports.loaderNode = (loader)-> """
-	#{loader} = (function(cache,modules,nativeRequire){
+	#{loader} = (function(cache,modules,cx,nativeRequire){
 		return function(r){
 			if (!modules[r]) return nativeRequire(r)
 			return cache[r] ? cache[r].exports
-							: ( cache[r]={exports:{}}, cache[r].exports=modules[r](#{loader}, cache[r], cache[r].exports) );
+							: ( cache[r]={exports:{}}, cache[r].exports=modules[r].call(cx, #{loader}, cache[r], cache[r].exports) );
 		};
-	})({},{},#{loader});
+	})({},{},this,require);
 """
 
 
