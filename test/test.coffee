@@ -2316,6 +2316,7 @@ suite "SimplyImport", ()->
 
 
 			test "es6ify", ()->
+				@skip() if nodeVersion < 6
 				Promise.resolve()
 					.then ()->
 						helpers.lib

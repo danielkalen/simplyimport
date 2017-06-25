@@ -1,14 +1,11 @@
 REGEX = 
-	# es6memberAlias: /\s+as\s+/
 	quotes: /['"]/
-	# commaSeparated: /,\s*/
 	extractDelim: /\s*\$\s*/
 	endingSemi: /;$/
 	bracketStart: /^[\{\[\(]$/
 	bracketEnd: /^[\}\]\)]$/
 	squareBrackets: /[\[\]]/
 	curlyBrackets: /[\{\}]/
-	# stringContents: /".+?"|'.+?'/g
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
