@@ -1,8 +1,13 @@
 Promise = require 'bluebird'
+Path = require 'path'
 promiseBreak = require 'promise-break'
 program = require 'commander'
 chalk = require 'chalk'
 fs = require 'fs'
+matchGlob = require '../helpers/matchGlob'
+
+collectArgs = (arg, store)-> store.push(arg); return store
+
 
 exports = module.exports = []
 exports.push
@@ -11,10 +16,10 @@ exports.push
 	options: [
 		["-d, --debug", "enable source maps"]
 		["-o, --output", "path to write the bundled file to; will be written to stdout by default"]
-		["-i, --ignore-file <file>", "replace the specified file with an empty stub; can be a glob"]
-		["-e, --exclude-file <file>", "avoid bundling the specified file (import statement will be left as is); can be a glob"]
-		["-t, --transform <transformer>", "apply a transformer to all files in the entry file's package scope (use multiple times for multiple transforms)"]
-		["-g, --global-transform <transformer>", "apply a transformer to all files encountered (including node_modules/ ones)"]
+		["-i, --ignore-file <file>", "replace the specified file with an empty stub; can be a glob", collectArgs, []]
+		["-e, --exclude-file <file>", "avoid bundling the specified file (import statement will be left as is); can be a glob", collectArgs, []]
+		["-t, --transform <transformer>", "apply a transformer to all files in the entry file's package scope (use multiple times for multiple transforms)", collectArgs, []]
+		["-g, --global-transform <transformer>", "apply a transformer to all files encountered (including node_modules/ ones)", collectArgs, []]
 		["-u, --umd <bundleName>", "build the bundle as a UMD bundle under the specified name"]
 		["--return-loader", "return the loader function instead of loading the entry file on run time"]
 		["--return-exports", "export the result of the entry file under module.exports (useful for node env)"]
@@ -54,10 +59,12 @@ exports.push
 	description: "list the import tree for the file located at the specified path (if no path given the stdin will be used)"
 	options: [
 		['-s, --size', "include gzipped size of each file"]
-		['-d, --depth', "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
+		['-d, --depth [number]', "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
+		['-e, --exclude [path]', "file to exclude", collectArgs, []]
 	]
 	action: (file, options)->
 		program.specified = true
+		options.flat = false
 
 		Promise.resolve()
 			.then ()->
@@ -70,7 +77,31 @@ exports.push
 			.then (content)-> options.src = content
 			.catch promiseBreak.end
 			.then ()-> require('../').scan(options)
-			.then (compiled)->
+			.then (tree)->
+				entry = options.file or 'ENTRY'
+				output = {"#{entry}":{}}
+				# console.dir(tree, colors:true, depth:Infinity) or process.exit()
+
+				formatPath = (filePath)->
+					Path.relative(process.cwd(), filePath)
+				
+				walk = (imports, output)->
+					for child in imports
+						childPath = formatPath(child.file)
+						continue if options.exclude.some(matchGlob.bind(null, childPath))
+						
+						if not child.imports.length
+							output[childPath] = null
+						else
+							output[childPath] = {}
+							walk(child.imports, output[childPath])
+					return
+
+				walk(tree, output[entry])
+
+				console.log require('treeify').asTree(output)
+
+
 
 
 

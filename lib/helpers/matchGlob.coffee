@@ -1,15 +1,19 @@
 micromatch = require 'micromatch'
+MATCH_BASE = matchBase: true
 
 module.exports = matchGlob = (config, globs)->
 	matchingGlob = null
-	opts = matchBase:true
+	globs = [globs] if not Array.isArray(globs)
+	if typeof config is 'string'
+		config = pathAbs:config, pathRel:config, path:config, suppliedPath:config
 	
 	for glob in globs
-		if micromatch.isMatch(config.pathAbs, glob, opts) or
+		if  glob is config.pathAbs or
+			micromatch.isMatch(config.pathAbs, glob, MATCH_BASE) or
 			micromatch.isMatch(config.pathAbs, glob) or
 			micromatch.isMatch(config.pathRel, glob) or
 			micromatch.isMatch(config.path, glob) or
-			micromatch.isMatch(config.suppliedPath, glob, opts)
+			micromatch.isMatch(config.suppliedPath, glob, MATCH_BASE)
 				matchingGlob = glob
 
 	return matchingGlob
