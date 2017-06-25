@@ -21,9 +21,9 @@ exports.push
 		["-t, --transform <transformer>", "apply a transformer to all files in the entry file's package scope (use multiple times for multiple transforms)", collectArgs, []]
 		["-g, --global-transform <transformer>", "apply a transformer to all files encountered (including node_modules/ ones)", collectArgs, []]
 		["-u, --umd <bundleName>", "build the bundle as a UMD bundle under the specified name"]
+		["--target <node|browser>", "the target env this bundle will be run in; when 'node' files encountered in node_modules/ won't be included (default:#{chalk.dim 'browser'})"]
 		["--return-loader", "return the loader function instead of loading the entry file on run time"]
 		["--return-exports", "export the result of the entry file under module.exports (useful for node env)"]
-		["--target <node|browser>", "the target env this bundle will be run in; when 'node' files encountered in node_modules/ won't be included (default:#{chalk.dim 'browser'})"]
 		["--loader-name <name>", "the variable name to use for the bundle loader (default:#{chalk.dim 'require'})"]
 		["--ignore-transform <transformer>", "avoid applying the specified transform regardless of where it was specified"]
 		["--no-dedupe", "turn off module de-duplication (i.e. modules with the same hash)"]
@@ -34,6 +34,7 @@ exports.push
 		["--ignore-errors", "avoid halting the bundling process due to encountered errors"]
 		["--match-all", "match all conditionals encountered across files"]
 	]
+
 	action: (file, options)->
 		program.specified = true
 
@@ -61,6 +62,8 @@ exports.push
 		['-s, --size', "include gzipped size of each file"]
 		['-d, --depth [number]', "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
 		['-e, --exclude [path]', "file to exclude", collectArgs, []]
+		['--expand-modules', "list all imports of external modules"]
+		# ["--target <node|browser>", "the target env this bundle will be run in"]
 	]
 	action: (file, options)->
 		program.specified = true
@@ -80,22 +83,33 @@ exports.push
 			.then (tree)->
 				entry = options.file or 'ENTRY'
 				output = {"#{entry}":{}}
-				# console.dir(tree, colors:true, depth:Infinity) or process.exit()
 
 				formatPath = (filePath)->
-					Path.relative(process.cwd(), filePath)
+					result = Path.relative(process.cwd(), filePath)
+					
+					if result.startsWith('node_modules')
+						isExternal = true
+						result = result.replace(/^.*node_modules\//,'').replace(/^[^\/]+/, (m)-> chalk.magenta(m))
+
+					return [result, isExternal]
 				
 				walk = (imports, output)->
 					for child in imports
-						childPath = formatPath(child.file)
-						continue if options.exclude.some(matchGlob.bind(null, childPath))
+						[childPath, isExternal] = formatPath(child.file)
 						
-						if not child.imports.length
-							output[childPath] = null
-						else
-							output[childPath] = {}
-							walk(child.imports, output[childPath])
-					return
+						switch
+							when options.exclude.some(matchGlob.bind(null, childPath))
+								continue
+							when isExternal and not options.expandModules
+								childImports = null
+							when child.imports.length is 0
+								childImports = null
+							else
+								walk(child.imports, childImports={})
+
+						output[childPath] = childImports
+					
+					return output
 
 				walk(tree, output[entry])
 
