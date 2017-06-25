@@ -50,7 +50,7 @@ class Task extends require('events')
 		@.on 'missingImport', (file, target, pos)->
 			annotation = helpers.annotateErrLocation(file, pos)
 			if @options.ignoreMissing
-				console.warn "#{LABELS.warn} cannot find '#{chalk.yellow target}'", annotation
+				console.warn "#{LABELS.warn} cannot find '#{chalk.yellow target}'", annotation unless @options.ignoreErrors
 			else
 				@throw formatError "#{LABELS.error} cannot find '#{chalk.yellow target}'", helpers.blankError(annotation)
 

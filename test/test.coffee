@@ -3439,6 +3439,12 @@ suite "SimplyImport", ()->
 							import * as e from './e'
 							// simplyimport:end
 						"""
+						'main.emptyStubs.js': """
+							exports.a = import './a'
+							exports.b = import './b'
+							exports.c = import './ccc-undefined'
+							exports.d = import './d'
+						"""
 						'a.js': "import 'a2'"
 						'a2.js': "module.exports = 'file a2.js'"
 						'b.js': "module.exports = 'file b.js'"
@@ -3787,27 +3793,6 @@ suite "SimplyImport", ()->
 					assert.include result,		temp 'e.js'
 
 
-		test.skip "empty stubs will be removed in flat scans", ()->
-			Promise.resolve()
-				.then ()-> SimplyImport.scan file:temp('main.emptyStubs.js')#, depth:Infinity
-				.then (result)->
-					assert Array.isArray(result)
-
-
-		test.skip "empty stubs will be removed in nested scans", ()->
-			Promise.resolve()
-				.then ()-> SimplyImport.scan file:temp('main.emptyStubs.js'), nested:true#, depth:Infinity
-				.then (result)->
-					assert Array.isArray(result)
-
-
-		test.skip "no duplicates", ()->
-			Promise.resolve()
-				.then ()-> SimplyImport.scan file:temp('main.duplicates.js')#, depth:Infinity
-				.then (result)->
-					assert Array.isArray(result)
-
-
 		test "imports inside conditionals will not be included when options.matchAllConditions is false", ()->
 			Promise.resolve()
 				.then ()->
@@ -3824,6 +3809,64 @@ suite "SimplyImport", ()->
 					assert.notInclude result,	temp 'c2/nested.coffee'
 					assert.include result,		temp 'd/index.js'
 					assert.notInclude result,	temp 'e.js'
+
+
+		test "empty stubs will be removed in flat scans", ()->
+			Promise.resolve()
+				.then ()-> SimplyImport.scan file:temp('main.emptyStubs.js')
+				.then (result)->
+					assert Array.isArray(result)
+					assert.include result,		temp 'a.js'
+					assert.include result,		temp 'b.js'
+					assert.include result,		temp 'd/index.js'
+					assert.notInclude result,	temp 'c.js'
+					assert.notInclude result,	temp 'ccc-undefined.js'
+					assert.notInclude result,	temp 'c2/index.coffee'
+					assert.notInclude result,	require('../lib/constants').EMPTY_STUB
+
+
+		test "empty stubs will be removed in nested scans", ()->
+			Promise.resolve()
+				.then ()-> SimplyImport.scan file:temp('main.emptyStubs.js'), flat:false, depth:Infinity
+				.then (result)->
+					assert Array.isArray(result)
+					assert.deepEqual result, [
+						file: temp('a.js')
+						imports: [
+							file: temp('a2.js')
+							imports: []
+						]
+					,
+						file: temp('b.js')
+						imports: []
+					,
+						file: temp('d/index.js')
+						imports: []
+					]
+
+
+		test "no duplicates", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'duplicates.js': """
+							import './aaa'
+							import './bbb'
+							import './ccc'
+						"""
+						'aaa.js': "module.exports = import './bbb'"
+						'bbb.js': "module.exports = import './ccc'"
+						'ccc.js': "module.exports = import './aaa'"
+				.then ()-> SimplyImport.scan file:temp('duplicates.js')
+				.then (result)->
+					assert Array.isArray(result)
+					assert.equal result.length, 3
+					assert.deepEqual result, [
+						temp('aaa.js')
+						temp('bbb.js')
+						temp('ccc.js')
+					]
+
 
 
 	suite "sass", ()->

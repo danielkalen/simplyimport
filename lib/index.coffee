@@ -35,6 +35,7 @@ SimplyImport.compile = (options, returnStream)->
 SimplyImport.scan = (options)->
 	options.matchAllConditions ?= true
 	options.ignoreErrors ?= true
+	options.ignoreMissing ?= true
 	options.relativePaths ?= false
 	options.flat ?= true
 	options.cyclic ?= false
