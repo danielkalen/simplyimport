@@ -317,7 +317,8 @@ class Task extends require('events')
 
 			
 			.then ()-> # perform data extractions
-				@files.filter(isDataType:true).map (file)=>
+				dataFiles = @files.filter (file)=> file.isDataType and @imports[file.pathAbs]
+				dataFiles.map (file)=>
 					statements = @imports[file.pathAbs]
 					someExtract = statements.some((s)-> s.extract)
 					allExtract = someExtract and statements.every((s)-> s.extract)

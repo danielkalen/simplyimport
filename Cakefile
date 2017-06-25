@@ -7,7 +7,7 @@ chalk = require 'chalk'
 Path = require 'path'
 testModules = ['mocha', 'chai', 'browserify', 'babelify', 'babel-preset-es2015-script', 'envify', 'es6ify', 'brfs', 'axios', 'moment', 'timeunits', 'yo-yo', 'smart-extend', 'p-wait-for', 'source-map-support', 'xmlhttprequest', 'location', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
-process.env.SOURCE_MAPS = 1
+process.env.SOURCE_MAPS ?= 1
 
 
 task 'test', ()->

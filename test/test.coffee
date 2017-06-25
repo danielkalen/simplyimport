@@ -2610,6 +2610,46 @@ suite "SimplyImport", ()->
 					assert.deepEqual context.c, 20
 
 
+		test "entry files of data types will support importInline statements", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.json': """
+						{
+							"main": "index.js",
+							"version": "1.0.0",
+							"a": importInline "./a-file",
+							"size": "12",
+							"b": importInline "./b-file"
+						}
+						"""
+						'a-file.json': """
+						{
+							"main": "a.js",
+							"version": "2.0.0"
+						}
+						"""
+						'b-file.json': """
+						{
+							"main": "b.js",
+							"version": "3.0.0"
+						}
+						"""
+
+				.then ()-> SimplyImport file:temp('main.json')
+				.then (compiled)->
+					parsed = null
+					assert.notInclude compiled, 'require'
+					assert.doesNotThrow ()-> parsed = JSON.parse(compiled)
+					assert.equal parsed.main, 'index.js'
+					assert.equal parsed.version, '1.0.0'
+					assert.equal parsed.size, '12'
+					assert.equal parsed.a.main, 'a.js'
+					assert.equal parsed.b.main, 'b.js'
+					assert.equal parsed.a.version, '2.0.0'
+					assert.equal parsed.b.version, '3.0.0'
+
+
 
 	suite "conditionals", ()->
 		test "conditional blocks are marked by start/end comments and are removed if the statement in the start comment is falsey", ()->
