@@ -14,13 +14,20 @@ require './help'
 
 
 for command in commands
-	program.command(command.command...)
+	target = program.command(command.command...)
+	target.description(command.description)
 
 	for option in command.options
-		program.option(option...)
+		target.option(option...)
 
-	program.action(command.action)
+	target.action(command.action)
 	
+
+
+if  process.argv[2] isnt 'bundle' and
+	process.argv[2] isnt 'list' and
+	not process.argv.some((arg)-> arg is '-h' or arg is '--help')
+		process.argv.splice 2,0,'bundle'
 
 program.parse(process.argv)
 program.help() if not program.specified
