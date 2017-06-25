@@ -84,8 +84,11 @@ exports.push
 				entry = options.file or 'ENTRY'
 				output = {"#{entry}":{}}
 
-				formatPath = (filePath)->
+				formatPath = (filePath, parent)->
 					result = Path.relative(process.cwd(), filePath)
+					if parent
+						commondir = Path.dirname Path.relative(process.cwd(), parent)
+						result = result.replace commondir, (p)-> chalk.dim(p)
 					
 					if result.startsWith('node_modules')
 						isExternal = true
@@ -93,9 +96,9 @@ exports.push
 
 					return [result, isExternal]
 				
-				walk = (imports, output)->
+				walk = (imports, output, parent)->
 					for child in imports
-						[childPath, isExternal] = formatPath(child.file)
+						[childPath, isExternal] = formatPath(child.file, parent)
 						
 						switch
 							when options.exclude.some(matchGlob.bind(null, childPath))
@@ -105,14 +108,14 @@ exports.push
 							when child.imports.length is 0
 								childImports = null
 							else
-								walk(child.imports, childImports={})
+								walk(child.imports, childImports={}, child.file)
 
 						output[childPath] = childImports
 					
 					return output
 
-				walk(tree, output[entry])
 
+				walk(tree, output[entry], entry)
 				console.log require('treeify').asTree(output)
 
 
