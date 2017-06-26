@@ -1972,6 +1972,9 @@ suite "SimplyImport", ()->
 				.then ()-> helpers.lib 'package.json': JSON.stringify simplyimport:{finalTransform:'test/helpers/replacerTransform'}
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({result})-> assert.equal result, 'GhI'
+				
+				.then ()-> processAndRun file:temp('main.js'), noEntryPackage:true
+				.then ({result})-> assert.equal result, 'gHi'
 
 
 		test "transforms will receive the file's full path as the 1st argument", ()->

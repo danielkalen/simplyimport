@@ -1,9 +1,11 @@
 findPkgJson = require 'read-pkg-up'
+promiseBreak = require 'promise-break'
 helpers = require './'
 
 module.exports = resolveEntryPackage = (task)->
 	### istanbul ignore next ###
 	Promise.resolve()
+		.then ()-> promiseBreak() if task.options.noEntryPackage
 		.then ()-> findPkgJson(normalize:false, cwd:task.options.context)
 		.then (result)->
 			helpers.resolvePackagePaths(result.pkg, result.path)
@@ -16,3 +18,4 @@ module.exports = resolveEntryPackage = (task)->
 			return pkgFile
 
 		.catch ()->
+			return task.options.pkgFile = {}
