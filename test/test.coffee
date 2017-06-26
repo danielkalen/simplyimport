@@ -3907,10 +3907,9 @@ suite "SimplyImport", ()->
 							.ghi
 								opacity: 1
 						"""
-						'jkl.scss': """
-							.jkl {
+						'jkl.sass': """
+							.jkl
 								opacity: 0.5
-							}
 						"""
 						'nested/index.sass': """
 							.def-child
@@ -3934,56 +3933,139 @@ suite "SimplyImport", ()->
 					assert.include compiled, '.jkl'
 					assert.include compiled, 'opacity: 0.5'
 
+					css = null
+					assert.doesNotThrow ()-> css = require('node-sass').renderSync(data:compiled, indentedSyntax:true).css.toString()
+					Promise.resolve()
+						.then ()-> require('modcss')(temp('main.css'), {})
+						.then (stream)-> require('get-stream') require('streamify-string')(css).pipe(stream)
+						.then (result)-> runCompiled('css.js', result, {module:{}})
+						.then (tree)->
+							assert.deepEqual tree,
+								'.abc':
+									fontWeight: '500'
+									color: 'black'
+								
+								'.def':
+									color: 'white'
+								
+								'.def .def-child':
+									height: '300px'
+								
+								'.def .def-child .other-child':
+									height: '400px'
+								
+								'.ghi':
+									opacity: '1'
+								
+								'.jkl':
+									opacity: '0.5'
 
-	suite.skip "pug/jade", ()->
+
+	suite "pug/jade", ()->
 		test "imports will be inlined", ()->
 			Promise.resolve()
 				.then ()-> fs.dirAsync temp(), empty:true
 				.then ()->
 					helpers.lib
-						'main.sass': """
-							.abc
-								font-weight: 500
-								color: black
+						'main.pug': """
+							html
+								head
+									include './meta'
+									link(rel='stylesheet', href='/index.css')
+									include './scripts'
+								
+								importInline './body'
+						"""
+						'meta/index.jade': """
+							include './a'
+							importInline './importB'
+							include 'c'
+						"""
+						'meta/a.jade': """meta(name="content", value="a.jade")"""
+						'meta/b.pug': """meta(name="content", value="b.pug")"""
+						'meta/c.jade': """meta(name='content', value='c.jade')"""
+						'meta/importB.pug': """include 'b'"""
+						'scripts.pug': """
+							script(src="/a.js")
+							script(src="/b.js")
+						"""
+						'body.jade': """
+							body
+								main
+									div
+										span='firstSpan'
+										span=include 'spanText'
+										span='lastSpan'
+						"""
+						'spanText.pug': "'abc123'"
 
-							.def
-								color: white
-								@import './nested'
-
-							@import "./ghi"
-							@import './jkl'
-						"""
-						'ghi.sass': """
-							.ghi
-								opacity: 1
-						"""
-						'jkl.scss': """
-							.jkl {
-								opacity: 0.5
-							}
-						"""
-						'nested/index.sass': """
-							.def-child
-								height: 300px
-								importInline 'other'
-						"""
-						'nested/other.sass': """
-							.other-child
-								height: 400px
-						"""
-
-				.then ()-> SimplyImport file:temp('main.sass')
+				.then ()-> SimplyImport file:temp('main.pug')
 				.then (compiled)->
 					assert.notInclude compiled, 'require =', "module-less bundles shouldn't have a module loader"
-					assert.include compiled, '.def-child'
-					assert.include compiled, 'height: 300px'
-					assert.include compiled, '.other-child'
-					assert.include compiled, 'height: 400px'
-					assert.include compiled, '.ghi'
-					assert.include compiled, 'opacity: 1'
-					assert.include compiled, '.jkl'
-					assert.include compiled, 'opacity: 0.5'
+					assert.include compiled, 'meta(name="content", value="a.jade")'
+					assert.include compiled, 'meta(name="content", value="b.pug")'
+					assert.include compiled, "meta(name='content', value='c.jade')"
+					assert.include compiled, 'script(src="/a.js")'
+					assert.include compiled, "span='abc123'"
+					assert.notInclude compiled, "spanText"
+					
+					html = null
+					assert.doesNotThrow ()-> html = require('pug').render(compiled)
+					tree = require('html2json').html2json(html)
 
-
+					adjust = (node)->
+						delete node.node if node.node isnt 'root'
+						return if not node.child
+						adjust(child) for child in node.child
+						return
+					
+					adjust(tree)
+					assert.deepEqual tree,
+						node: 'root'
+						child: [
+							tag: 'html'
+							child: [
+								tag: 'head'
+								child: [
+									tag: 'meta'
+									attr: {name:'content', value:'a.jade'}
+								,
+									tag: 'meta'
+									attr: {name:'content', value:'b.pug'}
+								,
+									tag: 'meta'
+									attr: {name:'content', value:'c.jade'}
+								,
+									tag: 'link'
+									attr: {rel:'stylesheet', href:'/index.css'}
+								,
+									tag: 'script'
+									attr: {src:'/a.js'}
+									child: [text:'']
+								,
+									tag: 'script'
+									attr: {src:'/b.js'}
+									child: [text:'']
+								]
+							,
+								tag: 'body'
+								child: [
+									tag: 'main'
+									child: [
+										tag: 'div'
+										child: [
+											tag: 'span'
+											child: [text:'firstSpan']
+										,
+											tag: 'span'
+											child: [text:'abc123']
+										,
+											tag: 'span'
+											child: [text:'lastSpan']
+										]
+									]
+								]
+							]
+						]
 
 

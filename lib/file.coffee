@@ -502,21 +502,15 @@ class File
 				replacement = do ()=>
 					return '' if statement.excluded
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-					targetContent = helpers.prepareMultilineReplacement(content, targetContent, lines, statement.range)
+					debugger
+					targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
 					targetContent = '{}' if not targetContent
 
 					if EXTENSIONS.compat.includes(statement.target.pathExt)
 						targetContent = "(#{targetContent})" if content[range.end] is '.' or content[range.end] is '('
 
 					return targetContent
-				
-				if process.env.DEBUG_PATH and @path.endsWith(process.env.DEBUG_PATH)
-					debugger; @offsetRange(statement.range, targetRangeGroups, rangeGroup)
-					console.log statement.range, range, helpers.newReplacementRange(range, replacement)
-					console.log require('chalk').yellow content.slice(range.start, range.end)
-					console.log require('chalk').green replacement
-					# console.log require('chalk').dim content
-					console.log '\n\n'
+
 				@addRangeOffset rangeGroup, helpers.newReplacementRange(range, replacement)
 				content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
@@ -552,13 +546,7 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
-			if process.env.DEBUG_PATH and @path.endsWith(process.env.DEBUG_PATH)
-				debugger; @offsetRange(statement.range, null, 'imports')
-				console.log statement.range, range, helpers.newReplacementRange(range, replacement)
-				console.log require('chalk').magenta content.slice(range.start, range.end)
-				console.log require('chalk').cyan replacement
-				# console.log require('chalk').dim content
-				console.log '\n\n'
+
 			@replacedRanges.imports.push helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
@@ -617,14 +605,6 @@ class File
 				
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
-
-			if process.env.DEBUG_PATH and @path.endsWith(process.env.DEBUG_PATH)
-				debugger; @offsetRange(statement.range, null, 'exports')
-				console.log statement.range, range, helpers.newReplacementRange(range, replacement)
-				console.log require('chalk').red content.slice(range.start, range.end)
-				console.log require('chalk').yellow replacement
-				# console.log require('chalk').dim content
-				console.log '\n\n'
 
 			@addRangeOffset 'exports', helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
