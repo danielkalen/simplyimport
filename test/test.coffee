@@ -1954,6 +1954,26 @@ suite "SimplyImport", ()->
 					assert.equal context.A, undefined
 
 
+		test "transforms specified in package.json will be applied", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': "module.exports = import './child'"
+						'child.js': "module.exports = 'gHi'"
+				
+				.then ()-> helpers.lib 'package.json': JSON.stringify simplyimport:{transform:'test/helpers/replacerTransform'}
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})-> assert.equal result, 'GhI'
+				
+				.then ()-> helpers.lib 'package.json': JSON.stringify simplyimport:{globalTransform:'test/helpers/replacerTransform'}
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})-> assert.equal result, 'GhI'
+				
+				.then ()-> helpers.lib 'package.json': JSON.stringify simplyimport:{finalTransform:'test/helpers/replacerTransform'}
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})-> assert.equal result, 'GhI'
+
+
 		test "transforms will receive the file's full path as the 1st argument", ()->
 			received = null
 			customTransform = (file)->

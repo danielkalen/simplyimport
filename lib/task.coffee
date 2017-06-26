@@ -123,8 +123,7 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then ()-> helpers.resolveEntryPackage(@)
 			.then (pkgFile)->
-				if pkgFile and Object.get(pkgFile, 'simplyimport.specific') and Object.keys(@options.specific).length is 0
-					@options.specific = normalizeSpecificOpts(Object.get(pkgFile, 'simplyimport.specific'))
+				@options = extend true, normalizeOptions(pkgFile.simplyimport), @options if Object.isObject(pkgFile?.simplyimport)
 			
 			.then ()-> promiseBreak(@options.src) if @options.src
 			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
@@ -485,11 +484,15 @@ class Task extends require('events')
 ### istanbul ignore next ###
 extendOptions = (suppliedOptions)->
 	options = extend({}, require('./defaults'), suppliedOptions)
+	return normalizeOptions(options)
+
+
+normalizeOptions = (options)->
 	options.sourceMap ?= options.debug
 	options.transform = normalizeTransformOpts(options.transform) if options.transform
 	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
 	options.finalTransform = normalizeTransformOpts(options.finalTransform) if options.finalTransform
-	options.specific = normalizeSpecificOpts(options.specific)
+	options.specific = normalizeSpecificOpts(options.specific) if options.specific
 	
 	return options
 
