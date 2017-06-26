@@ -21,4 +21,4 @@ module.exports =
 	umd: ''
 	returnLoader: false
 	returnExports: false
-	noEntryPackage: false
+	noPkgConfig: false

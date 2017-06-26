@@ -1973,8 +1973,11 @@ suite "SimplyImport", ()->
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({result})-> assert.equal result, 'GhI'
 				
-				.then ()-> processAndRun file:temp('main.js'), noEntryPackage:true
+				.then ()-> processAndRun file:temp('main.js'), noPkgConfig:true
 				.then ({result})-> assert.equal result, 'gHi'
+				
+				.then ()-> processAndRun file:temp('main.js'), noPkgConfig:true, transform:'test/helpers/replacerTransform'
+				.then ({result})-> assert.equal result, 'GhI'
 
 
 		test "transforms will receive the file's full path as the 1st argument", ()->

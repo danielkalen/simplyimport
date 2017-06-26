@@ -123,6 +123,7 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then ()-> helpers.resolveEntryPackage(@)
 			.then (pkgFile)->
+				return if @options.noPkgConfig
 				@options = extend true, normalizeOptions(pkgFile.simplyimport), @options if Object.isObject(pkgFile?.simplyimport)
 			
 			.then ()-> promiseBreak(@options.src) if @options.src
