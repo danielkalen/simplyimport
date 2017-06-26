@@ -1,6 +1,6 @@
 module.exports = ()->
-	range: []
-	tokenRange: []
+	range: {}
+	tokenRange: {}
 	source: null
 	target: null
 	default: null

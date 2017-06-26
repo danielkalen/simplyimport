@@ -12,7 +12,7 @@ helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
 GLOBALS = require './constants/globals'
-RANGE_ARRAYS = ['inlines', 'imports', 'exports']
+RANGE_ARRAYS = ['imports', 'exports']
 
 
 class File
@@ -156,7 +156,7 @@ class File
 						outputLines.push(line)
 					else
 						index = @linesOriginal.indexForLocation line:index, column:0
-						@addRangeOffset 'conditionals', [index, index, line.length*-1]
+						@addRangeOffset 'conditionals', 'start':index, 'end':index, 'diff':line.length*-1
 
 				return outputLines.join('\n')
 
@@ -388,8 +388,8 @@ class File
 			statement = helpers.newImportStatement()
 			statement.source = @
 			statement.target = childPath.removeAll(REGEX.quotes).trim()
-			statement.range[0] = offset
-			statement.range[1] = offset + entire.length
+			statement.range.start = offset
+			statement.range.end = offset + entire.length
 			statement.type = 'inline-forced'
 			@importStatements.push(statement)
 		
@@ -404,7 +404,7 @@ class File
 				try
 					requires = helpers.collectRequires(tokens, @linesPostTransforms)
 					imports = helpers.collectImports(tokens, @linesPostTransforms)
-					statements = imports.concat(requires).sortBy('tokenRange[0]')
+					statements = imports.concat(requires).sortBy('tokenRange.start')
 				catch err
 					if err.name is 'TokenError'
 						@task.emit('TokenError', @, err)
@@ -418,9 +418,8 @@ class File
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
-					statement.range[0] = tokens[statement.tokenRange[0]].start
-					statement.range[1] = tokens[statement.tokenRange[1]].end
-					statement.range = @deoffsetRange(statement.range, ['inlines'], true)
+					statement.range.start = tokens[statement.tokenRange.start].start
+					statement.range.end = tokens[statement.tokenRange.end].end
 					statement.source = @
 					@importStatements.push(statement)
 
@@ -432,8 +431,8 @@ class File
 					statement = helpers.newImportStatement()
 					statement.source = @
 					statement.target = childPath.removeAll(REGEX.quotes).trim()
-					statement.range[0] = offset
-					statement.range[1] = offset + entireLine.length
+					statement.range.start = offset
+					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
 					@importStatements.push(statement)
 
@@ -444,13 +443,13 @@ class File
 					statement = helpers.newImportStatement()
 					statement.source = @
 					statement.target = childPath.removeAll(REGEX.quotes).trim()
-					statement.range[0] = offset
-					statement.range[1] = offset + entireLine.length
+					statement.range.start = offset
+					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
 					@importStatements.push(statement)
 
 
-		return @importStatements.sortBy('range[0]')
+		return @importStatements.sortBy('range.start')
 
 
 	collectExports: (tokens=@Tokens)->
@@ -467,7 +466,7 @@ class File
 				return
 
 			statements.forEach (statement)=>
-				statement.range = [tokens[statement.tokenRange[0]].start, tokens[statement.tokenRange[1]].end]
+				statement.range = 'start':tokens[statement.tokenRange.start].start, 'end':tokens[statement.tokenRange.end].end
 				statement.source = @
 				statement.target ?= @
 				if statement.decs
@@ -489,11 +488,17 @@ class File
 	replaceInlineImports: (type='inline')->
 		content = @content
 		lines = @linesPostTransforms or @linesOriginal # the latter will be used when type==='inline-forced'
+		if type is 'inline-forced'
+			rangeGroup = 'inlines'
+			targetRangeGroups = ['inlines']
+		else
+			rangeGroup = 'imports'
+			targetRangeGroups = null # All ranges
 
 		Promise.bind(@)
 			.then ()-> @importStatements.filter {type}
 			.map (statement)->
-				range = @offsetRange(statement.range, null, 'inlines')
+				range = @offsetRange(statement.range, targetRangeGroups, rangeGroup)
 				replacement = do ()=>
 					return '' if statement.excluded
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
@@ -501,19 +506,19 @@ class File
 					targetContent = '{}' if not targetContent
 
 					if EXTENSIONS.compat.includes(statement.target.pathExt)
-						targetContent = "(#{targetContent})" if content[range[1]] is '.' or content[range[1]] is '('
+						targetContent = "(#{targetContent})" if content[range.end] is '.' or content[range.end] is '('
 
 					return targetContent
 				
-				# if @path.endsWith('main.js')
-				# 	debugger; @offsetRange(statement.range, null, 'inlines')
-				# 	console.log statement.range, range, [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-				# 	console.log require('chalk').yellow content.slice(range[0], range[1])
-				# 	console.log require('chalk').green replacement
-				# 	# console.log require('chalk').dim content
-				# 	console.log '\n\n'
-				@addRangeOffset 'inlines', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-				content = content.slice(0,range[0]) + replacement + content.slice(range[1])
+				if process.env.DEBUG_PATH and @path.endsWith(process.env.DEBUG_PATH)
+					debugger; @offsetRange(statement.range, targetRangeGroups, rangeGroup)
+					console.log statement.range, range, helpers.newReplacementRange(range, replacement)
+					console.log require('chalk').yellow content.slice(range.start, range.end)
+					console.log require('chalk').green replacement
+					# console.log require('chalk').dim content
+					console.log '\n\n'
+				@addRangeOffset rangeGroup, helpers.newReplacementRange(range, replacement)
+				content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
 			.then ()-> content
 
@@ -532,7 +537,7 @@ class File
 					
 					else if statement.target.hasDefaultExport
 						replacement = "#{replacement} ? #{replacement}.default : #{replacement}"
-						replacement = "(#{replacement})" if content[range[1]] is '.' or content[range[1]] is '('
+						replacement = "(#{replacement})" if content[range.end] is '.' or content[range.end] is '('
 
 				else
 					alias = statement.alias or helpers.randomVar()
@@ -547,8 +552,15 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
-			@replacedRanges.imports.push [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
+			if process.env.DEBUG_PATH and @path.endsWith(process.env.DEBUG_PATH)
+				debugger; @offsetRange(statement.range, null, 'imports')
+				console.log statement.range, range, helpers.newReplacementRange(range, replacement)
+				console.log require('chalk').magenta content.slice(range.start, range.end)
+				console.log require('chalk').cyan replacement
+				# console.log require('chalk').dim content
+				console.log '\n\n'
+			@replacedRanges.imports.push helpers.newReplacementRange(range, replacement)
+			content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
 		return content
 
@@ -606,8 +618,16 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
-			@addRangeOffset 'exports', [range[0], newEnd=range[0]+replacement.length, newEnd-range[1]]
-			content = content.slice(0,range[0]) + replacement + content.slice(range[1])
+			if process.env.DEBUG_PATH and @path.endsWith(process.env.DEBUG_PATH)
+				debugger; @offsetRange(statement.range, null, 'exports')
+				console.log statement.range, range, helpers.newReplacementRange(range, replacement)
+				console.log require('chalk').red content.slice(range.start, range.end)
+				console.log require('chalk').yellow replacement
+				# console.log require('chalk').dim content
+				console.log '\n\n'
+
+			@addRangeOffset 'exports', helpers.newReplacementRange(range, replacement)
+			content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
 		content += "\nexports.__esModule=true" if @exportStatements.length
 		return content
@@ -631,33 +651,38 @@ class File
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
 		for array,index in targetArrays
-			rangeOffset = if index > targetArrays.indexOf(sourceArray) then offset else 0
-			considerDiff = sourceArray isnt 'imports' or array is sourceArray
-			breakOnInnerRange = array isnt 'exports'
-			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, {rangeOffset, considerDiff, breakOnInnerRange})
+			rangeOffset = 0
+			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, {rangeOffset})
 
-		return if not offset then range else [range[0]+offset, range[1]+offset]
+		if not offset
+			return range
+		else
+			{'start':range.start+offset, 'end':range.end+offset}
 
 
-	deoffsetRange: (range, targetArrays)->
-		offset = 0
-		targetArrays ?= RANGE_ARRAYS
-		for array in targetArrays
-			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, isDeoffset:true)
+	# deoffsetRange: (range, targetArrays)->
+	# 	offset = 0
+	# 	targetArrays ?= RANGE_ARRAYS
+	# 	for array in targetArrays
+	# 		offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, isDeoffset:true)
 
-		return if not offset then range else [range[0]-offset, range[1]-offset]
+	# 	if not offset
+	# 		return range
+	# 	else
+	# 		'start':range.start-offset, 'end':range.end-offset
+
 
 
 	addRangeOffset: (target, range)->
 		ranges = @replacedRanges[target]
 		ranges.push(range)
-		ranges.sortBy('0')
+		ranges.sortBy('start')
 		insertedIndex = i = ranges.indexOf(range)
 
 		if insertedIndex < ranges.length - 1
 			while largerRange = ranges[++i]
-				largerRange[0] += range[2]
-				largerRange[1] += range[2]
+				largerRange.start += range.diff
+				largerRange.end += range.diff
 		return
 
 

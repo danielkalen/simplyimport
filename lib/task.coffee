@@ -113,7 +113,7 @@ class Task extends require('events')
 		# if @options.target is 'node' and BUILTINS.includes(statement.target)
 		# 	statement.excluded = true
 		# 	return statement
-		@emit 'missingImport', file, statement.target, statement.range[0]
+		@emit 'missingImport', file, statement.target, statement.range.start
 
 		Promise.bind(@)
 			.then ()-> @initFile EMPTY_STUB, file, false, false
@@ -311,7 +311,7 @@ class Task extends require('events')
 
 					if statement.type is 'module' and statement.target.type is 'inline' and not statement.target.becameModule
 						{content, offset} = helpers.exportLastExpression(statement.target)
-						statement.target.addRangeOffset 'exports', [offset[0], offset[1], 17] if offset
+						statement.target.addRangeOffset 'exports', {'start':offset.start, 'end':offset.end, 'diff':17} if offset
 						statement.target.content = content
 						statement.target.becameModule = true
 

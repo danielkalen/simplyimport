@@ -41,8 +41,8 @@ module.exports = class TokenWalker
 
 
 		if result and typeof result is 'object'
-			result.tokenRange[0] = index
-			result.tokenRange[1] = @index
+			result.tokenRange.start = index
+			result.tokenRange.end = @index
 			@results.push(result)
 		
 		return

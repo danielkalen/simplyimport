@@ -4,10 +4,10 @@ module.exports = prepareMultilineReplacement = (sourceContent, targetContent, li
 	if targetContent.lines().length <= 1
 		return targetContent
 	else
-		loc = lines.locationForIndex(range[0])
-		contentLine = sourceContent.slice(range[0] - loc.column, range[1])
+		loc = lines.locationForIndex(range.start)
+		contentLine = sourceContent.slice(range.end - loc.column, range.end)
 		priorWhitespace = contentLine.match(REGEX.initialWhitespace)?[0] or ''
-		hasPriorLetters = contentLine.length - priorWhitespace.length > range[1]-range[0]
+		hasPriorLetters = contentLine.length - priorWhitespace.length > range.end-range.start
 
 		if not priorWhitespace
 			return targetContent

@@ -1,8 +1,8 @@
 module.exports = (keyword='require')->
 	type: ''
 	keyword: keyword
-	range: []
-	tokenRange: []
+	range: {}
+	tokenRange: {}
 	source: null
 	target: null
 	extract: undefined

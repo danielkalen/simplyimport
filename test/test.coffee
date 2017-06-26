@@ -425,47 +425,6 @@ suite "SimplyImport", ()->
 				assert.equal context.ghi, 'ghi789'
 				assert.equal context.theGhi, 'ghi789'
 	
-	
-	test.skip "imports inside importInline statements will be resolved", ()->
-		Promise.resolve()
-			.then ()->
-				helpers.lib
-					'mainA.js': """
-						abc = import './abc'
-						def = import './abc'
-						import './ghi'
-						ghi = import './ghi'
-					"""
-					'mainB.js': """
-						abc = importInline './abc'
-						def = importInline './abc'
-						importInline './ghi'
-						ghi = importInline './ghi'
-					"""
-					'abc.js': """
-						'abc123'
-					"""
-					'ghi.js': """
-						theGhi = 'ghi789'
-					"""
-
-			.then ()->
-				Promise.all [
-					processAndRun file:temp('mainA.js')
-					processAndRun file:temp('mainB.js')
-				]
-			.spread (bundleA, bundleB)->
-				assert.notEqual bundleA.compiled, bundleB.compiled
-				assert.include bundleA.compiled, 'require ='
-				assert.notInclude bundleB.compiled, 'require ='
-				assert.deepEqual bundleA.context, bundleB.context
-
-				context = bundleB.context
-				assert.equal context.abc, 'abc123'
-				assert.equal context.def, 'abc123'
-				assert.equal context.ghi, 'ghi789'
-				assert.equal context.theGhi, 'ghi789'
-	
 
 	test "an import path can be extension-less", ()->
 		Promise.resolve()
@@ -1125,6 +1084,62 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.c1, 20
 				assert.deepEqual result.c2, 35
 				assert.deepEqual result.c3, 'innerValue'
+	
+	
+	test "imports inside importInline statements will be resolved", ()->
+		Promise.resolve()
+			.then ()-> fs.dirAsync temp(), empty:true
+			.then ()->
+				helpers.lib
+					'main.js': """
+						importInline './exportA'
+						exports.a = import './a'
+						exports.b = import './b $ nested.data'
+						importInline './exportC'
+						exports.d = (function(){
+							return import './d'
+						})()
+						exports.other = import 'other.js'
+					"""
+					'a.js': """
+						module.exports = 'abc-value';
+					"""
+					'a1.js': """
+						module.exports = 'ABC-value';
+					"""
+					'a2.js': """
+						module.exports = 'AbC-value';
+					"""
+					'b.json': """
+						{"nested":{"data":"def-value"}}
+					"""
+					'c.yml': """
+						nested:
+                          data: 'gHi-value'
+					"""
+					'd.js': """
+						export default jkl = 'jkl-value';
+					"""
+					'exportA.js': """
+						exports.a1 = import 'a1'
+						exports.a2 = import 'a2'
+					"""
+					'exportC.js': """
+						exports.c = import 'c $ nested.data'
+					"""
+					'other.js': """
+						export default lmn = 'lmn-value';
+					"""
+
+			.then ()-> processAndRun file:temp('main.js'), 'main.js'
+			.then ({compiled, result})->
+				assert.equal result.a, 'abc-value'
+				assert.equal result.a1, 'ABC-value'
+				assert.equal result.a2, 'AbC-value'
+				assert.equal result.b, 'def-value'
+				assert.equal result.c, 'gHi-value'
+				assert.equal result.d, 'jkl-value'
+				assert.equal result.other, 'lmn-value'
 
 
 	suite "the module loader should be returned when options.returnLoader is set", ()->
@@ -3171,7 +3186,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite "UMD bundles", ()->
+	suite.skip "UMD bundles", ()->
 		test "can be imported", ()->
 			Promise.resolve()
 				.then ()->
@@ -3235,7 +3250,7 @@ suite "SimplyImport", ()->
 					assert Object.keys(result).length > 1
 	
 
-		test "moment", ()->
+		test.skip "moment", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
 				.then ()-> processAndRun file:temp('main.js')
