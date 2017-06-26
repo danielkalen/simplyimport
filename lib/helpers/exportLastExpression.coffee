@@ -6,14 +6,14 @@ module.exports = exportLastExpression = (file)->
 	ast = try Parser.parseStrict(file.contentSafe, range:true)
 	
 	if not ast
-		return content:"module.exports = #{file.content}", offset:'start':0,'end':17
+		return content:"module.exports = #{file.content}", offset:{start:0, end:17}
 	
 	else if ast.body.length
 		last = ast.body.last()
 		
 		insertExport = (pos)->
 			newContent = file.content.insert 'module.exports = ', pos
-			return content:newContent, offset:'start':pos,'end':pos+17
+			return content:newContent, offset:{start:pos, end:pos+17}
 		
 		switch last.type
 			when 'ThrowStatement'

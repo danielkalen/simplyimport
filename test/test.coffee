@@ -3186,7 +3186,7 @@ suite "SimplyImport", ()->
 
 
 
-	suite.skip "UMD bundles", ()->
+	suite "UMD bundles", ()->
 		test "can be imported", ()->
 			Promise.resolve()
 				.then ()->
@@ -3250,7 +3250,7 @@ suite "SimplyImport", ()->
 					assert Object.keys(result).length > 1
 	
 
-		test.skip "moment", ()->
+		test "moment", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
 				.then ()-> processAndRun file:temp('main.js')
@@ -3268,7 +3268,7 @@ suite "SimplyImport", ()->
 			Browserify::bundleAsync = Promise.promisify(Browserify::bundle)
 		
 
-		test.skip "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
+		test "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
 			compiled = null
 			Promise.resolve()
 				.then ()-> fs.dirAsync temp(), empty:true
