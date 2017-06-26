@@ -14,7 +14,6 @@ module.exports = prepareMultilineReplacement = (sourceContent, targetContent, li
 		else
 			targetContent
 				.split '\n'
-				# .map (line, index)-> if index is 0 and hasPriorLetters then line else "#{priorWhitespace}#{line}"
 				.map (line, index)-> if index is 0 then line else "#{priorWhitespace}#{line}"
 				.join '\n'
 
