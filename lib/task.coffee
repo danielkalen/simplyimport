@@ -123,8 +123,8 @@ class Task extends require('events')
 		Promise.bind(@)
 			.then ()-> helpers.resolveEntryPackage(@)
 			.then (pkgFile)->
-				if pkgFile and pkgFile['simplyimport:specific'] and Object.keys(@options.specific).length is 0
-					@options.specific = normalizeSpecificOpts(pkgFile['simplyimport:specific'])
+				if pkgFile and Object.get(pkgFile, 'simplyimport.specific') and Object.keys(@options.specific).length is 0
+					@options.specific = normalizeSpecificOpts(Object.get(pkgFile, 'simplyimport.specific'))
 			
 			.then ()-> promiseBreak(@options.src) if @options.src
 			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
@@ -439,6 +439,17 @@ class Task extends require('events')
 
 			.then (ast)-> Parser.generate(ast)
 			.catch promiseBreak.end
+			.then (bundledContent)->
+				if not @options.finalTransform.length
+					return bundledContent
+				else
+					config = {ID:'bundle', pkgFile:@options.pkgFile, options:{}, content:bundledContent}
+					config = helpers.newPathConfig Path.resolve('bundle.js'), null, config
+					
+					Promise.resolve(new File(@, config)).bind(@)
+						.then (file)-> file.applyTransforms(file.content, @options.finalTransform)
+
+
 			.tap ()-> setTimeout @destroy.bind(@)
 
 
@@ -477,6 +488,7 @@ extendOptions = (suppliedOptions)->
 	options.sourceMap ?= options.debug
 	options.transform = normalizeTransformOpts(options.transform) if options.transform
 	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
+	options.finalTransform = normalizeTransformOpts(options.finalTransform) if options.finalTransform
 	options.specific = normalizeSpecificOpts(options.specific)
 	
 	return options

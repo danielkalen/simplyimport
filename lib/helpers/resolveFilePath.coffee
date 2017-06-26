@@ -57,13 +57,7 @@ module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 
 		.catch promiseBreak.end
 		.then (pathAbs)->
-			context = helpers.getNormalizedDirname(pathAbs)
-			contextRel = Path.relative(entryContext, context)
-			path = helpers.simplifyPath(pathAbs)
-			pathDebug = chalk.dim(path)
-			pathRel = Path.relative(entryContext, pathAbs)
-			pathExt = Path.extname(pathAbs).toLowerCase().slice(1)
-			pathExt = 'yml' if pathExt is 'yaml'
-			pathBase = Path.basename(pathAbs)
-			pathName = Path.basename pathAbs, Path.extname(pathAbs)
-			return {path, pathDebug, pathAbs, pathRel, pathBase, pathExt, pathName, context, contextRel, suppliedPath}
+			helpers.newPathConfig pathAbs, entryContext, {suppliedPath}
+
+
+

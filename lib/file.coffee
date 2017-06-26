@@ -502,7 +502,6 @@ class File
 				replacement = do ()=>
 					return '' if statement.excluded
 					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-					debugger
 					targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
 					targetContent = '{}' if not targetContent
 

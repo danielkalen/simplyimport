@@ -1822,7 +1822,7 @@ suite "SimplyImport", ()->
 						'c.js': """
 							ghi = 'ghi-value'
 						"""
-						'package.json': '{"main":"entry.js", "simplyimport:specific":{"c.js":{"transform":"test/helpers/uppercaseTransform"}}}'
+						'package.json': '{"main":"entry.js", "simplyimport":{"specific":{"c.js":{"transform":"test/helpers/uppercaseTransform"}}}}'
 				
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({context, compiled, writeToDisc})->
@@ -1903,6 +1903,49 @@ suite "SimplyImport", ()->
 				
 				.then ()-> processAndRun file:temp('main.js'), globalTransform:[helpers.lowercaseTransform]
 				.then ({context, compiled, writeToDisc})->
+					assert.equal context.a, 'abc-value'
+					assert.equal context.b, 'def-value'
+					assert.equal context.c, 'ghi-value'
+					assert.equal context.d.a, 'ghi-value'
+					assert.equal context.d.b, 'value-ghi'
+					assert.equal context.A, undefined
+
+
+		test "final transforms will be applied to the final bundled file", ()->
+			receivedFiles = []
+			customTransform = (file)->
+				receivedFiles.push(file)
+				return (content)-> content.toLowerCase()
+			
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							A = import './a'
+							b = import './b'
+							C = import './c'
+							d = import 'module-a'
+						"""
+						'a.js': """
+							abc = 'abc-VALUE'
+						"""
+						'b.js': """
+							module.exports = 'DEF-value'
+						"""
+						'c.js': """
+							GHI = 'ghi-VALUE'
+						"""
+						'node_modules/module-a/index.js': """
+							exports.a = import './a'
+							exports.b = 'vaLUe-gHi'
+						"""
+						'node_modules/module-a/a.js': """
+							result = 'gHi-VALUE'
+						"""
+				
+				.then ()-> processAndRun file:temp('main.js'), finalTransform:[customTransform]
+				.then ({context, compiled, writeToDisc})->
+					assert.deepEqual receivedFiles, [Path.resolve('bundle.js')]
 					assert.equal context.a, 'abc-value'
 					assert.equal context.b, 'def-value'
 					assert.equal context.c, 'ghi-value'

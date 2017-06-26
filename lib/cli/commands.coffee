@@ -20,6 +20,7 @@ exports.push
 		["-e, --exclude-file <file>", "avoid bundling the specified file (import statement will be left as is); can be a glob", collectArgs, []]
 		["-t, --transform <transformer>", "apply a transformer to all files in the entry file's package scope (use multiple times for multiple transforms)", collectArgs, []]
 		["-g, --global-transform <transformer>", "apply a transformer to all files encountered (including node_modules/ ones)", collectArgs, []]
+		["-f, --final-transform <transformer>", "apply a transformer to the final bundled file", collectArgs, []]
 		["-u, --umd <bundleName>", "build the bundle as a UMD bundle under the specified name"]
 		["--target <node|browser>", "the target env this bundle will be run in; when 'node' files encountered in node_modules/ won't be included (default:#{chalk.dim 'browser'})"]
 		["--return-loader", "return the loader function instead of loading the entry file on run time"]
