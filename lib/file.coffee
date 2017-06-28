@@ -183,6 +183,8 @@ class File
 
 
 	postTransforms: ()->
+		@contentPostTransforms = @content
+		
 		if @requiredGlobals.process
 			@contentPostTransforms = @content = "var process = require('process');\n#{@content}"
 		

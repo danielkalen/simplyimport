@@ -70,8 +70,8 @@ module.exports = class TokenWalker
 		currentBrackets = []
 
 		hasNewLine = ()=>
-			prevLine = @lines.locationForIndex(@_prev.end).line
-			currentLine = @lines.locationForIndex(@current.start).line
+			prevLine = @lines.locationForIndex(@_prev.end)?.line
+			currentLine = @lines.locationForIndex(@current.start)?.line
 			return currentLine isnt prevLine
 
 		while @next().type.label and @current.type.label isnt 'eof'
