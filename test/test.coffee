@@ -2349,14 +2349,14 @@ suite "SimplyImport", ()->
 							'main.js': """
 								exports.main = process.env.VAR1
 								if (process.env.VAR2 === 'chocolate') {
-									a = import './a'
+									a = import 'module-a'
 								} 
-								b = require('b')
+								b = require('module-b')
 							"""
-							'a.js': """
+							'node_modules/module-a/index.js': """
 								module.exports = JSON.parse(process.env.VAR3)
 							"""
-							'b.js': """
+							'node_modules/module-b/index.js': """
 								process.env.VAR4
 							"""
 					.then ()->
@@ -2364,7 +2364,7 @@ suite "SimplyImport", ()->
 						process.env.VAR2 = 'chocolate'
 						process.env.VAR3 = '{"a":10, "b":20, "c":30}'
 						process.env.VAR4 = 'the last env var'
-						processAndRun file:temp('main.js'), transform:'envify'
+						processAndRun file:temp('main.js'), transform:'envify', specific: 'module-a':{transform:['envify']},'module-b':{transform:['envify']}
 					
 					.then ({result, context, writeToDisc})->
 						assert.equal result.main, 'the main file'

@@ -1,4 +1,5 @@
 Promise = require 'bluebird'
+Promise.config longStackTraces:true if process.env.DEBUG
 promiseBreak = require 'promise-break'
 program = require('commander').version require('../../package.json').version
 commands = require './commands'

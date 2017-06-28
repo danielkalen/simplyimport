@@ -411,7 +411,7 @@ class File
 					else
 						@task.emit('GeneralError', @, err)
 
-					return
+					return @importStatements
 
 
 				statements.forEach (statement)=>
@@ -463,7 +463,7 @@ class File
 				else
 					@task.emit('GeneralError', @, err)
 
-				return
+				return @exportStatements
 
 			statements.forEach (statement)=>
 				statement.range = 'start':tokens[statement.tokenRange.start].start, 'end':tokens[statement.tokenRange.end].end

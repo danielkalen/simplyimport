@@ -28,6 +28,7 @@ exports.push
 		["--loader-name <name>", "the variable name to use for the bundle loader (default:#{chalk.dim 'require'})"]
 		["--ignore-transform <transformer>", "avoid applying the specified transform regardless of where it was specified"]
 		["--no-dedupe", "turn off module de-duplication (i.e. modules with the same hash)"]
+		["--no-pkg-config", "turn off package.json config resolution for entry file (i.e. config defined in package will be ignored)"]
 		["--use-paths", "use imports' paths instead of assigned numeric IDs in require statements"]
 		["--ignore-globals", "skip automatic scan & insertion of process, global, Buffer, __filename, __dirname"]
 		["--ignore-missing", "ignore imports referencing unpresent files (will be replaced with an empty stub)"]

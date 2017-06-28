@@ -1,5 +1,5 @@
 global.Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.DEBUG 
+Promise.config longStackTraces:true if process.env.DEBUG
 promiseBreak = require 'promise-break'
 spawn = require('child_process').spawn
 fs = require 'fs-jetpack'
