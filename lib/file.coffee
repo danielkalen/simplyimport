@@ -62,6 +62,7 @@ class File
 			REGEX.requireCheck.test(@content)
 
 		@isThirdPartyBundle = @isThirdPartyBundle or
+			REGEX.requireDec.test(@content) or
 			(
 				REGEX.requireArg.test(@content) and
 				REGEX.commonImportReal.test(@content)
@@ -404,7 +405,7 @@ class File
 				@collectedImports = true
 				
 				try
-					requires = helpers.collectRequires(tokens, @linesPostTransforms)
+					requires = if @isThirdPartyBundle then [] else helpers.collectRequires(tokens, @linesPostTransforms)
 					imports = helpers.collectImports(tokens, @linesPostTransforms)
 					statements = imports.concat(requires).sortBy('tokenRange.start')
 				catch err
@@ -451,7 +452,7 @@ class File
 					@importStatements.push(statement)
 
 
-		return @importStatements.sortBy('range.start')
+		return @importStatements
 
 
 	collectExports: (tokens=@Tokens)->

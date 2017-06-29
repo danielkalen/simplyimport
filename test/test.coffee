@@ -27,6 +27,8 @@ sample = ()-> Path.join __dirname,'samples',arguments...
 debug = ()-> Path.join __dirname,'debug',arguments...
 temp = ()-> Path.join __dirname,'temp',arguments...
 
+emptyTemp = ()-> fs.dirAsync temp(), empty:true
+
 runCompiled = (filename, compiled, context)->
 	script = if badES6Support then require('traceur').compile(compiled, script:true) else compiled
 	if script.includes('$traceurRuntime')
@@ -457,7 +459,7 @@ suite "SimplyImport", ()->
 	
 	test "if the provided import path matches a directory it will be searched for an index file", ()->
 		Promise.resolve()
-			.then ()-> fs.dirAsync(temp(), empty:true)
+			.then emptyTemp
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -576,7 +578,7 @@ suite "SimplyImport", ()->
 
 	test "if a node_modules-compatible path isn't matched in node_modules it will be treated as a local path", ()->
 		Promise.resolve()
-			.then ()-> fs.dirAsync(temp(), empty:true)
+			.then emptyTemp
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -717,7 +719,7 @@ suite "SimplyImport", ()->
 
 	test "files external to the importer shall be not be included in the package when options.bundleExternal is false", ()->
 		Promise.resolve()
-			.then ()-> fs.dirAsync temp(), empty:true
+			.then emptyTemp
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -822,7 +824,7 @@ suite "SimplyImport", ()->
 
 	test "es6 exports will be transpiled to commonJS exports", ()->
 		Promise.resolve()
-			.then ()-> fs.dirAsync temp(), empty:true
+			.then emptyTemp
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -1088,7 +1090,7 @@ suite "SimplyImport", ()->
 	
 	test "imports inside importInline statements will be resolved", ()->
 		Promise.resolve()
-			.then ()-> fs.dirAsync temp(), empty:true
+			.then emptyTemp
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -1181,7 +1183,7 @@ suite "SimplyImport", ()->
 
 		test "when identifiers are paths", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.js': """
@@ -1397,7 +1399,7 @@ suite "SimplyImport", ()->
 	suite "cyclic imports", ()->
 		test "are supported between 2-chain imported modules", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						"main.js": """
@@ -2251,7 +2253,7 @@ suite "SimplyImport", ()->
 
 		test "cson files will be automatically transformed by default", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.js': """
@@ -2281,7 +2283,7 @@ suite "SimplyImport", ()->
 
 		test "yml files will be automatically transformed by default", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.js': """
@@ -2310,7 +2312,7 @@ suite "SimplyImport", ()->
 
 		test "transforms named in options.ignoreTransform will be skipped", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.js': """
@@ -2436,7 +2438,7 @@ suite "SimplyImport", ()->
 
 
 	suite "extraction", ()->
-		suiteSetup ()-> fs.dirAsync temp(), empty:true
+		suiteSetup emptyTemp
 		
 		test "specific fields can be imported from JSON files by specifying a property after the file path separated by '$'", ()->
 			Promise.resolve()
@@ -3256,6 +3258,50 @@ suite "SimplyImport", ()->
 
 
 	suite "UMD bundles", ()->
+		suiteSetup emptyTemp
+		
+		test "will not have their require statements scanned", ()->
+			scanResults = raw:null, umd:null
+			runtimeResults = raw:null, umd:null
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.a = import './a'
+							exports.b = require('./b')
+							exports.c = import './c'
+						"""
+						'a.js': "module.exports = 'abc'"
+						'b.js': "module.exports = 'def'"
+						'c.js': "module.exports = require('./c-hidden')"
+						'c-hidden.js': "module.exports = 'jhi'"
+
+				.then ()-> processAndRun file:temp('main.js'), umd:'main', usePaths:true
+				.tap ({result})-> runtimeResults.raw = result
+				.tap ({compiled})-> fs.writeAsync temp('umd.js'), compiled
+				
+				.then ()-> processAndRun file:temp('umd.js')
+				.tap ({result})-> runtimeResults.umd = result
+				
+				.then ()-> SimplyImport.scan file:temp('main.js'), depth:Infinity
+				.then (result)-> scanResults.raw = result
+				
+				.then ()-> SimplyImport.scan file:temp('umd.js'), depth:Infinity
+				.then (result)-> scanResults.umd = result
+
+				.then ()->
+					assert.equal runtimeResults.raw.a, runtimeResults.umd.a
+					assert.equal runtimeResults.raw.b, runtimeResults.umd.b
+					assert.equal runtimeResults.raw.c, runtimeResults.umd.c
+					assert.deepEqual scanResults.raw, [
+						temp('a.js')
+						temp('b.js')
+						temp('c.js')
+						temp('c-hidden.js')
+					]
+					assert.deepEqual scanResults.umd, []
+
+
 		test "can be imported", ()->
 			Promise.resolve()
 				.then ()->
@@ -3267,9 +3313,11 @@ suite "SimplyImport", ()->
 
 				.then ()-> processAndRun file:temp('main.js'),usePaths:true
 				.then ({result, writeToDisc})->
+					now = Date.now()
 					assert.notEqual result.a, result.b
 					assert.typeOf result.a, 'function'
 					assert.typeOf result.b, 'function'
+					assert.equal result.a(now).subtract(1, 'hour').valueOf(), result.b(now).subtract(1, 'hour').valueOf()
 
 
 
@@ -3322,10 +3370,11 @@ suite "SimplyImport", ()->
 		test "moment", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
-				.then ()-> processAndRun file:temp('main.js')
+				.then ()-> processAndRun file:temp('main.js'), 'moment.js'
 				.then ({result})->
+					now = Date.now()
 					assert.typeOf result, 'function'
-					assert.equal (Date.now() - 3600000), result(Date.now()).subtract(1, 'hour').valueOf()
+					assert.equal (now - 3600000), result(now).subtract(1, 'hour').valueOf()
 					assert Object.keys(result).length > 1
 
 
@@ -3340,7 +3389,7 @@ suite "SimplyImport", ()->
 		test "packages that declare 'simplyimport/compat' transform will make the module compatibile", ()->
 			compiled = null
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()-> fs.symlinkAsync process.cwd(), temp('node_modules/simplyimport')
 				.then ()->
 					helpers.lib
@@ -3396,7 +3445,7 @@ suite "SimplyImport", ()->
 		test "'simplyimport/compat' accepts a 'umd' option", ()->
 			compiled = null
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()-> fs.symlinkAsync process.cwd(), temp('node_modules/simplyimport')
 				.then ()->
 					helpers.lib
@@ -3491,7 +3540,7 @@ suite "SimplyImport", ()->
 	suite "scan imports", ()->
 		suiteSetup ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.js': """
@@ -3957,7 +4006,7 @@ suite "SimplyImport", ()->
 	suite "sass", ()->
 		test "imports will be inlined", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.sass': """
@@ -4033,7 +4082,7 @@ suite "SimplyImport", ()->
 	suite "pug/jade", ()->
 		test "imports will be inlined", ()->
 			Promise.resolve()
-				.then ()-> fs.dirAsync temp(), empty:true
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.pug': """

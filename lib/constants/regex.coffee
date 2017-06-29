@@ -13,6 +13,7 @@ REGEX =
 	initialExport: /^module\.exports\s*=\s*/
 	decKeyword: /var|let|const/
 	requireArg: /\brequire[,\)]/
+	requireDec: /\bfunction require\b/
 	processDec: /\brequire[\(\s]['"]process['"]\)?|\bprocess\s?=\s?/
 	bufferDec: /\brequire[\(\s]['"]buffer['"]\)?|\bBuffer\s?=\s?/
 	globalCheck: /typeof global\b[^\.\[]/
