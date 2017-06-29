@@ -8,6 +8,7 @@ extensions.compat = [
 ]
 
 extensions.js = [
+	'bin'
 	'js'
 	'jsx'
 	'ts'

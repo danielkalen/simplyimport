@@ -29,7 +29,9 @@ module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 				exactMatch = candidates.find(params.base) # Can be dir or file i.e. if provided /path/to/module and /path/to contains 'module.js' or 'module'
 				fileMatch = candidates.find (targetPath)->
 					fileNameSplit = targetPath.replace(params.base, '').split('.')
-					return !fileNameSplit[0] and fileNameSplit.length is 2 # Ensures the path is not a dir and is exactly the inputPath+extname
+					return !fileNameSplit[0] and # esnrues path is not a dir (most likely as it doesn't have an ext)
+							fileNameSplit.length is 2 and # ensures path is exactly the inputPath+extname
+							targetPath[0] isnt '.' # ensures isnt a base-less name like /.bin
 
 				if fileMatch
 					return Path.join(params.dir, fileMatch)

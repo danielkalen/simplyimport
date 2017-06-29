@@ -426,7 +426,10 @@ class Task extends require('events')
 					.append(@entryFile, 0)
 					.sortBy('hash')
 			
-			.tap (files)-> promiseBreak(@entryFile.content) if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
+			.tap (files)->
+				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
+					promiseBreak(@entryFile.content)
+			
 			.then (files)->
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader(@options.target, @options.loaderName)
@@ -449,7 +452,12 @@ class Task extends require('events')
 					Promise.resolve(new File(@, config)).bind(@)
 						.then (file)-> file.applyTransforms(file.content, @options.finalTransform)
 
-
+			.then (bundledContent)->
+				if @entryFile.shebang
+					bundledContent = "#{@entryFile.shebang}#{bundledContent}"
+				else
+					bundledContent
+			
 			.tap ()-> setTimeout @destroy.bind(@)
 
 

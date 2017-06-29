@@ -39,6 +39,9 @@ class File
 			when Array.isArray(@pkgTransform)
 				@pkgTransform = @pkgTransform
 
+		if REGEX.shebang.test(@content)
+			@content = @contentOriginal = @content.replace REGEX.shebang, (@shebang)=> return ''
+
 		return @task.cache[@pathAbs] = @
 
 

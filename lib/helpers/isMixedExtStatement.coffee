@@ -10,6 +10,7 @@ module.exports = isMixedExtStatement = (statement)->
 	return  source isnt target and
 			(
 				sourceRelated isnt targetRelated or
-				target is 'js' # and source is a transpiled type (e.g. coffeescript, typescript)
+				target is 'js' and # and source is a transpiled type importing a js file (e.g. coffeescript, typescript)
+				source isnt 'bin' # but we would consider bin files as js files
 			) and
 			targetRelated isnt EXTENSIONS.data

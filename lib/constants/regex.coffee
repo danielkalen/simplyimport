@@ -9,6 +9,7 @@ REGEX =
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
+	shebang: /^#![^\n]*\n/
 	initialWhitespace: /^[ \t]+/
 	initialExport: /^module\.exports\s*=\s*/
 	decKeyword: /var|let|const/
