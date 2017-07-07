@@ -86,7 +86,7 @@ class File
 
 	collectConditionals: ()->
 		Promise.bind(@)
-			.tap ()-> debug "collecting conditionals"
+			.tap ()-> debug "collecting conditionals #{@pathDebug}"
 			.then ()->
 				starts = []
 				ends = []
@@ -183,6 +183,7 @@ class File
 
 	determineType: ()->
 		@type = switch
+			when @type is 'inline-forced' then @type
 			when @pathExtOriginal is 'ts' then 'module'
 			when not REGEX.es6export.test(@content) and not REGEX.commonExport.test(@content) then 'inline'
 			else 'module'

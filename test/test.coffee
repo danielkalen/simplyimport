@@ -362,6 +362,7 @@ suite "SimplyImport", ()->
 							importInline 'def'
 							importInline 'ghi'
 						}
+						import './jkl'
 					"""
 					'abc.js': """
 						case 'abc':
@@ -375,6 +376,18 @@ suite "SimplyImport", ()->
 						case 'ghi':
 							output = 'ghi'; break;
 					"""
+					'jkl.coffee': """
+						class jkl
+							constructor: ()-> @bigName = 'JKL'
+							importInline './jkl-methods'
+					"""
+					'jkl-methods.coffee': """
+						getName: ()->
+							return @bigName
+						
+						setName: ()->
+							@bigName = arguments[0]
+					"""
 
 			.then ()-> SimplyImport file:temp('mainA.js')
 			.catch ()-> 'failed as expected'
@@ -385,6 +398,11 @@ suite "SimplyImport", ()->
 				context.input = 'ghi'
 				run()
 				assert.equal context.output, 'ghi'
+				assert.equal typeof context.jkl, 'function'
+				instance = new context.jkl
+				assert.equal instance.getName(), 'JKL'
+				instance.setName('another name')
+				assert.equal instance.getName(), 'another name'
 	
 
 	test "importInline statements will not be turned into separate modules if imported more than once", ()->
@@ -2055,16 +2073,18 @@ suite "SimplyImport", ()->
 				.then ()->
 					helpers.lib
 						'abcc/index.js': "module.exports = 'def-value'"
-						'deff/index.js': "import 'abcc'"
+						'deff/index.js': "import '../abcc'"
 				
 				.then ()-> assert.equal received, null
 				.then ()-> target = temp('abcc/index.js')
 				.then ()-> SimplyImport src:"importInline './abcc'", context:temp(), transform:customTransform
+				.then ()-> assert.equal received, null
+				.then ()-> SimplyImport src:"import './abcc'", context:temp(), transform:customTransform
 				.then ()-> assert.equal received, "module.exports = 'def-value'"
 				
 				.then ()-> target = temp('deff/index.js')
-				.then ()-> SimplyImport src:"importInline './deff'", context:temp(), transform:customTransform
-				.then ()-> assert.equal received, "_$sm('abcc' )"
+				.then ()-> SimplyImport src:"import './deff'", context:temp(), transform:customTransform
+				.then ()-> assert.equal received, "_$sm('../abcc' )"
 
 
 		test "transforms can return a string", ()->

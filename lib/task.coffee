@@ -222,12 +222,11 @@ class Task extends require('events')
 			.then file.collectConditionals
 			.then ()=> @scanForceInlineImports(file)
 			.then ()=> @replaceForceInlineImports(file)
+			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.replaceES6Imports
 			.then file.applyAllTransforms
 			.then file.saveContent.bind(file, 'contentPostTransforms')
-			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.checkSyntaxErrors
-			.catch promiseBreak.end
 			.then file.restoreES6Imports
 			.then file.checkIfIsThirdPartyBundle
 			.then(file.collectRequiredGlobals unless @options.target is 'node')
@@ -235,6 +234,7 @@ class Task extends require('events')
 			.then file.determineType
 			.then file.tokenize
 			.then file.saveContent.bind(file, 'contentPostTokenize')
+			.catch promiseBreak.end
 			.tap ()-> debug "done processing #{file.pathDebug}"
 			.return(file)
 
