@@ -440,7 +440,6 @@ class File
 					statement.extract = targetSplit[1]
 					statement.range.start = tokens[statement.tokenRange.start].start
 					statement.range.end = tokens[statement.tokenRange.end].end
-					# debugger if statement.target is './e'
 					statement.source = @getStatementSource(statement)
 					@importStatements.push(statement)
 
@@ -653,9 +652,13 @@ class File
 
 
 	getStatementSource: (statement)->
+		range = statement.range.orig or statement.range
 		for candidate in @replacedRanges.inlines
-			return candidate.source if candidate.start <= statement.range.start and statement.range.end <= candidate.end
+			if candidate.start <= range.start and range.end <= candidate.end
+				statement.range.orig = candidate
+				return candidate.source.getStatementSource(statement)
 		return @
+
 
 	offsetRange: (range, targetArrays, sourceArray)->
 		offset = 0

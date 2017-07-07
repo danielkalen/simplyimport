@@ -1338,9 +1338,18 @@ suite "SimplyImport", ()->
 							exports.c = import 'c $ nested.data'
 						"""
 						'exportE/index.js': """
-							exports.e = import './e $ nested.data'
+							exports.eA = importInline './eA'
+							exports.e = import './e'
 						"""
-						'exportE/e.json': ['b.json', (c)-> c]
+						'exportE/eA.js': """
+							'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\
+							Cras nec malesuada lacus.\
+							Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.'
+						"""
+						'exportE/e/index.js': """
+							import './actual $ nested.data'
+						"""
+						'exportE/e/actual.json': ['b.json', (c)-> c]
 						'other.js': """
 							export default lmn = 'lmn-value';
 						"""
