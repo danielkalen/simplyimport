@@ -13,7 +13,7 @@ REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 BUILTINS = require('./constants/coreShims').builtins
-debug = require('debug')('simplyimport')
+debug = require('debug')('simplyimport:task')
 {EMPTY_STUB} = require('./constants')
 
 class Task extends require('events')
@@ -38,6 +38,7 @@ class Task extends require('events')
 
 		super
 		@attachListeners()
+		debug "new task created"
 
 	
 	attachListeners: ()->
@@ -121,6 +122,7 @@ class Task extends require('events')
 
 	initEntryFile: ()->
 		Promise.bind(@)
+			.tap ()-> debug "start entry file init"
 			.then ()-> helpers.resolveEntryPackage(@)
 			.then (pkgFile)->
 				return if @options.noPkgConfig
@@ -156,6 +158,7 @@ class Task extends require('events')
 
 			.tap (file)->
 				@files.push file
+			.tap ()-> debug "done entry file init"
 
 
 	initFile: (input, importer, isForceInlined, prev=@prevFileInit)->
@@ -165,6 +168,7 @@ class Task extends require('events')
 		@prevFileInit =
 		Promise.resolve(prev).bind(@)
 			.catch ()-> null # If prev was rejected with ignored/missing error
+			.tap ()-> debug "start file init for #{chalk.dim input}"
 			.then ()->
 				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile, @options.target)
 
@@ -175,10 +179,10 @@ class Task extends require('events')
 			.then (input)->
 				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile), suppliedPath)
 			
-			.tap (config)-> debug "creating #{config.pathDebug}"
+			.tap (config)-> debug "start file init #{config.pathDebug}"
 			.tap (config)->
 				if @cache[config.pathAbs]
-					debug "using cached #{config.pathDebug}"
+					debug "using cached file for #{config.pathDebug}"
 					promiseBreak(@cache[config.pathAbs])
 
 			.tap (config)->
@@ -206,7 +210,7 @@ class Task extends require('events')
 				
 			.then (config)-> new File(@, config)
 			
-			.tap (config)-> debug "created #{config.pathDebug}"
+			.tap (config)-> debug "done file init #{config.pathDebug}"
 			.tap (file)-> @files.push file
 			.catch promiseBreak.end
 
@@ -214,6 +218,7 @@ class Task extends require('events')
 	processFile: (file)-> if file.processed then file else
 		file.processed = true
 		Promise.bind(file)
+			.tap ()-> debug "processing #{file.pathDebug}"
 			.then file.collectConditionals
 			.then ()=> @scanForceInlineImports(file)
 			.then ()=> @replaceForceInlineImports(file)
@@ -230,6 +235,7 @@ class Task extends require('events')
 			.then file.determineType
 			.then file.tokenize
 			.then file.saveContent.bind(file, 'contentPostTokenize')
+			.tap ()-> debug "done processing #{file.pathDebug}"
 			.return(file)
 
 
@@ -290,6 +296,7 @@ class Task extends require('events')
 
 	calcImportTree: ()->
 		Promise.bind(@)
+			.tap ()-> debug "start calculating import tree"
 			.then ()-> @imports = @importStatements.groupBy('target.pathAbs')
 
 			.then ()-> Object.values(@imports)
@@ -351,6 +358,7 @@ class Task extends require('events')
 				return
 			
 			.then ()-> @imports
+			.tap ()-> debug "done calculating import tree"
 
 
 
@@ -415,9 +423,11 @@ class Task extends require('events')
 		
 		Promise.bind(@)
 			.then @calcImportTree
+			.tap ()-> debug "start replacing imports/exports"
 			.return @entryFile
 			.then @replaceImportsExports
 			.then @replaceInlineImports
+			.tap ()-> debug "done replacing imports/exports"
 			.then ()->
 				@importStatements
 					.filter (statement)=> statement.type is 'module' and not statement.excluded and statement.target isnt @entryFile
@@ -430,6 +440,7 @@ class Task extends require('events')
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
 					promiseBreak(@entryFile.content)
 			
+			.tap ()-> debug "creating bundle AST"
 			.then (files)->
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader(@options.target, @options.loaderName)
@@ -440,6 +451,7 @@ class Task extends require('events')
 				bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
 				return bundle
 
+			.tap ()-> debug "generating code from bundle AST"
 			.then (ast)-> Parser.generate(ast)
 			.catch promiseBreak.end
 			.then (bundledContent)->
@@ -450,6 +462,7 @@ class Task extends require('events')
 					config = helpers.newPathConfig Path.resolve('bundle.js'), null, config
 					
 					Promise.resolve(new File(@, config)).bind(@)
+						.tap ()-> debug "applying final transform"
 						.then (file)-> file.applyTransforms(file.content, @options.finalTransform)
 
 			.then (bundledContent)->
@@ -462,6 +475,7 @@ class Task extends require('events')
 
 
 	destroy: ()->
+		debug "destroying task"
 		file.destroy() for file in @files
 		@removeAllListeners()
 		@files.length = 0

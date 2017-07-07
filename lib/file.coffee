@@ -13,6 +13,7 @@ REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
 GLOBALS = require './constants/globals'
 RANGE_ARRAYS = ['imports', 'exports']
+debug = require('debug')('simplyimport:file')
 
 
 class File
@@ -46,6 +47,7 @@ class File
 
 
 	checkSyntaxErrors: (content)->
+		debug "checking for syntax errors #{@pathDebug}"
 		if @pathExt is 'js'
 			content = content.replace REGEX.es6import, ()-> "importPlaceholder()"
 			
@@ -54,6 +56,7 @@ class File
 
 
 	checkIfIsThirdPartyBundle: ()->
+		debug "checking 3rd party bundle status #{@pathDebug}"
 		### istanbul ignore next ###
 		@isThirdPartyBundle =
 			@content.includes('.code="MODULE_NOT_FOUND"') or
@@ -83,6 +86,7 @@ class File
 
 	collectConditionals: ()->
 		Promise.bind(@)
+			.tap ()-> debug "collecting conditionals"
 			.then ()->
 				starts = []
 				ends = []
@@ -187,6 +191,7 @@ class File
 
 
 	postTransforms: ()->
+		debug "running post-transform functions #{@pathDebug}"
 		@contentPostTransforms = @content
 		@sourceMap = sourcemapConvert.fromSource(@content)?.sourcemap
 		if @sourceMap
@@ -205,10 +210,12 @@ class File
 	applyAllTransforms: (content=@content)->
 		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform#, @pkgTransform
 		Promise.resolve(content).bind(@)
+			.tap ()-> debug "start applying transforms #{@pathDebug}"
 			.then @applySpecificTransforms							# ones found in "simplyimport:specific" package.json field
 			.then @applyPkgTransforms								# ones found in "browserify.transform" package.json field
 			.then(@applyRegularTransforms unless @isExternal)		# ones provided through options.transform (applied to all files of entry-level package)
 			.then @applyGlobalTransforms							# ones provided through options.globalTransform (applied to all processed files)
+			.tap ()-> debug "done applying transforms #{@pathDebug}"
 
 
 	applySpecificTransforms: (content)->
@@ -322,6 +329,7 @@ class File
 	tokenize: ()->
 		unless EXTENSIONS.nonJS.includes(@pathExt)
 			try
+				debug "tokenizing #{@pathDebug}"
 				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
 				@Tokens.forEach (token, index)-> token.index = index
 			catch err
@@ -336,6 +344,7 @@ class File
 		content = if @pathExt is 'json' then "(#{@content})" else @content
 		@checkSyntaxErrors(content)
 		try
+			debug "generating AST #{@pathDebug}"
 			@AST = Parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
 		catch err
 			@task.emit 'ASTParseError', @, err
@@ -392,6 +401,7 @@ class File
 
 
 	collectForceInlineImports: ()->
+		debug "collecting force inline imports #{@pathDebug}"
 		@content.replace REGEX.inlineImport, (entire, childPath, offset)=>
 			statement = helpers.newImportStatement()
 			statement.source = @
@@ -405,6 +415,7 @@ class File
 
 
 	collectImports: (tokens=@Tokens)->
+		debug "collecting imports #{@pathDebug}"
 		switch
 			when tokens
 				@collectedImports = true
@@ -461,6 +472,7 @@ class File
 
 
 	collectExports: (tokens=@Tokens)->
+		debug "collecting exports #{@pathDebug}"
 		if tokens
 			@collectedExports = true
 			try
@@ -494,6 +506,7 @@ class File
 
 
 	replaceInlineImports: (type='inline')->
+		debug "replacing #{type} imports #{@pathDebug}"
 		content = @content
 		lines = @linesPostTransforms or @linesOriginal # the latter will be used when type==='inline-forced'
 		if type is 'inline-forced'
@@ -525,6 +538,7 @@ class File
 
 
 	replaceImportStatements: (content)->
+		debug "replacing imports #{@pathDebug}"
 		loader = @task.options.loaderName
 		for statement,index in @importStatements when statement.type is 'module'
 
@@ -561,6 +575,7 @@ class File
 
 
 	replaceExportStatements: (content)->
+		debug "replacing exports #{@pathDebug}"
 		loader = @task.options.loaderName
 		for statement,index in @exportStatements
 			
