@@ -56,7 +56,7 @@
     "chalk": "^1.1.3",
     "coffee-register": "^0.1.0",
     "coffee-script": "^1.12.6",
-    "coffeeify": "^2.1.0",
+    "coffeeify-cached": "^2.1.1",
     "combine-source-map": "^0.8.0",
     "commander": "^2.9.0",
     "console-browserify": "^1.1.0",

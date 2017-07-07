@@ -223,10 +223,10 @@ class File
 			.then (content)->
 				transforms = @options.transform
 				forceTransform = switch
-					when @pathExt is 'ts'		and not @allTransforms.includes('tsify-transform') 	then 'tsify-transform'
-					when @pathExt is 'coffee'	and not @allTransforms.includes('coffeeify')		then 'coffeeify'
 					when @pathExt is 'cson'		and not @allTransforms.includes('csonify') 			then 'csonify'
 					when @pathExt is 'yml'		and not @allTransforms.includes('yamlify') 			then 'yamlify'
+					when @pathExt is 'ts'		and not @allTransforms.includes('tsify-transform') 	then 'tsify-transform'
+					when @pathExt is 'coffee'	and not @allTransforms.some((t)-> t?.includes('coffeeify')) then 'coffeeify-cached'
 				
 				transforms.unshift(forceTransform) if forceTransform
 				promiseBreak(content) if not transforms.length
@@ -307,7 +307,7 @@ class File
 					.catch promiseBreak.end
 					.then (content)->
 						return content if content is prevContent
-						if transformer.name.includes(/coffeeify|typescript-compiler/)
+						if transformer.name.includes(/coffeeify|tsify-transform/)
 							@pathExt = 'js'
 						else if transformer.name.includes(/csonify|yamlify/)
 							@pathExt = 'json'
