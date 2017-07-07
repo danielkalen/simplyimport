@@ -188,6 +188,9 @@ class File
 
 	postTransforms: ()->
 		@contentPostTransforms = @content
+		@sourceMap = sourcemapConvert.fromSource(@content)?.sourcemap
+		if @sourceMap
+			@contentPostTransforms = @content = sourcemapConvert.removeComments(@content)
 		
 		if @requiredGlobals.process
 			@contentPostTransforms = @content = "var process = require('process');\n#{@content}"
@@ -306,8 +309,7 @@ class File
 						
 						if @pathExt isnt @pathExtOriginal
 							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
-
-						@sourceMap ?= sourcemapConvert.fromSource(content)?.sourcemap
+						
 						return content
 				
 			, content)
