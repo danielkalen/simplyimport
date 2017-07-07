@@ -28,6 +28,7 @@
   "mocha_opts": "-u tdd --compilers coffee:coffee-register --slow 1000 --timeout 8000",
   "scripts": {
     "prepublishOnly": "npm run test -s",
+    "postpublish": "git push",
     "build": "npm run compile && npm run prependbin && npm run makeexec",
     "compile": "npm run compile:module && npm run compile:bin",
     "compile:module": "foreach -g 'lib/*' -x 'cat {{path}} | coffee -c -s -b > forCoverage/{{name}}.js'",
