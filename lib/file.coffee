@@ -440,7 +440,8 @@ class File
 					statement.extract = targetSplit[1]
 					statement.range.start = tokens[statement.tokenRange.start].start
 					statement.range.end = tokens[statement.tokenRange.end].end
-					statement.source = @
+					# debugger if statement.target is './e'
+					statement.source = @getStatementSource(statement)
 					@importStatements.push(statement)
 
 
@@ -449,11 +450,11 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, childPath, offset)=>
 					statement = helpers.newImportStatement()
-					statement.source = @
 					statement.target = childPath.removeAll(REGEX.quotes).trim()
 					statement.range.start = offset
 					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
+					statement.source = @getStatementSource(statement)
 					@importStatements.push(statement)
 
 
@@ -461,11 +462,11 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, childPath, offset)=>
 					statement = helpers.newImportStatement()
-					statement.source = @
 					statement.target = childPath.removeAll(REGEX.quotes).trim()
 					statement.range.start = offset
 					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
+					statement.source = @getStatementSource(statement)
 					@importStatements.push(statement)
 
 
@@ -488,7 +489,7 @@ class File
 
 			statements.forEach (statement)=>
 				statement.range = 'start':tokens[statement.tokenRange.start].start, 'end':tokens[statement.tokenRange.end].end
-				statement.source = @
+				statement.source = @getStatementSource(statement)
 				statement.target ?= @
 				if statement.decs
 					for dec,range of statement.decs
@@ -532,8 +533,9 @@ class File
 
 					return targetContent
 
-				@addRangeOffset rangeGroup, helpers.newReplacementRange(range, replacement)
 				content = content.slice(0,range.start) + replacement + content.slice(range.end)
+				replacementRange = @addRangeOffset rangeGroup, helpers.newReplacementRange(range, replacement)
+				replacementRange.source = statement.target if type is 'inline-forced'
 
 			.then ()-> content
 
@@ -650,6 +652,11 @@ class File
 			return JSON.stringify(result)
 
 
+	getStatementSource: (statement)->
+		for candidate in @replacedRanges.inlines
+			return candidate.source if candidate.start <= statement.range.start and statement.range.end <= candidate.end
+		return @
+
 	offsetRange: (range, targetArrays, sourceArray)->
 		offset = 0
 		targetArrays ?= RANGE_ARRAYS
@@ -686,7 +693,8 @@ class File
 			while largerRange = ranges[++i]
 				largerRange.start += range.diff
 				largerRange.end += range.diff
-		return
+		
+		return range
 
 
 	destroy: ()->

@@ -277,12 +277,12 @@ class Task extends require('events')
 			.then (imports)-> imports.concat(importingExports)
 			.map (statement)->
 				Promise.bind(@)
-					.then ()-> @initFile(statement.target, file)
+					.then ()-> @initFile(statement.target, statement.source)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
 					.catch message:'excluded', ()-> statement.type = 'module'; statement.excluded = true
-					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
-					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
+					.catch message:'ignored', @handleIgnoredFile.bind(@, statement.source, statement)
+					.catch message:'missing', @handleMissingFile.bind(@, statement.source, statement)
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@importStatements) if ++currentDepth > depth

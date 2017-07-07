@@ -2,12 +2,16 @@ chalk = require 'chalk'
 LinesAndColumns = require('lines-and-columns').default
 
 module.exports = (file, posStart, posEnd=posStart+1)->
-	lines = new LinesAndColumns(file.content)
-	loc = lines.locationForIndex(posStart)
-	line = lineOrig = file.content.split('\n')[loc.line]
-	line = line.slice(0, Math.max(10,process.stderr.columns)) if line.length > process.stderr.columns and process.stderr.columns
-	caretCount = Math.min line.length-loc.column, posEnd-posStart
-	loc.line += 1
+	try
+		lines = new LinesAndColumns(file.content)
+		loc = lines.locationForIndex(posStart)
+		line = lineOrig = file.content.split('\n')[loc.line]
+		line = line.slice(0, Math.max(10,process.stderr.columns)) if line.length > process.stderr.columns and process.stderr.columns
+		caretCount = Math.min line.length-loc.column, posEnd-posStart
+		loc.line += 1
+	catch
+		loc = line:0, column:0
+		caretCount = 0
 
 	"""
 		\n
