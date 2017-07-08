@@ -108,12 +108,15 @@ class File
 							file = @
 							jsString = ''
 							tokens = Parser.tokenize(start[2])
+							BUNDLE_TARGET = @task.options.target
 
 							helpers.walkTokens tokens, @linesOriginal, null, (token)->
 								switch token.type.label
 									when 'name'
 										if @_prev?.value is '.' or GLOBALS.includes(token.value)
 											jsString += token.value
+										else if token.value is 'BUNDLE_TARGET'
+											jsString += "'#{BUNDLE_TARGET}'"
 										else
 											value = process.env[token.value]
 											jsString += " process.env['#{token.value}']"

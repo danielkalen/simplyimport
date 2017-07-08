@@ -2846,6 +2846,67 @@ suite "SimplyImport", ()->
 					assert.equal context.abc, 'bbb'
 
 
+		test "BUNDLE_TARGET in statements will be resolved to the task's options.target", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						"main.js": """
+							a = 'nothing';
+							b = '';
+							c = '';
+							d = 'nothing';
+
+							// simplyimport:if bundle_target = 'node'
+							a = 'node';
+							// simplyimport:end
+
+							// simplyimport:if bundle_TARGET = 'browser'
+							a = 'browser';
+							// simplyimport:end
+
+							// simplyimport:if BUNDLE_TARGET = 'node'
+							b = 'node';
+							c = 'node';
+							// simplyimport:end
+
+							// simplyimport:if BUNDLE_TARGET === 'browser'
+							b = 'browser';
+							c = 'browser';
+							// simplyimport:end
+
+							// simplyimport:if BUNDLE_TARGET = 'something-else'
+							d = 'something';
+							// simplyimport:end
+						"""
+
+				.then ()->
+					assert.equal typeof process.env.BUNDLE_TARGET, 'undefined'
+					processAndRun file:temp('main.js')
+				.then ({context})->
+					assert.equal context.a, 'nothing'
+					assert.equal context.b, 'browser'
+					assert.equal context.c, 'browser'
+					assert.equal context.d, 'nothing'
+
+				.then ()->
+					assert.equal typeof process.env.BUNDLE_TARGET, 'undefined'
+					processAndRun file:temp('main.js'), target:'node'
+				.then ({context})->
+					assert.equal context.a, 'nothing'
+					assert.equal context.b, 'node'
+					assert.equal context.c, 'node'
+					assert.equal context.d, 'nothing'
+
+				.then ()->
+					process.env.BUNDLE_TARGET = 'something-else'
+					processAndRun file:temp('main.js')
+				.then ({context})->
+					assert.equal context.a, 'nothing'
+					assert.equal context.b, 'browser'
+					assert.equal context.c, 'browser'
+					assert.equal context.d, 'nothing'
+
+
 		test "statements will be parsed as js expressions and can thus can have standard punctuators and invoke standard globals", ()->
 			Promise.resolve()
 				.then ()->
