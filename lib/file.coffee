@@ -173,6 +173,7 @@ class File
 
 			.then @saveContent.bind(@, 'contentPostConditionals')
 			.catch promiseBreak.end
+			.tap ()-> @linesPostConditionals = new LinesAndColumns(@content)
 
 
 	saveContent: (milestone, content)->
@@ -512,7 +513,7 @@ class File
 	replaceInlineImports: (type='inline')->
 		debug "replacing #{type} imports #{@pathDebug}"
 		content = @content
-		lines = @linesPostTransforms or @linesOriginal # the latter will be used when type==='inline-forced'
+		lines = @linesPostTransforms or @linesPostConditionals # the latter will be used when type==='inline-forced'
 		if type is 'inline-forced'
 			rangeGroup = 'inlines'
 			targetRangeGroups = ['inlines']
@@ -720,6 +721,7 @@ class File
 		delete @parsed
 		delete @options
 		delete @linesPostTransforms
+		delete @linesPostConditionals
 		delete @linesOriginal
 		delete @pkgTransform
 		delete @task
