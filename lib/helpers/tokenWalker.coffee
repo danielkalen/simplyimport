@@ -60,7 +60,7 @@ module.exports = class TokenWalker
 		err = new Error "unexpected '#{@current.value}'"
 		err.token = @current
 		err.name = 'TokenError'
-		err.stack = err.stack.lines().slice(1).join('\n')
+		err.stack = err.stack.split('\n').slice(1).join('\n')
 		return err
 
 

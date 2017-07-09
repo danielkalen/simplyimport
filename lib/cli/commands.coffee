@@ -64,12 +64,14 @@ exports.push
 		['-s, --size', "include gzipped size of each file"]
 		['-d, --depth [number]', "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
 		['-e, --exclude [path]', "file to exclude", collectArgs, []]
+		['-c, --conditionals', "consider conditionals"]
 		['--expand-modules', "list all imports of external modules"]
-		# ["--target <node|browser>", "the target env this bundle will be run in"]
+		["--target <node|browser>", "the target env this bundle will be run in"]
 	]
 	action: (file, options)->
 		program.specified = true
 		options.flat = false
+		options.matchAllConditions = false if options.conditionals
 
 		Promise.resolve()
 			.then ()->

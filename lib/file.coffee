@@ -116,7 +116,7 @@ class File
 										if @_prev?.value is '.' or GLOBALS.includes(token.value)
 											jsString += token.value
 										else if token.value is 'BUNDLE_TARGET'
-											jsString += "'#{BUNDLE_TARGET}'"
+											jsString += " '#{BUNDLE_TARGET}'"
 										else
 											value = process.env[token.value]
 											jsString += " process.env['#{token.value}']"
@@ -162,7 +162,7 @@ class File
 
 			.then (linesToRemove)->
 				outputLines = []
-				@content.lines (line, index)=>
+				@content.split('\n').forEach (line, index)=>
 					if not linesToRemove[index]
 						outputLines.push(line)
 					else

@@ -1,7 +1,7 @@
 REGEX = require '../constants/regex'
 
 module.exports = prepareMultilineReplacement = (sourceContent, targetContent, lines, range)->
-	if targetContent.lines().length <= 1
+	if targetContent.split('\n').length <= 1
 		return targetContent
 	else
 		loc = lines.locationForIndex(range.start)

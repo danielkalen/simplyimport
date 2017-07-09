@@ -3011,10 +3011,11 @@ suite "SimplyImport", ()->
 					process.env.var1 = true
 					processAndRun file:temp('main.js')
 				.then ({context, writeToDisc})->
+					writeToDisc()
 					assert.equal context.aaa, 'aaa'
 					assert.equal context.bbb, 'bbb'
 					assert.equal context.ccc, 'ccc'
-					assert.equal context.result, context.aaa
+					assert.equal context.result, undefined
 
 				.then ()->
 					process.env.var2 = true
