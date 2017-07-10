@@ -3398,6 +3398,51 @@ suite "SimplyImport", ()->
 					assert.deepEqual scanResults.umd, []
 
 
+		test "will have their require statements scanned if the require variable is never defined", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							exports.a = require('module-a')
+							exports.b = require('module-b')
+							exports.c = require('module-c')
+						"""
+						'node_modules/prefix-a/index.js': """
+							module.exports = 'module-';
+						"""
+						'node_modules/prefix-b/index.js': """
+							module.exports = 'MODULE-';
+						"""
+						'node_modules/prefix-c/index.js': """
+							module.exports = 'MoDuLe-';
+						"""
+						'node_modules/module-a/index.js': """
+							module.exports = require('prefix-a')+'a';
+						"""
+						'node_modules/module-b/index.js': """
+							if (typeof module !== 'undefined' && typeof exports !== 'undefined') {
+								var thePrefix = require('prefix-b')
+							}
+							module.exports = thePrefix+'b';
+						"""
+						'node_modules/module-c/index.js': """
+							(function(require){
+								if (typeof module !== 'undefined' && typeof exports !== 'undefined') {
+									var thePrefix = require('prefix-c')
+								}
+								module.exports = thePrefix+'c';
+							})(function(){return 'noprefix-'})
+						"""
+				.then ()-> processAndRun file:temp('main.js'), usePaths:true
+				.then ({result, compiled})->
+					assert.equal result.a, 'module-a'
+					assert.equal result.b, 'MODULE-b'
+					assert.equal result.c, 'noprefix-c'
+					assert.include compiled, "'module-'"
+					assert.include compiled, "'MODULE-'"
+					assert.notInclude compiled, "'MoDuLe-'"
+
+
 		test "can be imported", ()->
 			Promise.resolve()
 				.then ()->
@@ -3543,6 +3588,15 @@ suite "SimplyImport", ()->
 					assert.notEqual obj, clone
 					assert.deepEqual obj, clone
 					assert.deepEqual clone2.c, [3,4,5,1,2,2]
+	
+
+		test "formatio", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('formatio')"
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})->
+					assert.typeOf result, 'object'
+					assert.typeOf result.ascii, 'function'
 	
 
 		test "timeunits", ()->

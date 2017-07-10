@@ -67,12 +67,12 @@ class File
 			REGEX.defineCheck.test(@content) or
 			REGEX.requireCheck.test(@content)
 
-		@isThirdPartyBundle = @isThirdPartyBundle or
+		@hasRequires = REGEX.commonImportReal.test(@content)
+		@hasOwnRequireSystem =
 			REGEX.requireDec.test(@content) or
-			(
-				REGEX.requireArg.test(@content) and
-				REGEX.commonImportReal.test(@content)
-			)
+			REGEX.requireArg.test(@content) and @hasRequires
+
+		@isThirdPartyBundle = @isThirdPartyBundle or @hasOwnRequireSystem
 
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle and not EXTENSIONS.static.includes(@pathExt)
@@ -426,7 +426,8 @@ class File
 				@collectedImports = true
 				
 				try
-					requires = if @isThirdPartyBundle then [] else helpers.collectRequires(tokens, @linesPostTransforms)
+					shouldSkipRequires = @isThirdPartyBundle and @hasOwnRequireSystem and @hasRequires
+					requires = if shouldSkipRequires then [] else helpers.collectRequires(tokens, @linesPostTransforms)
 					imports = helpers.collectImports(tokens, @linesPostTransforms)
 					statements = imports.concat(requires).sortBy('tokenRange.start')
 				catch err

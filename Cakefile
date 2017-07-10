@@ -8,7 +8,7 @@ Path = require 'path'
 process.env.SOURCE_MAPS ?= 1
 coverageModules = ['istanbul', 'badge-gen', 'coffee-coverage']
 testModules = [
-	'mocha', 'chai', 'browserify', 'babelify',
+	'mocha', 'chai', 'browserify', 'babelify', 'formatio',
 	'babel-preset-es2015-script', 'envify', 'es6ify', 'brfs',
 	'axios', 'moment', 'timeunits', 'yo-yo', 'smart-extend',
 	'p-wait-for', 'source-map-support', 'xmlhttprequest',

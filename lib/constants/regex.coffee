@@ -185,7 +185,7 @@ REGEX =
 	# 	\) 												# trailing char after 'require' (bracket close)
 	# $///
 
-	commonImportReal: ///^
+	commonImportReal: ///
 		\b
 		require 										# require reference
 		\( 												# trailing char after 'require' (bracket open)
@@ -196,7 +196,7 @@ REGEX =
 			'.*?'
 		)
 		\) 												# trailing char after 'require' (bracket close)
-	$///
+	///
 
 
 	# comment:
