@@ -11,12 +11,20 @@ module.exports = safeRequire = (targetPath, basedir)->
 		.then ()-> helpers.resolveModulePath(targetPath, basedir)
 		.get 'file'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
+		
+		.then ()-> helpers.resolveModulePath(targetPath, Path.resolve(basedir,'node_modules'))
+		.get 'file'
+		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 
 		.then ()-> helpers.resolveFilePath(targetPath, '')
 		.get 'pathAbs'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 		
 		.then ()-> helpers.resolveFilePath(Path.resolve(basedir, targetPath), '').get('pathAbs')
+		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
+		.get 'pathAbs'
+		
+		.then ()-> helpers.resolveFilePath(Path.resolve(basedir, 'node_modules', targetPath), '').get('pathAbs')
 		.get 'pathAbs'
 
 		.catch promiseBreak.end

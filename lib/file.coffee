@@ -292,7 +292,7 @@ class File
 			.filter (transform)-> not @task.options.ignoreTransform.includes(transform)
 			.map (transform)->
 				lastTransformer = name:transform, fn:transform
-				helpers.resolveTransformer(transform, Path.resolve(@pkgFile.dirPath,'node_modules'))
+				helpers.resolveTransformer(transform, @pkgFile.dirPath)
 			
 			.reduce((content, transformer)->
 				lastTransformer = transformer
