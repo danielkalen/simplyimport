@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "4.0.0-s5",
+  "version": "4.0.0-s6",
   "description": "Inline imports/exports for JS/Coffee featuring ES6 & CommonJS syntax support, transforms, conditional & duplicate imports, etc.",
   "keywords": [
     "import",
@@ -29,6 +29,7 @@
   "scripts": {
     "prepublishOnly": "npm run test -s",
     "postpublish": "git push",
+    "publish-next": "npm publish --tag next",
     "build": "npm run compile && npm run prependbin && npm run makeexec",
     "compile": "npm run compile:module && npm run compile:bin",
     "compile:module": "foreach -g 'lib/*' -x 'cat {{path}} | coffee -c -s -b > forCoverage/{{name}}.js'",
