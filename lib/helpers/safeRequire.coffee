@@ -5,6 +5,8 @@ fs = require 'fs-jetpack'
 helpers = require './'
 
 module.exports = safeRequire = (targetPath, basedir)->
+	resolved = targetPath
+
 	Promise.resolve()
 		.then ()-> helpers.resolveModulePath(targetPath, basedir)
 		.get 'file'
@@ -18,11 +20,11 @@ module.exports = safeRequire = (targetPath, basedir)->
 		.get 'pathAbs'
 
 		.catch promiseBreak.end
-		.then (resolvedPath)->
-			require(resolvedPath)
+		.then (resolvedPath=targetPath)->
+			require(resolved=resolvedPath)
 
 		.catch (err)->
-			if err.message.includes('Cannot find module')
+			if err.message.includes('Cannot find module') and err.message.split('\n')[0].includes(resolved)
 				throw new Error "'#{targetPath}' could not be found"
 			else
 				throw err
