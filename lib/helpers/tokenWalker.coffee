@@ -65,8 +65,7 @@ module.exports = class TokenWalker
 
 
 	storeDecs: (store)->
-		prevKeyword = null
-		currentAssignment = null
+		prevKeyword = currentAssignment = prevWasBracket = null
 		currentBrackets = []
 
 		hasNewLine = ()=>
@@ -75,11 +74,12 @@ module.exports = class TokenWalker
 			return currentLine isnt prevLine
 
 		while @next().type.label and @current.type.label isnt 'eof'
-			isStatementEnd = hasNewLine() and not VALID_PUNCTUATORS.includes(@_prev.value) and not VALID_KEYWORDS.includes(prevKeyword)
+			isStatementEnd = hasNewLine() and not prevWasBracket and not VALID_PUNCTUATORS.includes(@_prev.value) and not VALID_KEYWORDS.includes(prevKeyword)
+			prevWasBracket = false
 			
 			switch
 				when REGEX.bracketStart.test(@current.value) and not isStatementEnd
-					currentBrackets.push(@current.value)
+					currentBrackets.push(prevWasBracket=@current.value)
 					continue
 				
 				when REGEX.bracketEnd.test(@current.value)
