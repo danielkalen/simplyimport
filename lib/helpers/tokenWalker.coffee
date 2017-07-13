@@ -56,8 +56,10 @@ module.exports = class TokenWalker
 		return results
 
 
-	newError: ()->
-		err = new Error "unexpected '#{@current.value}'"
+	newError: (expecting)->
+		msg = "unexpected '#{@current.value}'"
+		msg += " (expecting '#{expecting}')"
+		err = new Error(msg)
 		err.token = @current
 		err.name = 'TokenError'
 		err.stack = err.stack.split('\n').slice(1).join('\n')
@@ -78,18 +80,18 @@ module.exports = class TokenWalker
 			prevWasBracket = false
 			
 			switch
-				when REGEX.bracketStart.test(@current.value) and not isStatementEnd
+				when REGEX.bracketStart.test(@current.value) and @current.type.label isnt 'string' and not isStatementEnd
 					currentBrackets.push(prevWasBracket=@current.value)
 					continue
 				
 				when REGEX.bracketEnd.test(@current.value)
 					last = currentBrackets.last()
-					if  last is '[' and @current.value is ']' or
-						last is '{' and @current.value is '}' or
-						last is '(' and @current.value is ')'
+					if  last is '[' and @current.value is (expected=']') or
+						last is '{' and @current.value is (expected='}') or
+						last is '(' and @current.value is (expected=')')
 							currentBrackets.pop()
 					else
-						throw @newError()
+						throw @newError(expected)
 
 					continue
 
