@@ -84,7 +84,7 @@ module.exports = class TokenWalker
 					currentBrackets.push(prevWasBracket=@current.value)
 					continue
 				
-				when REGEX.bracketEnd.test(@current.value)
+				when REGEX.bracketEnd.test(@current.value) and @current.type.label isnt 'string'
 					last = currentBrackets.last()
 					if  last is '[' and @current.value is (expected=']') or
 						last is '{' and @current.value is (expected='}') or
