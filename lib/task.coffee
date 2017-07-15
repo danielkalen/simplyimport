@@ -313,7 +313,13 @@ class Task extends require('events')
 					if statement.extract and statement.target.pathExt isnt 'json'
 						@emit 'ExtractError', statement.target, new Error "invalid attempt to extract data from a non-data file type"
 
-					if statement.type is 'module' and statement.target.type is 'inline' and not statement.target.becameModule
+					requiresModification = 
+						statement.type is 'module' and
+						statement.target.type is 'inline' and
+						not statement.target.becameModule and
+						not statement.target.path isnt EMPTY_STUB
+					
+					if requiresModification
 						{content, offset} = helpers.exportLastExpression(statement.target)
 						statement.target.addRangeOffset 'exports', {'start':offset.start, 'end':offset.end, 'diff':17, isTweener:true} if offset
 						statement.target.content = content
