@@ -3,12 +3,20 @@ LinesAndColumns = require('lines-and-columns').default
 
 module.exports = (file, posStart, posEnd=posStart+1)->
 	try
+		terminalLen = process.stderr.columns
 		lines = new LinesAndColumns(file.content)
 		loc = lines.locationForIndex(posStart)
 		line = lineOrig = file.content.split('\n')[loc.line]
-		line = line.slice(0, Math.max(10,process.stderr.columns)) if line.length > process.stderr.columns and process.stderr.columns
-		caretCount = Math.min line.length-loc.column, posEnd-posStart
+		padding = loc.column
+		
+		if terminalLen and terminalLen < line.length
+			middle = loc.column
+			line = line.slice middle-(terminalLen/2), middle+(terminalLen/2)
+			padding = terminalLen/2
+		
+		caretCount = Math.min line.length-padding, posEnd-posStart
 		loc.line += 1
+
 	catch
 		loc = line:0, column:0
 		caretCount = 0
@@ -17,5 +25,5 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 		\n
 		#{chalk.dim file.path+':'+loc.line+':'+loc.column} -
 			#{line}
-			#{' '.repeat(loc.column)}#{chalk.red '^'.repeat(caretCount)}
+			#{' '.repeat(padding)}#{chalk.red '^'.repeat(caretCount)}
 	"""
