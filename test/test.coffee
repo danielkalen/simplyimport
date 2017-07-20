@@ -921,8 +921,8 @@ suite "SimplyImport", ()->
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result, writeToDisc})->
 				assert.deepEqual result.a, {abc:123, def:456, ghi:789, jkl:999}
-				assert.deepEqual result.b, {__esModule:true, abc:123, def:456, ghi:789, jkl:999}
-				assert.deepEqual result.c, {__esModule:true, abc:123}
+				assert.deepEqual result.b, {abc:123, def:456, ghi:789, jkl:999}
+				assert.deepEqual result.c, {abc:123}
 
 
 	test "imports/exports should be live", ()->
@@ -950,7 +950,7 @@ suite "SimplyImport", ()->
 					"""
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result})->
-				assert.deepEqual result.a, {__esModule:true, abc:'abc', def:'DEF'}
+				assert.deepEqual result.a, {abc:'abc', def:'DEF'}
 				assert.equal result.a, result.b
 				assert.equal result.a, result.c
 
@@ -987,9 +987,6 @@ suite "SimplyImport", ()->
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({result})->
-				delete result.b1.__esModule
-				delete result.b2.__esModule
-				delete result.b3.__esModule
 				assert.deepEqual result.a1, 123
 				assert.deepEqual result.a2, 123
 				assert.deepEqual result.a3, {default:123, def:456}

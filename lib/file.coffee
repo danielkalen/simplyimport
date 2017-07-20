@@ -638,7 +638,6 @@ class File
 			@addRangeOffset 'exports', helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
-		content += "\nexports.__esModule=true" if @exportStatements.length
 		return content
 
 
