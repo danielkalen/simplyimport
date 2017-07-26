@@ -124,7 +124,7 @@ require('sugar/object/filter')
 # require('sugar/function/lazy')
 # require('sugar/function/lock')
 # require('sugar/function/memoize')
-# require('sugar/function/once')
+require('sugar/function/once')
 # require('sugar/function/partial')
 # require('sugar/function/throttle')
 

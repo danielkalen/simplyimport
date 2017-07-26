@@ -4425,3 +4425,20 @@ suite "SimplyImport", ()->
 						]
 
 
+	suite.only "http imports", ()->
+		test "js files can be downloaded and used as modules", ()->
+			Promise.resolve()
+				.then ()->
+					helpers.lib
+						'main.js': """
+							module.exports = import 'https://js.stripe.com/v3/'
+						"""
+
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({compiled, result})->
+					console.log result
+
+
+
+
+
