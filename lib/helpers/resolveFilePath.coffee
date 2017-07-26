@@ -10,15 +10,8 @@ debug = require('debug')('simplyimport:fs')
 module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 	params = Path.parse(Path.resolve(input))
 	isFile = false
-	
-	Promise.resolve()
-		.then ()-> if input.startsWith('http://') or input.startsWith('https://')
-			helpers.resolveHttpFile(input).then (result)->
-				params = Path.parse(Path.resolve(input))
-				input = result
-				isFile = true
-				promiseBreak(result)
 
+	Promise.resolve()
 		.then ()-> # resovle provided input if it has a valid extension
 			extname = params.ext.slice(1).toLowerCase()
 			if extname and EXTENSIONS.all.includes(extname)
