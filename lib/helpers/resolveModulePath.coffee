@@ -47,5 +47,5 @@ module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile, ta
 
 				.catch(
 					(err)-> err.message.startsWith('Cannot find module')
-					()-> helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile, target)
+					()-> helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile, target) unless helpers.isLocalModule(moduleName)
 				)
