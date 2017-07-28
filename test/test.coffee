@@ -689,6 +689,56 @@ suite "SimplyImport", ()->
 				assert.deepEqual bundleB.result.d, 'excluded'
 
 
+	test "files/modules can be ignored/replaced via package.json's browser field", ()->
+		Promise.resolve()
+			.then emptyTemp
+			.then ()->
+				helpers.lib
+					'package.json': JSON.stringify
+						main: 'main.js'
+						browser:
+							'./a.js': './a2.js'
+							'b': 'b2'
+							'c2': './c.js'
+							'./node_modules/d/index.js': 'd2'
+							'e': false
+					
+					'main.js': """
+						exports.a = require('./a')
+						exports.b = import 'b'
+						exports.c = require('c2')
+						exports.d = require('d')
+						exports.e = require('e')
+					"""
+					'a.js': "module.exports = 'file a.js!'"
+					'a2.js': "module.exports = 'file a2.js!'"
+					'node_modules/b/index.js': "module.exports = 'file b.js!'"
+					'node_modules/b/package.json': JSON.stringify main:'index.js'
+					'node_modules/b2/index.js': "module.exports = 'file b2.js!'"
+					'node_modules/b2/package.json': JSON.stringify main:'index.js'
+					'c.js': "module.exports = 'file c.js!'"
+					'node_modules/c2/index.js': "module.exports = 'file c2.js!'"
+					'node_modules/c2/package.json': JSON.stringify main:'index.js'
+					'node_modules/d/index.js': "module.exports = 'file d.js!'"
+					'node_modules/d/package.json': JSON.stringify main:'index.js'
+					'node_modules/d2/index.js': "module.exports = 'file d2.js!'"
+					'node_modules/d2/package.json': JSON.stringify main:'index.js', browser:'../d3/index.js'
+					'node_modules/d3/index.js': "module.exports = 'file d3.js!'"
+					'node_modules/d3/package.json': JSON.stringify main:'index.js'
+					'node_modules/e/index.js': "module.exports = 'file e.js!'"
+					'node_modules/e/package.json': JSON.stringify main:'index.js'
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({compiled, result})->
+				assert.equal result.a, 'file a2.js!'
+				assert.equal result.b, 'file b2.js!'
+				assert.equal result.c, 'file c.js!'
+				assert.equal result.d, 'file d3.js!'
+				assert.notEqual result.e, 'file e.js!'
+				assert.deepEqual result.e, {}
+				
+
+
 	test "options.usePaths will cause modules to be labeled with their relative path instead of a unique inceremental ID", ()->
 		Promise.resolve()
 			.then ()->

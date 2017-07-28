@@ -37,9 +37,7 @@ module.exports = (url)->
 		.then (stream)-> getStream(stream, encoding:'buffer')
 		.tap ()-> debug "finished download #{chalk.dim url}"
 		
-		# .tap (result)-> console.log result.length, typeof result
 		.then (result)-> fs.writeAsync cachedPath, result
-		# .tap (result)-> console.log fs.read(cachedPath, 'buffer').length, typeof fs.read(cachedPath, 'buffer')
 		.then ()-> if ext is 'tgz'
 			debug "extracting tarball #{chalk.dim cachedPath}"
 			gzipped = cachedPath

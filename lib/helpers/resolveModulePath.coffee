@@ -19,7 +19,7 @@ module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile, ta
 		when helpers.isLocalModule(moduleName) and moduleName[moduleName.length-1] isnt '/'
 			if pkgFile and typeof pkgFile.browser is 'object' and target isnt 'node'
 				replacedPath = helpers.resolveBrowserFieldPath(pkgFile, moduleName, basedir)
-				
+
 				if replacedPath?
 					if typeof replacedPath isnt 'string'
 						output.file = EMPTY_FILE
@@ -33,6 +33,9 @@ module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile, ta
 		else
 			resolveModule(moduleName, {basedir, filename:basefile, modules:coreModuleShims, extensions})
 				.then (moduleFullPath)->
+					unless coreModuleShims[moduleFullPath] or helpers.isLocalModule(moduleFullPath)
+						return resolveModulePath(moduleFullPath, basedir, basefile, pkgFile, target)
+
 					findPkgJson(normalize:false, cwd:moduleFullPath).then (result)->
 						output.file = moduleFullPath
 						output.pkg = result.pkg
