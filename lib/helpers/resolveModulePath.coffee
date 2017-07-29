@@ -5,36 +5,32 @@ helpers = require('./')
 {EMPTY_FILE, EMPTY_FILE_END} = require('../constants')
 coreModuleShims = require('../constants/coreShims')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
+resolvers =
+	node: Promise.promisify require('resolve')
+	browser: Promise.promisify require('browser-resolve')
 
-module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile, target)-> Promise.resolve().then ()->
-	resolveModule = Promise.promisify if target is 'node' then require('resolve') else require('browser-resolve')
-	fullPath = Path.resolve(basedir, moduleName)
-	output = 'file':fullPath
+module.exports = resolveModulePath = (moduleName, importer, target='browser')-> Promise.resolve().then ()->
+	resolver = resolvers[target]
+	# shims = importer.task?.shims or coreModuleShims
+	shims = coreModuleShims
+	output =
+		'file': Path.resolve(importer.context, moduleName)
+		'pkg': importer.pkgFile
 
 	switch
+		when helpers.isLocalModule(moduleName) and moduleName[moduleName.length-1] isnt '/'
+			resolveLocalModule {output, moduleName, importer, target}
+		
 		when helpers.isHttpModule(moduleName)
 			helpers.resolveHttpModule(moduleName).then (result)->
-				resolveModulePath(result, basedir, basefile, pkgFile, target)
-
-		when helpers.isLocalModule(moduleName) and moduleName[moduleName.length-1] isnt '/'
-			if pkgFile and typeof pkgFile.browser is 'object' and target isnt 'node'
-				replacedPath = helpers.resolveBrowserFieldPath(pkgFile, moduleName, basedir)
-
-				if replacedPath?
-					if typeof replacedPath isnt 'string'
-						output.file = EMPTY_FILE
-						output.isEmpty = true
-					else
-						output.file = replacedPath
-
-			output.pkg = pkgFile
-			return output
+				resolveModulePath(result, importer, target)
 
 		else
-			resolveModule(moduleName, {basedir, filename:basefile, modules:coreModuleShims, extensions})
+			moduleName = output.file = shims[moduleName] if hasShim=shims[moduleName]
+			resolver(moduleName, {basedir:importer.context, filename:importer.pathAbs, modules:shims, extensions})
 				.then (moduleFullPath)->
 					unless coreModuleShims[moduleFullPath] or helpers.isLocalModule(moduleFullPath)
-						return resolveModulePath(moduleFullPath, basedir, basefile, pkgFile, target)
+						return resolveModulePath(moduleFullPath, importer, target)
 
 					findPkgJson(normalize:false, cwd:moduleFullPath).then (result)->
 						output.file = moduleFullPath
@@ -54,5 +50,22 @@ module.exports = resolveModulePath = (moduleName, basedir, basefile, pkgFile, ta
 						if helpers.isLocalModule(moduleName)
 							return output
 						else
-							helpers.resolveModulePath("./#{moduleName}", basedir, basefile, pkgFile, target)
+							helpers.resolveModulePath("./#{moduleName}", importer, target)
 				)
+
+
+resolveLocalModule = ({output, moduleName, importer, target})->
+	pkg = importer.pkgFile
+	
+	if pkg and typeof pkg.browser is 'object' and target isnt 'node'
+		replacedPath = helpers.resolveBrowserFieldPath(pkg, moduleName, importer.context)
+
+		if replacedPath?
+			if typeof replacedPath isnt 'string'
+				output.file = EMPTY_FILE
+				output.isEmpty = true
+			else
+				output.file = replacedPath
+
+	# output.pkg = pkg
+	return output

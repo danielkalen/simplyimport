@@ -689,7 +689,7 @@ suite "SimplyImport", ()->
 				assert.deepEqual bundleB.result.d, 'excluded'
 
 
-	test "files/modules can be ignored/replaced via package.json's browser field", ()->
+	test.skip "files/modules can be ignored/replaced via package.json's browser field", ()->
 		Promise.resolve()
 			.then emptyTemp
 			.then ()->
@@ -702,6 +702,7 @@ suite "SimplyImport", ()->
 							'c2': './c.js'
 							'./node_modules/d/index.js': 'd2'
 							'e': false
+							'./node_modules/f/name.js': './node_modules/f/name2.js'
 					
 					'main.js': """
 						exports.a = require('./a')
@@ -709,6 +710,7 @@ suite "SimplyImport", ()->
 						exports.c = require('c2')
 						exports.d = require('d')
 						exports.e = require('e')
+						exports.f = require('f')
 					"""
 					'a.js': "module.exports = 'file a.js!'"
 					'a2.js': "module.exports = 'file a2.js!'"
@@ -727,6 +729,10 @@ suite "SimplyImport", ()->
 					'node_modules/d3/package.json': JSON.stringify main:'index.js'
 					'node_modules/e/index.js': "module.exports = 'file e.js!'"
 					'node_modules/e/package.json': JSON.stringify main:'index.js'
+					'node_modules/f/index.js': "module.exports = 'file '+(import './name')+'!'"
+					'node_modules/f/name.js': "module.exports = 'f.js'"
+					'node_modules/f/name2.js': "module.exports = 'f2.js'"
+					'node_modules/f/package.json': JSON.stringify main:'index.js'
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result})->
@@ -736,6 +742,7 @@ suite "SimplyImport", ()->
 				assert.equal result.d, 'file d3.js!'
 				assert.notEqual result.e, 'file e.js!'
 				assert.deepEqual result.e, {}
+				assert.equal result.f, 'file f2.js!'
 				
 
 

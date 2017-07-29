@@ -127,6 +127,13 @@ class Task extends require('events')
 			.then (pkgFile)->
 				return if @options.noPkgConfig
 				@options = extend true, normalizeOptions(pkgFile.simplyimport), @options if Object.isObject(pkgFile?.simplyimport)
+				@shims = switch
+					when @options.target is 'node' then {}
+					when typeof pkgFile.browser is 'undefined' then {}
+					when typeof pkgFile.browser is 'string' then {"#{pkgFile.main}":pkgFile.browser}
+					when typeof pkgFile.browser is 'object' then extend(true, {}, pkgFile.browser)
+
+				@shims = extend(@shims, require('./constants/coreShims')) if @shims
 			
 			.then ()-> promiseBreak(@options.src) if @options.src
 			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
@@ -170,7 +177,7 @@ class Task extends require('events')
 			.catch ()-> null # If prev was rejected with ignored/missing error
 			.tap ()-> debug "start file init for #{chalk.dim input}"
 			.then ()->
-				helpers.resolveModulePath(input, importer.context, importer.pathAbs, importer.pkgFile, @options.target)
+				helpers.resolveModulePath(input, importer, @options.target)
 
 			.then (module)->
 				pkgFile = module.pkg
