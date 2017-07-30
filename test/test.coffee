@@ -712,7 +712,8 @@ suite "SimplyImport", ()->
 						exports.e = require('e')
 						exports.f = require('f')
 						exports.g = require('g/child')
-						exports.h = require('h/alias')
+						exports.h = require('h/child')
+						exports.j = require('@private/j/child')
 					"""
 					'a.js': "module.exports = 'file a.js!'"
 					'a2.js': "module.exports = 'file a2.js!'"
@@ -738,7 +739,9 @@ suite "SimplyImport", ()->
 					'node_modules/g/nested/child.js': "module.exports = 'file g/nested/child.js!'"
 					'node_modules/g/package.json': JSON.stringify main:'index.js', browser: "./child":"./nested/child"
 					'node_modules/h/nested/child.js': "module.exports = 'file h/nested/child.js!'"
-					'node_modules/h/package.json': JSON.stringify main:'index.js', browser: "./child":"./nested/child", "./alias":"./child"
+					'node_modules/h/package.json': JSON.stringify main:'index.js', browser: "./child":"./nested/child"
+					'node_modules/@private/j/nested/child.js': "module.exports = 'file j/nested/child.js!'"
+					'node_modules/@private/j/package.json': JSON.stringify main:'index.js', browser: "./child":"./nested/child"
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result})->
@@ -750,6 +753,8 @@ suite "SimplyImport", ()->
 					e: {}
 					f: 'file f2.js!'
 					g: 'file g/nested/child.js!'
+					h: 'file h/nested/child.js!'
+					j: 'file j/nested/child.js!'
 				
 
 

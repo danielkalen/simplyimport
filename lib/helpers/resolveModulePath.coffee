@@ -2,16 +2,25 @@ Path = require 'path'
 findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
-helpers = require('./')
+fs = require 'fs-jetpack'
+helpers = require './'
 {EMPTY_STUB} = require('../constants')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
 resolver = Promise.promisify require('resolve')
 
 module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 	isLocalModule = helpers.isLocalModule(moduleName)
+
 	output =
 		'file': Path.resolve(importer.context, moduleName)
 		'pkg': importer.pkg
+
+	subPath = if not isLocalModule then do ()->
+		split = moduleName.split '/'
+		subPathStart = if moduleName[0] is '@' then 2 else 1
+		subPath = split.slice(subPathStart).join '/'
+		return subPath
+
 
 	Promise.resolve()
 		.then ()-> switch
@@ -23,14 +32,24 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 					promiseBreak resolveModulePath(result, importer, target)
 
 			else
+				packageFilter = (pkg, path)->
+					pkg.srcPath = path;
+					return pkg
+				
 				pathFilter = (pkg, path, relativePath)->
-					console.log path, relativePath
-					return path
-				resolver(moduleName, {basedir:importer.context, extensions, pathFilter})
+					return if path.endsWith('/')
+					return path if target is 'node' or not subPath
+					helpers.normalizePackage({pkg, path:pkg.srcPath})
+					if pkg.browser
+						return resolveAlias(path, importer, target, pkg.browser)
+					else
+						return path
+		
+				resolver(moduleName, {basedir:importer.context, extensions, pathFilter, packageFilter})
 		
 		.then (moduleResolved)->
 			Promise.props
-				file: moduleResolved,
+				file: moduleResolved
 				pkg: findPkgJson(normalize:false, cwd:moduleResolved).then(helpers.normalizePackage)
 
 		.tap (output)->
