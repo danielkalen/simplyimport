@@ -23,7 +23,10 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 					promiseBreak resolveModulePath(result, importer, target)
 
 			else
-				resolver(moduleName, {basedir:importer.context, extensions})
+				pathFilter = (pkg, path, relativePath)->
+					console.log path, relativePath
+					return path
+				resolver(moduleName, {basedir:importer.context, extensions, pathFilter})
 		
 		.then (moduleResolved)->
 			Promise.props
@@ -56,6 +59,7 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 				else
 					helpers.resolveModulePath("./#{moduleName}", importer, target)
 		)
+		.catch promiseBreak.end
 
 
 resolveAllAliases = (moduleName, output, importer, target)->

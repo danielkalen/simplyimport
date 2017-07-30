@@ -711,6 +711,8 @@ suite "SimplyImport", ()->
 						exports.d = require('d')
 						exports.e = require('e')
 						exports.f = require('f')
+						exports.g = require('g/child')
+						exports.h = require('h/alias')
 					"""
 					'a.js': "module.exports = 'file a.js!'"
 					'a2.js': "module.exports = 'file a2.js!'"
@@ -733,6 +735,10 @@ suite "SimplyImport", ()->
 					'node_modules/f/name.js': "module.exports = 'f.js'"
 					'node_modules/f/name2.js': "module.exports = 'f2.js'"
 					'node_modules/f/package.json': JSON.stringify main:'index.js'
+					'node_modules/g/nested/child.js': "module.exports = 'file g/nested/child.js!'"
+					'node_modules/g/package.json': JSON.stringify main:'index.js', browser: "./child":"./nested/child"
+					'node_modules/h/nested/child.js': "module.exports = 'file h/nested/child.js!'"
+					'node_modules/h/package.json': JSON.stringify main:'index.js', browser: "./child":"./nested/child", "./alias":"./child"
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result})->
@@ -743,6 +749,7 @@ suite "SimplyImport", ()->
 					d: 'file d3.js!'
 					e: {}
 					f: 'file f2.js!'
+					g: 'file g/nested/child.js!'
 				
 
 
