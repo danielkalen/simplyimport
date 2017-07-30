@@ -33,7 +33,7 @@ class File
 		@linesOriginal = new LinesAndColumns(@content)
 		@options.transform ?= []
 		
-		if @pkgTransform = @pkgFile.browserify?.transform then switch
+		if @pkgTransform = @pkg.browserify?.transform then switch
 			when helpers.isValidTransformerArray(@pkgTransform) or typeof @pkgTransform is 'string'
 				@pkgTransform = [@pkgTransform]
 
@@ -292,7 +292,7 @@ class File
 			.filter (transform)-> not @task.options.ignoreTransform.includes(transform)
 			.map (transform)->
 				lastTransformer = name:transform, fn:transform
-				helpers.resolveTransformer(transform, @pkgFile.dirPath)
+				helpers.resolveTransformer(transform, @)
 			
 			.reduce((content, transformer)->
 				lastTransformer = transformer

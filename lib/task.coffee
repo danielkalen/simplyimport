@@ -124,16 +124,16 @@ class Task extends require('events')
 		Promise.bind(@)
 			.tap ()-> debug "start entry file init"
 			.then ()-> helpers.resolveEntryPackage(@)
-			.then (pkgFile)->
+			.then (pkg)->
 				return if @options.noPkgConfig
-				@options = extend true, normalizeOptions(pkgFile.simplyimport), @options if Object.isObject(pkgFile?.simplyimport)
+				@options = extend true, normalizeOptions(pkg.simplyimport), @options if Object.isObject(pkg?.simplyimport)
 				@shims = switch
 					when @options.target is 'node' then {}
-					when typeof pkgFile.browser is 'undefined' then {}
-					when typeof pkgFile.browser is 'string' then {"#{pkgFile.main}":pkgFile.browser}
-					when typeof pkgFile.browser is 'object' then extend(true, {}, pkgFile.browser)
+					when typeof pkg.browser is 'undefined' then {}
+					when typeof pkg.browser is 'string' then {"#{pkg.main}":pkg.browser}
+					when typeof pkg.browser is 'object' then extend(true, {}, pkg.browser)
 
-				@shims = extend(@shims, require('./constants/coreShims')) if @shims
+				@shims = pkg.browser = extend(@shims, require('./constants/coreShims'))
 			
 			.then ()-> promiseBreak(@options.src) if @options.src
 			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
@@ -147,7 +147,7 @@ class Task extends require('events')
 					isEntry: true
 					content: content
 					hash: md5(content)
-					pkgFile: @options.pkgFile
+					pkg: @options.pkg
 					suppliedPath: @options.file or ''
 					context: @options.context
 					contextRel: ''
@@ -170,7 +170,7 @@ class Task extends require('events')
 
 	initFile: (input, importer, isForceInlined, prev=@prevFileInit)->
 		suppliedPath = input
-		pkgFile = null
+		pkg = null
 
 		@prevFileInit =
 		Promise.resolve(prev).bind(@)
@@ -180,11 +180,11 @@ class Task extends require('events')
 				helpers.resolveModulePath(input, importer, @options.target)
 
 			.then (module)->
-				pkgFile = module.pkg
+				pkg = module.pkg
 				return module.file
 
 			.then (input)->
-				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkgFile is importer.pkgFile), suppliedPath)
+				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkg is importer.pkg), suppliedPath)
 			
 			.tap (config)-> debug "start file init #{config.pathDebug}"
 			.tap (config)->
@@ -193,9 +193,9 @@ class Task extends require('events')
 					promiseBreak(@cache[config.pathAbs])
 
 			.tap (config)->
-				config.pkgFile = pkgFile or {}
-				config.isExternal = config.pkgFile isnt @entryFile.pkgFile
-				config.isExternalEntry = config.isExternal and config.pkgFile isnt importer.pkgFile
+				config.pkg = pkg or {}
+				config.isExternal = config.pkg isnt @entryFile.pkg
+				config.isExternalEntry = config.isExternal and config.pkg isnt importer.pkg
 
 			.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or config.isExternal and not @options.bundleExternal or @options.target is 'node' and BUILTINS.includes(suppliedPath)
 			.tap (config)-> throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
@@ -207,7 +207,7 @@ class Task extends require('events')
 					else if @options.usePaths then config.pathRel
 					else ++@currentID
 				config.type = config.ID if isForceInlined
-				specificOptions = if config.isExternal then extend({}, config.pkgFile.simplyimport, @options.specific) else @options.specific
+				specificOptions = if config.isExternal then extend({}, config.pkg.simplyimport, @options.specific) else @options.specific
 				config.options = helpers.matchFileSpecificOptions(config, specificOptions)
 			
 			.tap (config)->
@@ -471,7 +471,7 @@ class Task extends require('events')
 				if not @options.finalTransform.length
 					return bundledContent
 				else
-					config = {ID:'bundle', pkgFile:@options.pkgFile, options:{}, content:bundledContent}
+					config = {ID:'bundle', pkg:@options.pkg, options:{}, content:bundledContent}
 					config = helpers.newPathConfig Path.resolve('bundle.js'), null, config
 					
 					Promise.resolve(new File(@, config)).bind(@)

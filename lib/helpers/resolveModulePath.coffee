@@ -1,71 +1,102 @@
 Path = require 'path'
 findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
+promiseBreak = require 'promise-break'
 helpers = require('./')
-{EMPTY_FILE, EMPTY_FILE_END} = require('../constants')
-coreModuleShims = require('../constants/coreShims')
+{EMPTY_STUB} = require('../constants')
+# coreModuleShims = require('../constants/coreShims')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
-resolvers =
-	node: Promise.promisify require('resolve')
-	browser: Promise.promisify require('browser-resolve')
+resolver = Promise.promisify require('resolve')
 
-module.exports = resolveModulePath = (moduleName, importer, target='browser')-> Promise.resolve().then ()->
-	resolver = resolvers[target]
-	# shims = importer.task?.shims or coreModuleShims
-	shims = coreModuleShims
+module.exports = resolveModulePath = (moduleName, importer, target='browser')->
+	isLocalModule = helpers.isLocalModule(moduleName)
 	output =
 		'file': Path.resolve(importer.context, moduleName)
-		'pkg': importer.pkgFile
+		'pkg': importer.pkg
 
-	switch
-		when helpers.isLocalModule(moduleName) and moduleName[moduleName.length-1] isnt '/'
-			resolveLocalModule {output, moduleName, importer, target}
-		
-		when helpers.isHttpModule(moduleName)
-			helpers.resolveHttpModule(moduleName).then (result)->
-				resolveModulePath(result, importer, target)
+	Promise.resolve()
+		.then ()-> switch
+			when isLocalModule and not isDir(moduleName)
+				return output.file
+			
+			when helpers.isHttpModule(moduleName)
+				helpers.resolveHttpModule(moduleName).then (result)->
+					promiseBreak resolveModulePath(result, importer, target)
 
-		else
-			moduleName = output.file = shims[moduleName] if hasShim=shims[moduleName]
-			resolver(moduleName, {basedir:importer.context, filename:importer.pathAbs, modules:shims, extensions})
-				.then (moduleFullPath)->
-					unless coreModuleShims[moduleFullPath] or helpers.isLocalModule(moduleFullPath)
-						return resolveModulePath(moduleFullPath, importer, target)
-
-					findPkgJson(normalize:false, cwd:moduleFullPath).then (result)->
-						output.file = moduleFullPath
-						output.pkg = result.pkg
-						
-						if moduleFullPath.endsWith EMPTY_FILE_END
-							output.isEmpty = true
-							delete output.pkg
-						else
-							helpers.resolvePackagePaths(result.pkg, result.path)
-						
-						return output
-
-				.catch(
-					(err)-> err.message.startsWith('Cannot find module')
-					()->
-						if helpers.isLocalModule(moduleName)
-							return output
-						else
-							helpers.resolveModulePath("./#{moduleName}", importer, target)
-				)
-
-
-resolveLocalModule = ({output, moduleName, importer, target})->
-	pkg = importer.pkgFile
-	
-	if pkg and typeof pkg.browser is 'object' and target isnt 'node'
-		replacedPath = helpers.resolveBrowserFieldPath(pkg, moduleName, importer.context)
-
-		if replacedPath?
-			if typeof replacedPath isnt 'string'
-				output.file = EMPTY_FILE
-				output.isEmpty = true
 			else
-				output.file = replacedPath
+				resolver(moduleName, {basedir:importer.context, extensions})
+		
+		.then (moduleResolved)->
+			Promise.props
+				file: moduleResolved,
+				pkg: findPkgJson(normalize:false, cwd:moduleResolved).then(helpers.normalizePackage)
 
-	# output.pkg = pkg
-	return output
+		.tap (output)->
+			if not output.pkg or output.pkg.srcPath is importer.pkg.srcPath
+				output.pkg = importer.pkg
+
+		.then (output)->
+			resolveAllAliases(output.file, output, importer, target)
+			resolveAllAliases(moduleName, output, importer, target)
+
+			return output
+
+
+		.then (output)->
+			if output.file is EMPTY_STUB
+				delete output.pkg
+			
+			return output
+
+		.catch promiseBreak.end
+		.catch(
+			(err)-> err.message.startsWith('Cannot find module')
+			()->
+				if isLocalModule
+					return output
+				else
+					helpers.resolveModulePath("./#{moduleName}", importer, target)
+		)
+
+
+resolveAllAliases = (moduleName, output, importer, target)->
+	alias = moduleName
+
+	if output.pkg.browser
+		alias = aliasFromOutput = resolveAlias(alias, importer, target, output.pkg.browser)
+
+	if importer.pkg.browser and importer.pkg isnt output.pkg
+		alias = resolveAlias(alias, importer, target, importer.pkg.browser)
+
+	if importer.pkg isnt importer.task.entryFile.pkg
+		alias = resolveAlias(alias, importer, target, importer.task.shims)
+
+	if alias isnt output.file and alias isnt moduleName
+		importer = simulateImporter(output, importer) if alias is aliasFromOutput
+		promiseBreak resolveModulePath(alias, importer, target)
+
+
+
+resolveAlias = (moduleName, importer, target, shims)->
+	return moduleName if target is 'node'
+	alias = helpers.resolveAlias(moduleName, importer.context, importer.pkg.dirPath, shims)
+
+	if alias is false
+		return EMPTY_STUB
+	else
+		return alias or moduleName
+
+
+isDir = (path)->
+	path[path.length-1] is '/'
+
+simulateImporter = (output, importer)->
+	context: output.pkg.dirPath
+	pkg: output.pkg
+	task: importer.task
+	simulated: true
+
+
+
+
+

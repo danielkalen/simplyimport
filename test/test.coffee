@@ -689,7 +689,7 @@ suite "SimplyImport", ()->
 				assert.deepEqual bundleB.result.d, 'excluded'
 
 
-	test.skip "files/modules can be ignored/replaced via package.json's browser field", ()->
+	test "files/modules can be ignored/replaced via package.json's browser field", ()->
 		Promise.resolve()
 			.then emptyTemp
 			.then ()->
@@ -724,7 +724,7 @@ suite "SimplyImport", ()->
 					'node_modules/d/index.js': "module.exports = 'file d.js!'"
 					'node_modules/d/package.json': JSON.stringify main:'index.js'
 					'node_modules/d2/index.js': "module.exports = 'file d2.js!'"
-					'node_modules/d2/package.json': JSON.stringify main:'index.js', browser:'../d3/index.js'
+					'node_modules/d2/package.json': JSON.stringify main:'index.js', browser:'d3'
 					'node_modules/d3/index.js': "module.exports = 'file d3.js!'"
 					'node_modules/d3/package.json': JSON.stringify main:'index.js'
 					'node_modules/e/index.js': "module.exports = 'file e.js!'"
@@ -736,13 +736,13 @@ suite "SimplyImport", ()->
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result})->
-				assert.equal result.a, 'file a2.js!'
-				assert.equal result.b, 'file b2.js!'
-				assert.equal result.c, 'file c.js!'
-				assert.equal result.d, 'file d3.js!'
-				assert.notEqual result.e, 'file e.js!'
-				assert.deepEqual result.e, {}
-				assert.equal result.f, 'file f2.js!'
+				assert.deepEqual result,
+					a: 'file a2.js!'
+					b: 'file b2.js!'
+					c: 'file c.js!'
+					d: 'file d3.js!'
+					e: {}
+					f: 'file f2.js!'
 				
 
 
@@ -1191,18 +1191,21 @@ suite "SimplyImport", ()->
 					]
 				.then ([browser, node])->
 					assert.notEqual browser.compiled, node.compiled
-					assert.equal browser.result.a, 'b.js file'
-					assert.equal browser.result.b, 'b.js file'
-					assert.deepEqual browser.result.c, {}
-					assert.equal browser.result.d, 'e.js file'
-					assert.equal browser.result.moduleA, 'browser.js file'
-					assert.equal browser.result.moduleB, 'browser.js file'
-					assert.equal node.result.a, 'a.js file'
-					assert.equal node.result.b, 'b.js file'
-					assert.equal node.result.c, 'c.js file'
-					assert.equal node.result.d, 'd.js file'
-					assert.equal node.result.moduleA, 'node.js file'
-					assert.equal node.result.moduleB, 'node.js file'
+					assert.deepEqual node.result,
+						a: 'a.js file'
+						b: 'b.js file'
+						c: 'c.js file'
+						d: 'd.js file'
+						moduleA: 'node.js file'
+						moduleB: 'node.js file'
+					
+					assert.deepEqual browser.result,
+						a: 'b.js file'
+						b: 'b.js file'
+						c: {}
+						d: 'e.js file'
+						moduleA: 'browser.js file'
+						moduleB: 'browser.js file'
 
 
 		test "globals won't be shimmed", ()->

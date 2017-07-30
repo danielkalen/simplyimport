@@ -4,17 +4,18 @@ Path = require 'path'
 fs = require 'fs-jetpack'
 helpers = require './'
 
-module.exports = safeRequire = (targetPath, context)->
+module.exports = safeRequire = (targetPath, importer)->
 	resolved = targetPath
+	context = importer.pkg.dirPath
 
 	Promise.resolve()
-		.then ()-> helpers.resolveModulePath(targetPath, {context})
+		.then ()-> helpers.resolveModulePath(targetPath, importer)
 		.get 'file'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 		
-		.then ()-> helpers.resolveModulePath(targetPath, {context:Path.resolve(context,'node_modules')})
-		.get 'file'
-		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
+		# .then ()-> helpers.resolveModulePath(targetPath, {context:Path.resolve(context,'node_modules')})
+		# .get 'file'
+		# .tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 
 		.then ()-> helpers.resolveFilePath(targetPath, '')
 		.get 'pathAbs'

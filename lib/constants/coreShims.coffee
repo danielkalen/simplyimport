@@ -2,10 +2,10 @@ Promise = require 'bluebird'
 path = require 'path'
 resolveModule = Promise.promisify require('browser-resolve')
 basedir = 'basedir':path.resolve(__dirname,'..')
-{EMPTY_FILE} = require './'
+{EMPTY_STUB} = require './'
 
 module.exports = coreShims =
-	'': path.resolve(__dirname,'..','node_modules','')
+	# '': path.resolve(__dirname,'..','node_modules','')
 	'assert':					resolveModule.sync 'assert/', basedir
 	'zlib':						resolveModule.sync '@danielkalen/browserify-zlib', basedir
 	'buffer':					resolveModule.sync 'buffer/', basedir
@@ -30,14 +30,14 @@ module.exports = coreShims =
 	'vm':						resolveModule.sync 'vm-browserify', basedir
 
 	# none-replaceable modules
-	'cluster': EMPTY_FILE
-	'dgram': EMPTY_FILE
-	'dns': EMPTY_FILE
-	'fs': EMPTY_FILE
-	'module': EMPTY_FILE
-	'net': EMPTY_FILE
-	'readline': EMPTY_FILE
-	'repl': EMPTY_FILE
+	'cluster': EMPTY_STUB
+	'dgram': EMPTY_STUB
+	'dns': EMPTY_STUB
+	'fs': EMPTY_STUB
+	'module': EMPTY_STUB
+	'net': EMPTY_STUB
+	'readline': EMPTY_STUB
+	'repl': EMPTY_STUB
 
 
 module.exports.builtins = Object.keys(coreShims).exclude('')
