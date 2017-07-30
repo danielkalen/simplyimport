@@ -4,6 +4,7 @@ Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
 helpers = require './'
 {EMPTY_STUB} = require('../constants')
+coreShims = require('../constants/coreShims')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
 resolver = Promise.promisify require('resolve')
 
@@ -13,7 +14,6 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 	output =
 		'file': Path.resolve(importer.context, moduleName)
 		'pkg': importer.pkg
-
 
 	Promise.resolve()
 		.then ()-> switch
@@ -39,6 +39,8 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 		.then (output)->
 			resolveAllAliases(output.file, output, importer, target)
 			resolveAllAliases(moduleName, output, importer, target)
+			if resolver.isCore(output.file)
+				promiseBreak resolveModulePath(coreShims[output.file], importer, target)
 
 			return output
 

@@ -128,12 +128,11 @@ class Task extends require('events')
 				unless @options.noPkgConfig
 					@options = extend true, normalizeOptions(pkg.simplyimport), @options if Object.isObject(pkg?.simplyimport)
 
-				@shims = switch
+				@shims = pkg.browser = switch
 					when @options.target is 'node' then {}
 					when typeof pkg.browser is 'undefined' then {}
 					when typeof pkg.browser is 'string' then {"#{pkg.main}":pkg.browser}
 					when typeof pkg.browser is 'object' then extend(true, {}, pkg.browser)
-				@shims = pkg.browser = extend(@shims, require('./constants/coreShims'))
 			
 			.then ()-> promiseBreak(@options.src) if @options.src
 			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
