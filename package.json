@@ -40,6 +40,7 @@
     "coverage:run": "mocha $npm_package_mocha_opts --require coffee-coverage/register-istanbul; istanbul report",
     "coverage:badge": "badge-gen -d ./.config/badges/coverage",
     "test:debug": "mocha $npm_package_mocha_opts test/test.coffee --inspect --debug-brk",
+    "test:prof": "mocha $npm_package_mocha_opts test/test.coffee --prof --perf-basic-prof",
     "test": "cake test"
   },
   "dependencies": {
@@ -81,7 +82,7 @@
     "os-browserify": "^0.2.1",
     "path-browserify": "0.0.0",
     "process": "^0.11.9",
-    "promise-break": "^0.1.0",
+    "promise-break": "^0.1.2",
     "punycode": "^2.0.1",
     "querystring-es3": "^0.2.1",
     "read-pkg-up": "^2.0.0",

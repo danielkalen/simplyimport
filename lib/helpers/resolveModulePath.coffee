@@ -2,7 +2,6 @@ Path = require 'path'
 findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
-fs = require 'fs-jetpack'
 helpers = require './'
 {EMPTY_STUB} = require('../constants')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
@@ -15,12 +14,6 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 		'file': Path.resolve(importer.context, moduleName)
 		'pkg': importer.pkg
 
-	subPath = if not isLocalModule then do ()->
-		split = moduleName.split '/'
-		subPathStart = if moduleName[0] is '@' then 2 else 1
-		subPath = split.slice(subPathStart).join '/'
-		return subPath
-
 
 	Promise.resolve()
 		.then ()-> switch
@@ -31,21 +24,8 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 				helpers.resolveHttpModule(moduleName).then (result)->
 					promiseBreak resolveModulePath(result, importer, target)
 
-			else
-				packageFilter = (pkg, path)->
-					pkg.srcPath = path;
-					return pkg
-				
-				pathFilter = (pkg, path, relativePath)->
-					return if path.endsWith('/')
-					return path if target is 'node' or not subPath
-					helpers.normalizePackage({pkg, path:pkg.srcPath})
-					if pkg.browser
-						return resolveAlias(path, importer, target, pkg.browser)
-					else
-						return path
-		
-				resolver(moduleName, {basedir:importer.context, extensions, pathFilter, packageFilter})
+			else		
+				resolver(moduleName, {basedir:importer.context, extensions, packageFilter, pathFilter:pathFilter(importer,target)})
 		
 		.then (moduleResolved)->
 			Promise.props
@@ -81,7 +61,7 @@ module.exports = resolveModulePath = (moduleName, importer, target='browser')->
 		.catch promiseBreak.end
 
 
-resolveAllAliases = (moduleName, output, importer, target)->
+resolveAllAliases = ((moduleName, output, importer, target)->
 	alias = moduleName
 
 	if output.pkg.browser
@@ -96,6 +76,7 @@ resolveAllAliases = (moduleName, output, importer, target)->
 	if alias isnt output.file and alias isnt moduleName
 		importer = simulateImporter(output, importer) if alias is aliasFromOutput
 		promiseBreak resolveModulePath(alias, importer, target)
+).memoize()
 
 
 
@@ -119,7 +100,19 @@ simulateImporter = (output, importer)->
 	task: importer.task
 	simulated: true
 
+packageFilter = (pkg, path)->
+	pkg.srcPath = path
+	return pkg
 
 
+pathFilter = ((importer, target)-> (pkg, path, relativePath)->
+	return if path.endsWith('/')
+	return path if target is 'node'
+	helpers.normalizePackage({pkg, path:pkg.srcPath})
+	if pkg.browser
+		return resolveAlias(path, importer, target, pkg.browser)
+	else
+		return path
+).memoize()
 
 
