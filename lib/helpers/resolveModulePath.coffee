@@ -4,7 +4,6 @@ Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
 helpers = require('./')
 {EMPTY_STUB} = require('../constants')
-# coreModuleShims = require('../constants/coreShims')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
 resolver = Promise.promisify require('resolve')
 
@@ -87,8 +86,9 @@ resolveAlias = (moduleName, importer, target, shims)->
 		return alias or moduleName
 
 
-isDir = (path)->
+isDir = ((path)->
 	path[path.length-1] is '/'
+).memoize()
 
 simulateImporter = (output, importer)->
 	context: output.pkg.dirPath

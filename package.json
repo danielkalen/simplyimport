@@ -52,7 +52,6 @@
     "astw": "^2.2.0",
     "axios": "^0.16.2",
     "bluebird": "^3.5.0",
-    "browser-resolve": "github:danielkalen/node-browser-resolve",
     "browserify": "^14.4.0",
     "browserify-zlib": "^0.1.4",
     "buffer": "^5.0.2",

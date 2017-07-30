@@ -1,11 +1,10 @@
 Promise = require 'bluebird'
 path = require 'path'
-resolveModule = Promise.promisify require('browser-resolve')
+resolveModule = Promise.promisify require('resolve')
 basedir = 'basedir':path.resolve(__dirname,'..')
 {EMPTY_STUB} = require './'
 
 module.exports = coreShims =
-	# '': path.resolve(__dirname,'..','node_modules','')
 	'assert':					resolveModule.sync 'assert/', basedir
 	'zlib':						resolveModule.sync '@danielkalen/browserify-zlib', basedir
 	'buffer':					resolveModule.sync 'buffer/', basedir
