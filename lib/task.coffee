@@ -475,7 +475,7 @@ class Task extends require('events')
 					
 					Promise.resolve(new File(@, config)).bind(@)
 						.tap ()-> debug "applying final transform"
-						.then (file)-> file.applyTransforms(file.content, @options.finalTransform)
+						.then (file)-> file.applyTransforms(file.content, @options.finalTransform, 'final')
 
 			.then (bundledContent)->
 				if @entryFile.shebang

@@ -2078,6 +2078,9 @@ suite "SimplyImport", ()->
 					helpers.lib
 						'main.js': "module.exports = import './child'"
 						'child.js': "module.exports = 'gHi'"
+						'external.js': "module.exports = import 'module'"
+						'node_modules/module/index.js': "module.exports = 'gHi'"
+						'node_modules/module/package.json': JSON.stringify simplyimport:{transform:'test/helpers/replacerTransform'}
 				
 				.then ()-> helpers.lib 'package.json': JSON.stringify simplyimport:{transform:'test/helpers/replacerTransform'}
 				.then ()-> processAndRun file:temp('main.js')
@@ -2095,6 +2098,10 @@ suite "SimplyImport", ()->
 				.then ({result})-> assert.equal result, 'gHi'
 				
 				.then ()-> processAndRun file:temp('main.js'), noPkgConfig:true, transform:'test/helpers/replacerTransform'
+				.then ({result})-> assert.equal result, 'GhI'
+				
+				.then ()-> helpers.lib 'package.json': JSON.stringify main:'index.js'
+				.then ()-> processAndRun file:temp('external.js')
 				.then ({result})-> assert.equal result, 'GhI'
 
 

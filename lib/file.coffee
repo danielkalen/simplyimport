@@ -4,6 +4,7 @@ streamify = require 'streamify-string'
 getStream = require 'get-stream'
 Path = require 'path'
 md5 = require 'md5'
+chalk = require 'chalk'
 extend = require 'extend'
 Parser = require './external/parser'
 LinesAndColumns = require('lines-and-columns').default
@@ -34,6 +35,11 @@ class File
 		@linesOriginal = new LinesAndColumns(@content)
 		@pkgTransform = @pkg.browserify?.transform
 		@pkgTransform = helpers.normalizeTransforms(@pkgTransform) if @pkgTransform
+		@pkgTransform = do ()=>
+			transforms = @pkg.simplyimport?.transform if @isExternal
+			transforms ?= @pkg.browserify?.transform
+			if transforms
+				helpers.normalizeTransforms(transforms)
 
 		if REGEX.shebang.test(@content)
 			@content = @contentOriginal = @content.replace REGEX.shebang, (@shebang)=> return ''
@@ -208,7 +214,8 @@ class File
 
 
 	applyAllTransforms: (content=@content)->
-		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform
+		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform, @pkgTransform
+
 		Promise.resolve(content).bind(@)
 			.tap ()-> debug "start applying transforms #{@pathDebug}"
 			.then @applySpecificTransforms							# ones found in "simplyimport:specific" package.json field
@@ -233,7 +240,7 @@ class File
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms)
+				@applyTransforms(content, transforms, 'specific')
 
 			.catch promiseBreak.end
 
@@ -247,7 +254,7 @@ class File
 			
 			.then (transforms)-> [content, transforms]
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms)
+				@applyTransforms(content, transforms, 'package')
 
 			.catch promiseBreak.end
 
@@ -260,7 +267,7 @@ class File
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms)
+				@applyTransforms(content, transforms, 'options')
 
 			.catch promiseBreak.end
 
@@ -273,13 +280,13 @@ class File
 				return [content, transforms]
 			
 			.spread (content, transforms)->
-				@applyTransforms(content, transforms)
+				@applyTransforms(content, transforms, 'global')
 
 			.catch promiseBreak.end
 
 
 
-	applyTransforms: (content, transforms)->
+	applyTransforms: (content, transforms, label)->
 		lastTransformer = null
 		prevContent = content
 		
@@ -295,6 +302,7 @@ class File
 				prevContent = content
 
 				Promise.bind(@)
+					.tap ()-> debug "applying transform #{chalk.yellow transformer.name} to #{@pathDebug} (from #{label} transforms)"
 					.then ()-> transformer.fn(@pathAbs, transformOpts, @, content)
 					.tap (result)->
 						switch
