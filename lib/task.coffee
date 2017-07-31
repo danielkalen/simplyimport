@@ -524,9 +524,9 @@ extendOptions = (suppliedOptions)->
 
 normalizeOptions = (options)->
 	options.sourceMap ?= options.debug
-	options.transform = normalizeTransformOpts(options.transform) if options.transform
-	options.globalTransform = normalizeTransformOpts(options.globalTransform) if options.globalTransform
-	options.finalTransform = normalizeTransformOpts(options.finalTransform) if options.finalTransform
+	options.transform = helpers.normalizeTransforms(options.transform) if options.transform
+	options.globalTransform = helpers.normalizeTransforms(options.globalTransform) if options.globalTransform
+	options.finalTransform = helpers.normalizeTransforms(options.finalTransform) if options.finalTransform
 	options.specific = normalizeSpecificOpts(options.specific) if options.specific
 	
 	return options
@@ -534,17 +534,9 @@ normalizeOptions = (options)->
 
 normalizeSpecificOpts = (specificOpts)->
 	for p,fileSpecific of specificOpts when fileSpecific.transform
-		fileSpecific.transform = normalizeTransformOpts(fileSpecific.transform)
+		fileSpecific.transform = helpers.normalizeTransforms(fileSpecific.transform)
 
 	return specificOpts
-
-
-normalizeTransformOpts = (transform)->
-	transform = [transform] if transform and not Array.isArray(transform)
-	if transform.length is 2 and typeof transform[0] is 'string' and Object.isObject(transform[1])
-		transform = [transform]
-
-	return transform
 
 
 

@@ -20,6 +20,7 @@ class File
 	Object.defineProperty @::, 'contentSafe', get: -> @replaceES6Imports(false)
 	constructor: (@task, state)->
 		extend(@, state)
+		@options.transform ?= []		
 		@IDstr = JSON.stringify(@ID)
 		@tokens = @AST = @parsed = null
 		@exportStatements = []
@@ -31,14 +32,8 @@ class File
 		@pathExtOriginal = @pathExt
 		@contentOriginal = @content
 		@linesOriginal = new LinesAndColumns(@content)
-		@options.transform ?= []
-		
-		if @pkgTransform = @pkg.browserify?.transform then switch
-			when helpers.isValidTransformerArray(@pkgTransform) or typeof @pkgTransform is 'string'
-				@pkgTransform = [@pkgTransform]
-
-			when Array.isArray(@pkgTransform)
-				@pkgTransform = @pkgTransform
+		@pkgTransform = @pkg.browserify?.transform
+		@pkgTransform = helpers.normalizeTransforms(@pkgTransform) if @pkgTransform
 
 		if REGEX.shebang.test(@content)
 			@content = @contentOriginal = @content.replace REGEX.shebang, (@shebang)=> return ''
@@ -213,7 +208,7 @@ class File
 
 
 	applyAllTransforms: (content=@content)->
-		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform#, @pkgTransform
+		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform
 		Promise.resolve(content).bind(@)
 			.tap ()-> debug "start applying transforms #{@pathDebug}"
 			.then @applySpecificTransforms							# ones found in "simplyimport:specific" package.json field
