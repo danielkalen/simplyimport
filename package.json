@@ -1,6 +1,6 @@
 {
   "name": "simplyimport",
-  "version": "4.0.0-s22",
+  "version": "4.0.0-s23",
   "description": "Inline imports/exports for JS/Coffee featuring ES6 & CommonJS syntax support, transforms, conditional & duplicate imports, etc.",
   "keywords": [
     "import",
@@ -70,6 +70,7 @@
     "debug": "^2.6.8",
     "decaffeinate-parser": "^13.1.1",
     "domain-browser": "^1.1.7",
+    "dotenv": "^4.0.0",
     "events": "^1.1.1",
     "extend": "^3.0.0",
     "fs-jetpack": "^0.13.3",

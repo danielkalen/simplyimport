@@ -35,6 +35,7 @@ exports.push
 		["--ignore-syntax-errors", "ignore syntax errors in imported files"]
 		["--ignore-errors", "avoid halting the bundling process due to encountered errors"]
 		["--match-all", "match all conditionals encountered across files"]
+		["--env <envFile>", "load the provided env file to be used for conditionals and envify transform"]
 	]
 
 	action: (file, options)->
@@ -61,16 +62,19 @@ exports.push
 	command: ["list [path]"]
 	description: "list the import tree for the file located at the specified path (if no path given the stdin will be used)"
 	options: [
-		['-s, --size', "include gzipped size of each file"]
-		['-d, --depth [number]', "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
-		['-e, --exclude [path]', "file to exclude", collectArgs, []]
-		['-c, --conditionals', "consider conditionals"]
-		['--expand-modules', "list all imports of external modules"]
+		["-s, --size", "include gzipped size of each file"]
+		["-d, --depth [number]", "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
+		["-e, --exclude [path]", "file to exclude", collectArgs, []]
+		["-c, --conditionals", "consider conditionals"]
+		["--expand-modules", "list all imports of external modules"]
+		["--show-errors", "halt the list task upon error and log it to the console"]
 		["--target <node|browser>", "the target env this bundle will be run in"]
+		["--env <envFile>", "load the provided env file to be used for conditionals and envify transform"]
 	]
 	action: (file, options)->
 		program.specified = true
 		options.flat = false
+		options.ignoreErrors = false if options.showErrors
 		options.matchAllConditions = false if options.conditionals
 
 		Promise.resolve()

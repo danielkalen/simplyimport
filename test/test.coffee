@@ -2498,6 +2498,41 @@ suite "SimplyImport", ()->
 						assert.deepEqual context.a, {a:10,b:20,c:30}
 						assert.equal context.b, 'the last env var'
 		
+			test "envify+options.env", ()->
+				Promise.resolve()
+					.then ()->
+						helpers.lib
+							'main.js': """
+								exports.main = process.env.VAR1
+								if (process.env.VAR2 === 'chocolate') {
+									a = import 'module-a'
+								} 
+								b = require('module-b')
+							"""
+							'node_modules/module-a/index.js': """
+								module.exports = JSON.parse(process.env.VAR3)
+							"""
+							'node_modules/module-b/index.js': """
+								process.env.VAR4
+							"""
+							"customEnv": """
+								VAR1=the main file
+								VAR2=chocolate
+								VAR3={"a":10, "b":20, "c":30}
+							"""
+					.then ()->
+						delete process.env.VAR1
+						delete process.env.VAR2
+						delete process.env.VAR3
+						delete process.env.VAR4
+						process.env.VAR4 = 'the last env var'
+						processAndRun file:temp('main.js'), globalTransform:'envify', env:temp('customEnv')
+					
+					.then ({result, context, writeToDisc})->
+						assert.equal result.main, 'the main file'
+						assert.deepEqual context.a, {a:10,b:20,c:30}
+						assert.equal context.b, 'the last env var'
+		
 
 			test "brfs", ()->
 				Promise.resolve()
@@ -3197,6 +3232,71 @@ suite "SimplyImport", ()->
 					assert.equal context.ghi, 'ghi'
 					assert.equal context.jkl, 'jkl'
 
+
+		suite "with custom options.env", ()->
+			suiteSetup ()-> helpers.lib
+				'main.js': """
+					// simplyimport:if VAR_A = 'AAA'
+					exports.a = 'aaa'
+					// simplyimport:end
+
+					// simplyimport:if VAR_B = 'bbb'
+					exports.b = 'bbb'
+					// simplyimport:end
+
+					// simplyimport:if VAR_C = 'CCC'
+					exports.c = 'ccc'
+					// simplyimport:end
+
+					// simplyimport:if VAR_D = 'DDD'
+					exports.d = 'ddd'
+					// simplyimport:end
+				"""
+				'myEnv': """
+					VAR_A=AAA
+					VAR_C=CCC
+					VAR_D=ddd
+				"""
+
+			test "options.env = object", ()->
+				Promise.resolve()
+					.then ()->
+						delete process.env.VAR_A
+						delete process.env.VAR_B
+						process.env.VAR_B = 'bbb'
+						process.env.VAR_C = 'ccc'
+						process.env.VAR_D = 'CCC'
+						processAndRun file:temp('main.js'), env:{VAR_A:'AAA', VAR_C:'CCC', VAR_D:'ddd'}
+
+					.then ({result})->
+						assert.equal process.env.VAR_A, undefined
+						assert.equal process.env.VAR_B, 'bbb'
+						assert.equal process.env.VAR_C, 'ccc'
+						assert.equal process.env.VAR_D, 'CCC'
+						assert.deepEqual result,
+							a: 'aaa'
+							b: 'bbb'
+							c: 'ccc'
+
+			test "options.env = filepath", ()->
+				Promise.resolve()
+					.then ()->
+						delete process.env.VAR_A
+						delete process.env.VAR_B
+						process.env.VAR_B = 'bbb'
+						process.env.VAR_C = 'ccc'
+						process.env.VAR_D = 'CCC'
+						processAndRun file:temp('main.js'), env:temp('myEnv')
+
+					.then ({result})->
+						assert.equal process.env.VAR_A, undefined
+						assert.equal process.env.VAR_B, 'bbb'
+						assert.equal process.env.VAR_C, 'ccc'
+						assert.equal process.env.VAR_D, 'CCC'
+						assert.deepEqual result,
+							a: 'aaa'
+							b: 'bbb'
+							c: 'ccc'
 
 
 	suite "core module shims", ()->

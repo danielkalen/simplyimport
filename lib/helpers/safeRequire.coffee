@@ -5,6 +5,7 @@ fs = require 'fs-jetpack'
 helpers = require './'
 
 module.exports = safeRequire = (targetPath, importer)->
+	targetPath = 'envify/custom' if targetPath is 'envify'
 	resolved = targetPath
 	context = importer.pkg.dirPath
 
@@ -12,10 +13,6 @@ module.exports = safeRequire = (targetPath, importer)->
 		.then ()-> helpers.resolveModulePath(targetPath, importer)
 		.get 'file'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
-		
-		# .then ()-> helpers.resolveModulePath(targetPath, {context:Path.resolve(context,'node_modules')})
-		# .get 'file'
-		# .tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 
 		.then ()-> helpers.resolveFilePath(targetPath, '')
 		.get 'pathAbs'
@@ -30,7 +27,11 @@ module.exports = safeRequire = (targetPath, importer)->
 
 		.catch promiseBreak.end
 		.then (resolvedPath=targetPath)->
-			require(resolved=resolvedPath)
+			result = require(resolved=resolvedPath)
+			if targetPath is 'envify/custom'
+				return result(importer.task.options.env)
+			else
+				return result
 
 		.catch (err)->
 			if err.message.includes('Cannot find module') and err.message.split('\n')[0].includes(resolved)

@@ -109,6 +109,7 @@ class File
 							file = @
 							jsString = ''
 							tokens = Parser.tokenize(start[2])
+							env = @task.options.env
 							BUNDLE_TARGET = @task.options.target
 
 							helpers.walkTokens tokens, @linesOriginal, null, (token)->
@@ -119,8 +120,8 @@ class File
 										else if token.value is 'BUNDLE_TARGET'
 											jsString += " '#{BUNDLE_TARGET}'"
 										else
-											value = process.env[token.value]
-											jsString += " process.env['#{token.value}']"
+											value = env[token.value]
+											jsString += " env['#{token.value}']"
 
 									when 'string'
 										jsString += "'#{token.value}'"
@@ -143,7 +144,7 @@ class File
 
 									# else file.task.emit 'ConditionalError', file, token.start+start[1], token.end+start[1]
 							try
-								return require('vm').runInNewContext(jsString, {process})
+								return require('vm').runInNewContext(jsString, {env})
 							catch err
 								file.task.emit 'ConditionalError', file, err
 								return false

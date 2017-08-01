@@ -523,6 +523,7 @@ extendOptions = (suppliedOptions)->
 
 
 normalizeOptions = (options)->
+	options.env = normalizeEnv(options.env)
 	options.sourceMap ?= options.debug
 	options.transform = helpers.normalizeTransforms(options.transform) if options.transform
 	options.globalTransform = helpers.normalizeTransforms(options.globalTransform) if options.globalTransform
@@ -539,6 +540,18 @@ normalizeSpecificOpts = (specificOpts)->
 	return specificOpts
 
 
+normalizeEnv = (env)-> switch
+	when env and typeof env is 'object'
+		extend {}, process.env, env
+
+	when typeof env is 'string'
+		try
+			envFile = fs.read(env)
+			extend {}, process.env, require('dotenv').parse(envFile)
+		catch
+			process.env
+
+	else process.env
 
 
 
