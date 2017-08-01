@@ -3298,6 +3298,28 @@ suite "SimplyImport", ()->
 							b: 'bbb'
 							c: 'ccc'
 
+			test "options.env = filepath from package.json", ()->
+				Promise.resolve()
+					.then ()-> helpers.lib
+						'package.json': JSON.stringify(simplyimport:env:'myEnv')
+					.then ()->
+						delete process.env.VAR_A
+						delete process.env.VAR_B
+						process.env.VAR_B = 'bbb'
+						process.env.VAR_C = 'ccc'
+						process.env.VAR_D = 'CCC'
+						processAndRun file:temp('main.js')
+
+					.then ({result})->
+						assert.equal process.env.VAR_A, undefined
+						assert.equal process.env.VAR_B, 'bbb'
+						assert.equal process.env.VAR_C, 'ccc'
+						assert.equal process.env.VAR_D, 'CCC'
+						assert.deepEqual result,
+							a: 'aaa'
+							b: 'bbb'
+							c: 'ccc'
+
 
 	suite "core module shims", ()->
 		test "assert", ()->

@@ -134,6 +134,7 @@ class Task extends require('events')
 					when typeof pkg.browser is 'string' then {"#{pkg.main}":pkg.browser}
 					when typeof pkg.browser is 'object' then extend(true, {}, pkg.browser)
 			
+			.then ()-> @options.env = normalizeEnv(@options.env, @options.pkg.dirPath) # we do this here to allow loading of option from package.json
 			.then ()-> promiseBreak(@options.src) if @options.src
 			.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
 			.then ()-> fs.readAsync(@options.file)
@@ -523,7 +524,6 @@ extendOptions = (suppliedOptions)->
 
 
 normalizeOptions = (options)->
-	options.env = normalizeEnv(options.env)
 	options.sourceMap ?= options.debug
 	options.transform = helpers.normalizeTransforms(options.transform) if options.transform
 	options.globalTransform = helpers.normalizeTransforms(options.globalTransform) if options.globalTransform
@@ -540,13 +540,13 @@ normalizeSpecificOpts = (specificOpts)->
 	return specificOpts
 
 
-normalizeEnv = (env)-> switch
+normalizeEnv = (env, context)-> switch
 	when env and typeof env is 'object'
 		extend {}, process.env, env
 
 	when typeof env is 'string'
 		try
-			envFile = fs.read(env)
+			envFile = fs.read(Path.resolve context, env)
 			extend {}, process.env, require('dotenv').parse(envFile)
 		catch
 			process.env
