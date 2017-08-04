@@ -8,5 +8,6 @@
 [] implement url imports
 [x] add transform-key support
 [] new cli options
-[] rewrite test suite
+[x] rewrite test suite
 [] write readme
+[] use consistent names for vars
