@@ -4,14 +4,17 @@ LinesAndColumns = require('lines-and-columns').default
 module.exports = (file, posStart, posEnd=posStart+1)->
 	try
 		terminalLen = process.stderr.columns
+		terminalLen -= 1 if terminalLen % 2
 		lines = new LinesAndColumns(file.content)
 		loc = lines.locationForIndex(posStart)
 		line = lineOrig = file.content.split('\n')[loc.line]
 		padding = loc.column
-		
+
 		if terminalLen and terminalLen < line.length
 			middle = loc.column
-			line = line.slice middle-(terminalLen/2), middle+(terminalLen/2)
+			lineStart = Math.max 0, middle-(terminalLen/2)
+			lineEnd = middle+(terminalLen/2)
+			line = line.slice lineStart, lineEnd
 			padding = terminalLen/2
 		
 		caretCount = Math.min line.length-padding, posEnd-posStart
