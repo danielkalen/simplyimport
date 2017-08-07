@@ -30,6 +30,7 @@ module.exports = coreShims =
 
 	# none-replaceable modules
 	'cluster': EMPTY_STUB
+	'child_process': EMPTY_STUB
 	'dgram': EMPTY_STUB
 	'dns': EMPTY_STUB
 	'fs': EMPTY_STUB
