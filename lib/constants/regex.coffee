@@ -10,6 +10,7 @@ REGEX =
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
 	shebang: /^#![^\n]*\n/
+	varIncompatible: /[^0-9a-zA-Z_$]/g
 	initialWhitespace: /^[ \t]+/
 	initialExport: /^module\.exports\s*=\s*/
 	decKeyword: /var|let|const/

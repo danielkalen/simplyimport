@@ -566,7 +566,7 @@ class File
 						replacement = "(#{replacement})" if content[range.end] is '.' or content[range.end] is '('
 
 				else
-					alias = statement.alias or helpers.randomVar()
+					alias = statement.alias or helpers.strToVar(statement.target.IDstr)
 					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})"
 
 					if statement.members
@@ -595,7 +595,7 @@ class File
 				replacement = ''
 			
 				if statement.target isnt statement.source
-					alias = helpers.randomVar()
+					alias = helpers.strToVar(statement.target.IDstr)
 					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})\n"
 
 					if statement.members
@@ -604,7 +604,7 @@ class File
 						replacement += decs.join ', '
 					
 					else
-						key = helpers.randomVar()
+						key = helpers.strToVar(statement.target.IDstr)
 						replacement += "var #{key}; for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}];"
 
 

@@ -10,4 +10,5 @@
 [] new cli options
 [x] rewrite test suite
 [] write readme
-[] use consistent names for vars
+[x] use consistent names for vars
+[] measure compilation time
