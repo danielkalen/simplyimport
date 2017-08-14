@@ -63,6 +63,7 @@ exports.push
 	description: "list the import tree for the file located at the specified path (if no path given the stdin will be used)"
 	options: [
 		["-s, --size", "include gzipped size of each file"]
+		["-t, --time", "include compile time for each file"]
 		["-d, --depth [number]", "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
 		["-e, --exclude [path]", "file to exclude", collectArgs, []]
 		["-c, --conditionals", "consider conditionals"]
@@ -92,7 +93,7 @@ exports.push
 				entry = options.file or 'ENTRY'
 				output = {"#{entry}":{}}
 
-				formatPath = (filePath, parent)->
+				formatPath = (filePath, parent, time)->
 					result = Path.relative(process.cwd(), filePath)
 					if parent
 						commondir = Path.dirname Path.relative(process.cwd(), parent)
@@ -102,11 +103,12 @@ exports.push
 						isExternal = true
 						result = result.replace(/^.*node_modules\//,'').replace(/^[^\/]+/, (m)-> chalk.magenta(m))
 
+					result += chalk.yellow(" #{time}ms") if options.time
 					return [result, isExternal]
 				
 				walk = (imports, output, parent)->
 					for child in imports
-						[childPath, isExternal] = formatPath(child.file, parent)
+						[childPath, isExternal] = formatPath(child.file, parent, child.time)
 						
 						switch
 							when options.exclude.some(matchGlob.bind(null, childPath))

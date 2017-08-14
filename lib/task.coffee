@@ -297,6 +297,7 @@ class Task extends require('events')
 			
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
+			.tap ()-> file.markEndTime()
 			.return(@importStatements)
 
 
@@ -401,6 +402,7 @@ class Task extends require('events')
 			.tap ()-> debug "replacing inline imports #{file.pathDebug}"
 			.then file.replaceInlineImports
 			.then file.saveContent.bind(file, 'contentPostInlinement')
+			.tap ()-> file.markEndTime()
 			.return(file)
 
 	
@@ -417,6 +419,7 @@ class Task extends require('events')
 			.return file.importStatements.concat(file.exportStatements)
 			.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
 			.map (statement)=> @replaceImportsExports(statement.target)
+			.tap ()-> file.markEndTime()
 			.return(file)
 
 

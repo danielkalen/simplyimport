@@ -24,6 +24,7 @@ class File
 		@options.transform ?= []		
 		@IDstr = JSON.stringify(@ID)
 		@tokens = @AST = @parsed = null
+		@startTime = @endTime = Date.now()
 		@exportStatements = []
 		@importStatements = []
 		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
@@ -46,6 +47,8 @@ class File
 
 		return @task.cache[@pathAbs] = @
 
+	markEndTime: ()->
+		@endTime = Date.now()
 
 	checkSyntaxErrors: (content)->
 		debug "checking for syntax errors #{@pathDebug}"

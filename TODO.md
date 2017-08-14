@@ -11,4 +11,4 @@
 [x] rewrite test suite
 [] write readme
 [x] use consistent names for vars
-[] measure compilation time
+[x] measure compilation time
