@@ -7,7 +7,7 @@ fs = require 'fs-jetpack'
 chalk = require 'chalk'
 debug = require('debug')('simplyimport:fs')
 
-module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
+resolveFilePath = (input, importer)->
 	params = Path.parse(Path.resolve(input))
 	isFile = false
 
@@ -20,7 +20,7 @@ module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 
 		.tap ()-> debug "attempting to resolve extension-less path #{chalk.dim input}"
 		.then ()->
-			helpers.getDirListing(params.dir, cache)
+			fs.listAsync(params.dir)
 		
 		.then (dirListing)-> # if the dir has a single match then return it, otherwise find closest match
 			candidates = if not dirListing then [] else dirListing.filter (targetPath)-> targetPath.includes(params.base)
@@ -51,15 +51,23 @@ module.exports = resolveFilePath = (input, entryContext, cache, suppliedPath)->
 				.tapCatch ()-> debug "no path stats available for #{chalk.dim resolvedPath}"
 				.tap (stats)-> promiseBreak(resolvedPath) if stats.type isnt 'dir'
 				.tap (stats)-> debug "scanning dir #{chalk.dim resolvedPath}"
-				.then ()-> helpers.getDirListing(resolvedPath, cache)
+				.then ()-> fs.listAsync(resolvedPath)
 				.then (dirListing)->
 					indexFile = dirListing.find (file)-> file.includes('index')
 					return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
 				.tap (resolvedPath)-> debug "using index file #{chalk.dim resolvedPath}"
 
 		.catch promiseBreak.end
-		.then (pathAbs)->
-			helpers.newPathConfig pathAbs, entryContext, {suppliedPath}
+
+
+
+resolveFilePath = resolveFilePath.memoize (input, importer)->
+	"#{importer.task.ID}/#{input}"
+
+module.exports = (input, importer, entryContext, suppliedPath)->
+	Promise.resolve()
+		.then ()-> resolveFilePath(input, importer)
+		.then (pathAbs)-> helpers.newPathConfig pathAbs, entryContext, {suppliedPath}
 
 
 

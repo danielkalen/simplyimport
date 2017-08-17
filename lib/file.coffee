@@ -7,7 +7,6 @@ md5 = require 'md5'
 chalk = require 'chalk'
 extend = require 'extend'
 Parser = require './external/parser'
-LinesAndColumns = require('lines-and-columns').default
 sourcemapConvert = require 'convert-source-map'
 helpers = require './helpers'
 REGEX = require './constants/regex'
@@ -24,7 +23,7 @@ class File
 		@options.transform ?= []		
 		@IDstr = JSON.stringify(@ID)
 		@tokens = @AST = @parsed = null
-		@startTime = @endTime = Date.now()
+		@time = 0
 		@exportStatements = []
 		@importStatements = []
 		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
@@ -33,7 +32,7 @@ class File
 		@isThirdPartyBundle = false
 		@pathExtOriginal = @pathExt
 		@contentOriginal = @content
-		@linesOriginal = new LinesAndColumns(@content)
+		@linesOriginal = helpers.parseContentToLines(@content)
 		@pkgTransform = @pkg.browserify?.transform
 		@pkgTransform = helpers.normalizeTransforms(@pkgTransform) if @pkgTransform
 		@pkgTransform = do ()=>
@@ -47,20 +46,31 @@ class File
 
 		return @task.cache[@pathAbs] = @
 
-	markEndTime: ()->
-		@endTime = Date.now()
+	timeStart: ()->
+		@timeEnd() if @startTime
+		@startTime = Date.now()
+	
+	timeEnd: ()->
+		@time += Date.now() - (@startTime or Date.now())
+		@startTime = null
 
-	checkSyntaxErrors: (content)->
+
+	checkSyntaxErrors: ((content)->
 		debug "checking for syntax errors #{@pathDebug}"
 		if @pathExt is 'js'
+			@timeStart()
 			content = content.replace REGEX.es6import, ()-> "importPlaceholder()"
 			
 			if err = Parser.check(content, @pathAbs)
 				@task.emit 'SyntaxError', @, err
 
+			@timeEnd()
+	).memoize()
+
 
 	checkIfIsThirdPartyBundle: ()->
 		debug "checking 3rd party bundle status #{@pathDebug}"
+		@timeStart()
 		### istanbul ignore next ###
 		@isThirdPartyBundle =
 			@content.includes('.code="MODULE_NOT_FOUND"') or
@@ -77,6 +87,7 @@ class File
 			REGEX.requireArg.test(@content) and @hasRequires
 
 		@isThirdPartyBundle = @isThirdPartyBundle or @hasOwnRequireSystem
+		@timeEnd()
 
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle and not EXTENSIONS.static.includes(@pathExt)
@@ -91,6 +102,7 @@ class File
 	collectConditionals: ()->
 		Promise.bind(@)
 			.tap ()-> debug "collecting conditionals #{@pathDebug}"
+			.tap @timeStart
 			.then ()->
 				starts = []
 				ends = []
@@ -178,7 +190,8 @@ class File
 
 			.then @saveContent.bind(@, 'contentPostConditionals')
 			.catch promiseBreak.end
-			.tap ()-> @linesPostConditionals = new LinesAndColumns(@content)
+			.tap ()-> @linesPostConditionals = helpers.parseContentToLines(@content)
+			.tap @timeEnd
 
 
 	saveContent: (milestone, content)->
@@ -202,6 +215,7 @@ class File
 
 	postTransforms: ()->
 		debug "running post-transform functions #{@pathDebug}"
+		@timeStart()
 		@contentPostTransforms = @content
 		@sourceMap = sourcemapConvert.fromSource(@content)?.sourcemap
 		if @sourceMap
@@ -214,7 +228,8 @@ class File
 			@contentPostTransforms = @content = "var Buffer = require('buffer').Buffer;\n#{@content}"
 
 		@hashPostTransforms = md5(@contentPostTransforms)
-		@linesPostTransforms = new LinesAndColumns(@contentPostTransforms)
+		@linesPostTransforms = helpers.parseContentToLines(@contentPostTransforms)
+		@timeEnd()
 
 
 	applyAllTransforms: (content=@content)->
@@ -295,6 +310,7 @@ class File
 		prevContent = content
 		
 		Promise.resolve(transforms).bind(@)
+			.tap @timeStart
 			.filter (transform)-> not @task.options.ignoreTransform.includes(transform)
 			.map (transform)->
 				lastTransformer = name:transform, fn:transform
@@ -336,14 +352,18 @@ class File
 				@task.emit 'TransformError', @, err, lastTransformer
 				return prevContent
 
+			.tap @timeEnd
+
 
 
 	tokenize: ()->
 		unless EXTENSIONS.nonJS.includes(@pathExt)
 			try
 				debug "tokenizing #{@pathDebug}"
+				@timeStart()
 				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
 				@Tokens.forEach (token, index)-> token.index = index
+				@timeEnd()
 			catch err
 				@task.emit 'TokenizeError', @, err
 			
@@ -357,7 +377,9 @@ class File
 		@checkSyntaxErrors(content)
 		try
 			debug "generating AST #{@pathDebug}"
+			@timeStart()
 			@AST = Parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
+			@timeEnd()
 		catch err
 			@task.emit 'ASTParseError', @, err
 
@@ -369,7 +391,10 @@ class File
 			return @sourceMap
 		
 		else if @AST
+			@timeStart()
 			@sourceMap = JSON.parse Parser.generate(@AST, comment:true, sourceMap:true)
+			@timeEnd()
+			return @sourceMap
 
 
 	adjustSourceMap: ()-> if @sourceMap
@@ -414,6 +439,7 @@ class File
 
 	collectForceInlineImports: ()->
 		debug "collecting force inline imports #{@pathDebug}"
+		@timeStart()
 		@content.replace REGEX.inlineImport, (entire, childPath, offset)=>
 			statement = helpers.newImportStatement()
 			statement.source = @
@@ -423,11 +449,13 @@ class File
 			statement.type = 'inline-forced'
 			@importStatements.push(statement)
 		
+		@timeEnd()
 		return @importStatements
 
 
 	collectImports: (tokens=@Tokens)->
 		debug "collecting imports #{@pathDebug}"
+		@timeStart()
 		switch
 			when tokens
 				@collectedImports = true
@@ -481,11 +509,13 @@ class File
 					@importStatements.push(statement)
 
 
+		@timeEnd()
 		return @importStatements
 
 
 	collectExports: (tokens=@Tokens)->
 		debug "collecting exports #{@pathDebug}"
+		@timeStart()
 		if tokens
 			@collectedExports = true
 			try
@@ -510,7 +540,7 @@ class File
 				@exportStatements.push(statement)
 				@hasDefaultExport = true if statement.default
 
-
+		@timeEnd()
 		return @exportStatements
 
 
@@ -530,6 +560,7 @@ class File
 			targetRangeGroups = null # All ranges
 
 		Promise.bind(@)
+			.tap @timeStart
 			.then ()-> @importStatements.filter {type}
 			.map (statement)->
 				range = @offsetRange(statement.range, targetRangeGroups, rangeGroup)
@@ -549,9 +580,11 @@ class File
 				replacementRange.source = statement.target if type is 'inline-forced'
 
 			.then ()-> content
+			.tap @timeEnd
 
 
 	replaceImportStatements: (content)->
+		@timeStart()
 		debug "replacing imports #{@pathDebug}"
 		loader = @task.options.loaderName
 		for statement,index in @importStatements when statement.type is 'module'
@@ -585,10 +618,12 @@ class File
 			@replacedRanges.imports.push helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
+		@timeEnd()
 		return content
 
 
 	replaceExportStatements: (content)->
+		@timeStart()
 		debug "replacing exports #{@pathDebug}"
 		loader = @task.options.loaderName
 		for statement,index in @exportStatements
@@ -645,12 +680,15 @@ class File
 			@addRangeOffset 'exports', helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
 
+		@timeEnd()
 		return content
 
 
 	extract: (key, returnActual)->
 		try
+			@timeStart()
 			@parsed ?= JSON.parse(@content)
+			@timeEnd()
 		catch err
 			@task.emit 'DataParseError', @, err
 

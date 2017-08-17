@@ -21,10 +21,10 @@ class Task extends require('events')
 		options = file:options if typeof options is 'string'
 		throw new Error("either options.file or options.src must be provided") if not options.file and not options.src
 		@currentID = -1
+		@ID = helpers.randomVar()
 		@files = []
 		@importStatements = []
 		@cache = Object.create(null)
-		@dirCache = Object.create(null)
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
@@ -172,7 +172,7 @@ class Task extends require('events')
 		suppliedPath = input
 		pkg = null
 
-		@prevFileInit =
+		@prevFileInit = thisFileInit = 
 		Promise.resolve(prev).bind(@)
 			.catch ()-> null # If prev was rejected with ignored/missing error
 			.tap ()-> debug "start file init for #{chalk.dim input}"
@@ -184,13 +184,16 @@ class Task extends require('events')
 				return module.file
 
 			.then (input)->
-				helpers.resolveFilePath(input, @entryFile.context, (@dirCache if pkg is importer.pkg), suppliedPath)
+				helpers.resolveFilePath(input, importer, @entryFile.context, suppliedPath)
 			
 			.tap (config)-> debug "start file init #{config.pathDebug}"
 			.tap (config)->
 				if @cache[config.pathAbs]
 					debug "using cached file for #{config.pathDebug}"
 					promiseBreak(@cache[config.pathAbs])
+				else
+					@cache[config.pathAbs] = thisFileInit
+					return
 
 			.tap (config)->
 				config.pkg = pkg or {}
@@ -222,8 +225,8 @@ class Task extends require('events')
 			.catch promiseBreak.end
 
 
-	processFile: (file)-> if file.processed then file else
-		file.processed = true
+	processFile: (file)-> if file.processed then file.processed else
+		file.processed =
 		Promise.bind(file)
 			.tap ()-> debug "processing #{file.pathDebug}"
 			.then file.collectConditionals
@@ -297,7 +300,6 @@ class Task extends require('events')
 			
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
-			.tap ()-> file.markEndTime()
 			.return(@importStatements)
 
 
@@ -402,7 +404,6 @@ class Task extends require('events')
 			.tap ()-> debug "replacing inline imports #{file.pathDebug}"
 			.then file.replaceInlineImports
 			.then file.saveContent.bind(file, 'contentPostInlinement')
-			.tap ()-> file.markEndTime()
 			.return(file)
 
 	
@@ -419,7 +420,6 @@ class Task extends require('events')
 			.return file.importStatements.concat(file.exportStatements)
 			.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
 			.map (statement)=> @replaceImportsExports(statement.target)
-			.tap ()-> file.markEndTime()
 			.return(file)
 
 

@@ -4,7 +4,7 @@ Path = require 'path'
 fs = require 'fs-jetpack'
 helpers = require './'
 
-module.exports = safeRequire = (targetPath, importer)->
+safeRequire = (targetPath, importer)->
 	targetPath = 'envify/custom' if targetPath is 'envify'
 	resolved = targetPath
 	context = importer.pkg.dirPath
@@ -14,15 +14,15 @@ module.exports = safeRequire = (targetPath, importer)->
 		.get 'file'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 
-		.then ()-> helpers.resolveFilePath(targetPath, '')
+		.then ()-> helpers.resolveFilePath(targetPath, importer, '')
 		.get 'pathAbs'
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 		
-		.then ()-> helpers.resolveFilePath(Path.resolve(context, targetPath), '').get('pathAbs')
+		.then ()-> helpers.resolveFilePath(Path.resolve(context, targetPath), importer, '').get('pathAbs')
 		.tap (resolvedPath)-> promiseBreak(resolvedPath) if fs.exists(resolvedPath)
 		.get 'pathAbs'
 		
-		.then ()-> helpers.resolveFilePath(Path.resolve(context, 'node_modules', targetPath), '').get('pathAbs')
+		.then ()-> helpers.resolveFilePath(Path.resolve(context, 'node_modules', targetPath), importer, '').get('pathAbs')
 		.get 'pathAbs'
 
 		.catch promiseBreak.end
@@ -38,3 +38,9 @@ module.exports = safeRequire = (targetPath, importer)->
 				throw new Error "'#{targetPath}' could not be found"
 			else
 				throw err
+
+module.exports = safeRequire.memoize (targetPath, importer)->
+	if helpers.isLocalModule(targetPath)
+		"#{importer.task.ID}/#{Path.resolve importer.pkg.dirPath, targetPath}"
+	else
+		"#{importer.task.ID}/#{targetPath}"

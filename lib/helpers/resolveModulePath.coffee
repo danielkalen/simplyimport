@@ -8,7 +8,7 @@ coreShims = require('../constants/coreShims')
 extensions = require('../constants/extensions').all.map (ext)-> ".#{ext}"
 resolver = Promise.promisify require('resolve')
 
-module.exports = resolveModulePath = (moduleName, importer, target='browser')->
+resolveModulePath = (moduleName, importer, target='browser')->
 	isLocalModule = helpers.isLocalModule(moduleName)
 
 	output =
@@ -115,6 +115,20 @@ pathFilter = ((importer, target)-> (pkg, path, relativePath)->
 		return resolveAlias(path, importer, target, pkg.browser)
 	else
 		return path
-).memoize()
+).memoize (importer, target)-> importer.pkg.dirPath
+
+
+
+module.exports = resolveModulePath = resolveModulePath.memoize (moduleName, importer)->
+	switch
+		when helpers.isLocalModule(moduleName)
+			"#{importer.task.ID}/#{Path.resolve(importer.context, moduleName)}"
+		when helpers.isHttpModule(moduleName)
+			"#{moduleName}"
+		else
+			"#{importer.task.ID}/#{importer.pkg.dirPath}+#{moduleName}"
+
+
+
 
 

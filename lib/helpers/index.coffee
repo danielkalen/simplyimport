@@ -7,12 +7,12 @@ registerModule = (moduleName)->
 			module.exports[moduleName] = result
 			return result
 
+registerModule 'parseContentToLines'
 registerModule 'getNormalizedDirname'
 registerModule 'simplifyPath'
 registerModule 'changeExtension'
 registerModule 'relatedExtensions'
 registerModule 'lineCount'
-registerModule 'getDirListing'
 registerModule 'resolveEntryPackage'
 registerModule 'resolveFilePath'
 registerModule 'resolveModulePath'

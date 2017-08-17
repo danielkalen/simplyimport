@@ -1,7 +1,7 @@
 Parser = require '../external/parser'
 EXTENSIONS = require '../constants/extensions'
 
-module.exports = exportLastExpression = (file)->
+exportLastExpression = (file)->
 	return file.content if EXTENSIONS.static.includes(file.pathExt)
 	ast = try Parser.parseStrict(file.contentSafe, range:true)
 	
@@ -59,3 +59,8 @@ module.exports = exportLastExpression = (file)->
 
 
 
+module.exports = exportLastExpression.memoize (file)->
+	if EXTENSIONS.static.includes(file.pathExt)
+		"#{file.ext}/#{file.content}"
+	else
+		"#{file.content}"

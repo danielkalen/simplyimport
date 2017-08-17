@@ -78,7 +78,7 @@ SimplyImport.scan = (options)->
 						
 						if not includedFiles[child.pathAbs]
 							output.push childData = includedFiles[child.pathAbs] = 'file':resolveImportPath(child), 'imports':[]
-							childData.time = child.endTime - child.startTime if options.time
+							childData.time = child.time if options.time
 							walkImports(child, childData.imports)
 
 						else if options.cyclic

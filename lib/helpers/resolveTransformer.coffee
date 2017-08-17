@@ -5,7 +5,7 @@ template = (fn, name='', opts={})->
 	fn:fn
 	opts:opts
 
-module.exports = resolveTransformer = (transformer, importer)-> Promise.resolve().then ()-> switch
+module.exports = resolveTransformer = (transformer, importer)-> switch
 	when typeof transformer is 'function'
 		template(transformer, transformer.name)
 
