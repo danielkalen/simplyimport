@@ -4,7 +4,6 @@ promiseBreak = require 'promise-break'
 program = require 'commander'
 chalk = require 'chalk'
 fs = require 'fs'
-matchGlob = require '../helpers/matchGlob'
 
 collectArgs = (arg, store)-> store.push(arg); return store
 
@@ -90,43 +89,8 @@ exports.push
 			.catch promiseBreak.end
 			.then ()-> require('../').scan(options)
 			.then (tree)->
-				entry = options.file or 'ENTRY'
-				output = {"#{entry}":{}}
-
-				formatPath = (filePath, parent, time)->
-					result = Path.relative(process.cwd(), filePath)
-					if parent
-						commondir = Path.dirname Path.relative(process.cwd(), parent)
-						result = result.replace commondir, (p)-> chalk.dim(p)
-					
-					if result.startsWith('node_modules')
-						isExternal = true
-						result = result.replace(/^.*node_modules\//,'').replace(/^[^\/]+/, (m)-> chalk.magenta(m))
-
-					result += chalk.yellow(" #{time}ms") if options.time
-					return [result, isExternal]
-				
-				walk = (imports, output, parent)->
-					for child in imports
-						[childPath, isExternal] = formatPath(child.file, parent, child.time)
-						
-						switch
-							when options.exclude.some(matchGlob.bind(null, childPath))
-								continue
-							when isExternal and not options.expandModules
-								childImports = null
-							when child.imports.length is 0
-								childImports = null
-							else
-								walk(child.imports, childImports={}, child.file)
-
-						output[childPath] = childImports
-					
-					return output
-
-
-				walk(tree, output[entry], entry)
-				console.log require('treeify').asTree(output)
+				fileTree = new (require './fileTree')(options, tree)
+				fileTree.render()
 
 
 
