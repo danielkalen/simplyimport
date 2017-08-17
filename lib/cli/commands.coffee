@@ -61,8 +61,9 @@ exports.push
 	command: ["list [path]"]
 	description: "list the import tree for the file located at the specified path (if no path given the stdin will be used)"
 	options: [
-		["-s, --size", "include gzipped size of each file"]
 		["-t, --time", "include compile time for each file"]
+		["-s, --size", "include content size of each file"]
+		["-g, --gzip", "use gzip size when --size flag is on"]
 		["-d, --depth [number]", "maximum level of imports to scan through (default:#{chalk.dim '0'})"]
 		["-e, --exclude [path]", "file to exclude", collectArgs, []]
 		["-c, --conditionals", "consider conditionals"]
@@ -70,12 +71,16 @@ exports.push
 		["--show-errors", "halt the list task upon error and log it to the console"]
 		["--target <node|browser>", "the target env this bundle will be run in"]
 		["--env <envFile>", "load the provided env file to be used for conditionals and envify transform"]
+		["--precision <number>", "precision of the file sizes number (default:#{chalk.dim '0'})"]
 	]
 	action: (file, options)->
 		program.specified = true
 		options.flat = false
+		options.precision = Number(options.precision) or 0
+		options.content = true if options.size
 		options.ignoreErrors = false if options.showErrors
 		options.matchAllConditions = false if options.conditionals
+		fileTree = null
 
 		Promise.resolve()
 			.then ()->
@@ -88,9 +93,9 @@ exports.push
 			.then (content)-> options.src = content
 			.catch promiseBreak.end
 			.then ()-> require('../').scan(options)
-			.then (tree)->
-				fileTree = new (require './fileTree')(options, tree)
-				fileTree.render()
+			.then (tree)-> fileTree = new (require './fileTree')(options, tree)
+			.then ()-> fileTree.compute()
+			.then ()-> fileTree.render()
 
 
 

@@ -41,6 +41,7 @@ SimplyImport.scan = (options)->
 	options.flat ?= true
 	options.cyclic ?= false
 	options.time ?= false
+	options.content ?= false
 	options.depth ?= 0
 	task = new Task(options)
 
@@ -64,8 +65,11 @@ SimplyImport.scan = (options)->
 					.unique()
 			else
 				output = []
+				output.entry = file:task.entryFile.pathAbs, imports:output
+				output.entry.time = task.entryFile.time if options.time
+				output.entry.content = task.entryFile.content if options.content
 				includedFiles = {}
-				includedFiles[task.entryFile.pathAbs] = file:task.entryFile.pathAbs, imports:output
+				includedFiles[task.entryFile.pathAbs] = output.entry
 				
 				walkImports = (file, output)->
 					includedFiles[file.pathAbs] ?= 'Cyclic'
@@ -79,6 +83,7 @@ SimplyImport.scan = (options)->
 						if not includedFiles[child.pathAbs]
 							output.push childData = includedFiles[child.pathAbs] = 'file':resolveImportPath(child), 'imports':[]
 							childData.time = child.time if options.time
+							childData.content = child.content if options.content
 							walkImports(child, childData.imports)
 
 						else if options.cyclic

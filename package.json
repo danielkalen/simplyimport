@@ -75,6 +75,7 @@
     "extend": "^3.0.0",
     "fs-jetpack": "^0.13.3",
     "get-stream": "^3.0.0",
+    "gzipped": "0.0.5",
     "https-browserify": "0.0.1",
     "lines-and-columns": "^1.1.6",
     "md5": "^2.1.0",
