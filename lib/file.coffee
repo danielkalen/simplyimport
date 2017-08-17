@@ -323,16 +323,7 @@ class File
 
 				Promise.bind(@)
 					.tap ()-> debug "applying transform #{chalk.yellow transformer.name} to #{@pathDebug} (from #{label} transforms)"
-					.then ()-> transformer.fn(@pathAbs, transformOpts, @, content)
-					.tap (result)->
-						switch
-							when helpers.isStream(result) then result
-							when typeof result is 'string' then promiseBreak(result)
-							when typeof result is 'function' then promiseBreak(result(content))
-							else throw new Error "invalid result of type '#{typeof result}' received from transformer"
-
-					.then (transformStream)-> getStream streamify(content).pipe(transformStream)
-					.catch promiseBreak.end
+					.then ()-> helpers.runTransform(@, content, transformer, transformOpts)
 					.then (content)->
 						return content if content is prevContent
 						if transformer.name.includes(/coffeeify|tsify-transform/)
