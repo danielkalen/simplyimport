@@ -2031,10 +2031,13 @@ suite "SimplyImport", ()->
 
 		test "final transforms will be applied to the final bundled file", ()->
 			receivedFiles = []
+			receivedContent = []
 			customTransform = (file)->
 				receivedFiles.push(file)
-				return (content)-> content.toLowerCase()
-			
+				return (content)->
+					receivedContent.push(result=content.toLowerCase())
+					return result
+
 			Promise.resolve()
 				.then ()->
 					helpers.lib
@@ -2063,7 +2066,9 @@ suite "SimplyImport", ()->
 				
 				.then ()-> processAndRun file:temp('main.js'), finalTransform:[customTransform]
 				.then ({context, compiled, writeToDisc})->
-					assert.deepEqual receivedFiles, [Path.resolve('bundle.js')]
+					assert.deepEqual receivedFiles, [temp('main.js')]
+					assert.equal receivedContent.length, 1
+					assert.equal receivedContent[0], compiled
 					assert.equal context.a, 'abc-value'
 					assert.equal context.b, 'def-value'
 					assert.equal context.c, 'ghi-value'

@@ -475,7 +475,7 @@ class Task extends require('events')
 					return bundledContent
 				else
 					config = {ID:'bundle', pkg:@options.pkg, options:{}, content:bundledContent}
-					config = helpers.newPathConfig Path.resolve('bundle.js'), null, config
+					config = helpers.newPathConfig @entryFile.pathAbs, null, config
 					
 					Promise.resolve(new File(@, config)).bind(@)
 						.tap ()-> debug "applying final transform"
