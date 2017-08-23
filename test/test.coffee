@@ -3,6 +3,7 @@ fs = require 'fs-jetpack'
 Path = require 'path'
 mocha = require 'mocha'
 vm = require 'vm'
+stringPos = require 'string-pos'
 assert = require('chai').assert
 expect = require('chai').expect
 TarGZ = require('tar.gz')()
@@ -4933,7 +4934,7 @@ suite "SimplyImport", ()->
 					assert.notInclude compiled, '//# sourceMappingURL'
 
 
-		test.only "mappings", ()->
+		test "mappings", ()->
 			fileContents = @fileContents
 			chalk = require 'chalk'
 			
@@ -4945,30 +4946,38 @@ suite "SimplyImport", ()->
 					mappingsRaw = require('combine-source-map/lib/mappings-from-map')(sourceMap)
 					mappings = Object.values mappingsRaw.groupBy(((map)-> map.name or map.source))
 					mappings = (mappings.map (group)-> group.inGroupsOf(2)).flatten(1)
-					getLines = require '../lib/helpers/lines'
-					compiledLines = getLines(compiled)
-					indexForLocation = (lines, loc)->
-						lines.indexForLocation line:loc.line-1, column:loc.column
+					compiledLines = stringPos(compiled)
 					
 					console.dir mappingsRaw, colors:true, depth:4
 					# console.dir mappings, colors:true
 					# assert.ok mappings[0].source?.startsWith('file://localhost')
 					
-					mappings.forEach (group, index)->
-						file = temp(group[0].source.replace('file://localhost/',''))
+					mappings.forEach ([start, end], index)->
+						file = temp(start.source.replace('file://localhost/',''))
 						source = fileContents[file]
-						lines = getLines(source)
-						orig = start:indexForLocation(lines, group[0].original), end:indexForLocation(lines, group[1].original)
-						gen = start:indexForLocation(compiledLines, group[0].generated), end:indexForLocation(compiledLines, group[1].generated)
+						lines = stringPos(source)
+						orig = start:stringPos.toIndex(source, start.original), end:stringPos.toIndex(source, end.original)
+						gen = start:stringPos.toIndex(compiled, start.generated), end:stringPos.toIndex(compiled, end.generated)
 
 						console.log '\n\n\n'+chalk.dim(Path.relative(temp(), file))
-						console.log chalk.yellow(source.slice(orig.start, orig.end))
-						console.log chalk.green(compiled.slice(gen.start, gen.end))
+						# console.log chalk.yellow(source.slice(orig.start, orig.end))
+						# console.log chalk.green(compiled.slice(gen.start, gen.end))
+						require('@danielkalen/print-code')(source)
+							.highlightRange(start.original, end.original)
+							.slice(start.original.line-1, end.original.line+2)
+							.color('green')
+							.print()
+						console.log '-'.repeat(Math.min process.stdout.columns, 20)
+						require('@danielkalen/print-code')(compiled)
+							.highlightRange(start.generated, end.generated)
+							.slice(start.generated.line-1, end.generated.line+2)
+							.color('red')
+							.print()
 
 					# mappings.forEach (mapping,index)->
 					# 	file = temp(mapping.source.replace('file://localhost/',''))
 					# 	source = fileContents[file]
-					# 	lines = getLines(source)
+					# 	lines = stringPos(source)
 					# 	debugStr = "mapping[#{index}] #{Path.relative(temp(), file)} "
 					# 	debugStr += JSON.stringify
 					# 		orig:"#{mapping.original.line}:#{mapping.original.column}"
