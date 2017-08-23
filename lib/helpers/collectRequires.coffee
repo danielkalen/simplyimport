@@ -1,8 +1,8 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
 
-module.exports = collectRequires = (tokens, lines)->
-	@walkTokens tokens, lines, 'require', ()->
+module.exports = collectRequires = (tokens, content)->
+	@walkTokens tokens, content, 'require', ()->
 		@next()
 		@next() if @current.value is '('
 		return if @current.type.label isnt 'string'

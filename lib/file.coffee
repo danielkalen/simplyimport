@@ -6,6 +6,7 @@ Path = require './helpers/path'
 stringHash = require 'string-hash'
 chalk = require 'chalk'
 extend = require 'extend'
+stringPos = require 'string-pos'
 Parser = require './external/parser'
 SourceMap = require './sourceMap'
 helpers = require './helpers'
@@ -119,8 +120,8 @@ class File
 					end ?= [@content.length - 1]
 					@conditionals.push 
 						range: [start[0], end[0]]
-						start: @linesOriginal.locationForIndex(start[0]).line
-						end: @linesOriginal.locationForIndex(end[0]).line
+						start: stringPos(@contentOriginal, start[0]).line-1
+						end: stringPos(@contentOriginal, end[0]).line-1
 						match: @task.options.matchAllConditions or do ()=>
 							file = @
 							jsString = ''
@@ -128,7 +129,7 @@ class File
 							env = @task.options.env
 							BUNDLE_TARGET = @task.options.target
 
-							helpers.walkTokens tokens, @linesOriginal, null, (token)->
+							helpers.walkTokens tokens, @contentOriginal, null, (token)->
 								switch token.type.label
 									when 'name'
 										if @_prev?.value is '.' or GLOBALS.includes(token.value)
@@ -184,14 +185,13 @@ class File
 					if not linesToRemove[index]
 						outputLines.push(line)
 					else
-						index = @linesOriginal.indexForLocation line:index, column:0
+						index = stringPos.toIndex(@contentOriginal,{line:index+1, column:0})
 						@addRangeOffset 'conditionals', 'start':index, 'end':index, 'diff':line.length*-1
 
 				return outputLines.join('\n')
 
 			.then @saveContent.bind(@, 'contentPostConditionals')
 			.catch promiseBreak.end
-			.tap ()-> @linesPostConditionals = helpers.lines(@content)
 			.tap @timeEnd
 
 
@@ -229,7 +229,6 @@ class File
 			@sourceMap.addNullRange(0, 39, true)
 
 		@hashPostTransforms = stringHash(@contentPostTransforms)
-		@linesPostTransforms = helpers.lines(@contentPostTransforms)
 		@timeEnd()
 
 
@@ -455,8 +454,8 @@ class File
 				
 				try
 					shouldSkipRequires = @isThirdPartyBundle and @hasOwnRequireSystem and @hasRequires
-					requires = if shouldSkipRequires then [] else helpers.collectRequires(tokens, @linesPostTransforms)
-					imports = helpers.collectImports(tokens, @linesPostTransforms)
+					requires = if shouldSkipRequires then [] else helpers.collectRequires(tokens, @contentPostTransforms)
+					imports = helpers.collectImports(tokens, @contentPostTransforms)
 					statements = imports.concat(requires).sortBy('tokenRange.start')
 				catch err
 					if err.name is 'TokenError'
@@ -512,7 +511,7 @@ class File
 		if tokens
 			@collectedExports = true
 			try
-				statements = helpers.collectExports(tokens, @linesPostTransforms)
+				statements = helpers.collectExports(tokens, @contentPostTransforms)
 			catch err
 				if err.name is 'TokenError'
 					@task.emit('TokenError', @, err)
@@ -544,7 +543,8 @@ class File
 	replaceInlineImports: (type='inline')->
 		debug "replacing #{type} imports #{@pathDebug}"
 		content = @content
-		lines = @linesPostTransforms or @linesPostConditionals # the latter will be used when type==='inline-forced'
+		lines = @contentPostTransforms or @contentPostConditionals or @content # the latter 2 will be used when type==='inline-forced'
+
 		if type is 'inline-forced'
 			rangeGroup = 'inlines'
 			targetRangeGroups = ['inlines']
@@ -576,7 +576,7 @@ class File
 						from: {start:0, end:statement.target.contentOriginal.length}
 						to: newRange
 						file: statement.target
-						offset: 1
+						offset: 0
 						name: "#{type}:#{index+1}"
 						content
 					}
@@ -614,7 +614,7 @@ class File
 						decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
 						replacement += ", #{decs.join ', '};"
 
-				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
+				return helpers.prepareMultilineReplacement(content, replacement, @contentPostTransforms, statement.range)
 
 			# @addRangeOffset 'imports', newRange = helpers.newReplacementRange(range, replacement)
 			@replacedRanges.imports.push newRange = helpers.newReplacementRange(range, replacement)
@@ -678,7 +678,7 @@ class File
 								replacement = "var #{statement.identifier} = #{replacement}"
 				
 
-				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
+				return helpers.prepareMultilineReplacement(content, replacement, @contentPostTransforms, statement.range)
 
 			@addRangeOffset 'exports', newRange = helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)

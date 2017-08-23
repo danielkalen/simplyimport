@@ -1,8 +1,8 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
 
-module.exports = collectImports = (tokens, lines)->
-	@walkTokens tokens, lines, 'import', ()->
+module.exports = collectImports = (tokens, content)->
+	@walkTokens tokens, content, 'import', ()->
 		output = helpers.newImportStatement('import')
 		if @next().type.keyword
 			throw @newError()

@@ -1,8 +1,8 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
 
-module.exports = collectExports = (tokens, lines)->
-	@walkTokens tokens, lines, 'export', ()->
+module.exports = collectExports = (tokens, content)->
+	@walkTokens tokens, content, 'export', ()->
 		return if @current.type.keyword isnt 'export'
 		output = helpers.newExportStatement()
 		@next()

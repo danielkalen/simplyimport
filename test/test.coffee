@@ -4814,7 +4814,7 @@ suite "SimplyImport", ()->
 						.catch (err)-> assert.include err.message, 'failed to download https://example.com/h (500)'
 
 
-	suite.only "source maps", ()->
+	suite.skip "source maps", ()->
 		suiteSetup ()->
 			@fileContents = {}
 			Promise.resolve()
@@ -4934,7 +4934,7 @@ suite "SimplyImport", ()->
 					assert.notInclude compiled, '//# sourceMappingURL'
 
 
-		test "mappings", ()->
+		test.skip "mappings", ()->
 			fileContents = @fileContents
 			chalk = require 'chalk'
 			
@@ -4948,9 +4948,7 @@ suite "SimplyImport", ()->
 					mappings = (mappings.map (group)-> group.inGroupsOf(2)).flatten(1)
 					compiledLines = stringPos(compiled)
 					
-					console.dir mappingsRaw, colors:true, depth:4
-					# console.dir mappings, colors:true
-					# assert.ok mappings[0].source?.startsWith('file://localhost')
+					# console.dir mappingsRaw, colors:true, depth:4
 					
 					mappings.forEach ([start, end], index)->
 						file = temp(start.source.replace('file://localhost/',''))
@@ -4958,6 +4956,7 @@ suite "SimplyImport", ()->
 						lines = stringPos(source)
 						orig = start:stringPos.toIndex(source, start.original), end:stringPos.toIndex(source, end.original)
 						gen = start:stringPos.toIndex(compiled, start.generated), end:stringPos.toIndex(compiled, end.generated)
+						# debugStr = "mapping[#{index}] #{Path.relative(temp(), file)} "
 
 						console.log '\n\n\n'+chalk.dim(Path.relative(temp(), file))
 						# console.log chalk.yellow(source.slice(orig.start, orig.end))
@@ -4973,18 +4972,6 @@ suite "SimplyImport", ()->
 							.slice(start.generated.line-1, end.generated.line+2)
 							.color('red')
 							.print()
-
-					# mappings.forEach (mapping,index)->
-					# 	file = temp(mapping.source.replace('file://localhost/',''))
-					# 	source = fileContents[file]
-					# 	lines = stringPos(source)
-					# 	debugStr = "mapping[#{index}] #{Path.relative(temp(), file)} "
-					# 	debugStr += JSON.stringify
-					# 		orig:"#{mapping.original.line}:#{mapping.original.column}"
-					# 		gen:"#{mapping.generated.line}:#{mapping.generated.column}"
-
-					# 	orig = lines.indexForLocation(mapping.original)
-					# 	# assert.equal lines.indexForLocation(mapping.original), lines
 
 
 

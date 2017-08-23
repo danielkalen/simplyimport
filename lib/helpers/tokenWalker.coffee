@@ -1,5 +1,6 @@
 REGEX = require '../constants/regex'
 extend = require 'extend'
+stringPos = require 'string-pos'
 PLACEHOLDER = {type:{}}
 VALID_PUNCTUATORS = [',','.']
 VALID_KEYWORDS = ['function','new','class','in','instanceof','typeof','void','delete']
@@ -12,7 +13,7 @@ module.exports = class TokenWalker
 				current = extend true, current, type:{label:'let', keyword:'let'}
 			current.value ?= current.type.label; @_prev = @_current; @_current = current
 	
-	constructor: (@tokens, @lines, @callback)->
+	constructor: (@tokens, @content, @callback)->
 		@index = 0
 		@results = []
 		@_current = null
@@ -71,8 +72,8 @@ module.exports = class TokenWalker
 		currentBrackets = []
 
 		hasNewLine = ()=>
-			prevLine = @lines.locationForIndex(@_prev.end)?.line
-			currentLine = @lines.locationForIndex(@current.start)?.line
+			prevLine = stringPos(@content, @_prev.end).line
+			currentLine = stringPos(@content, @current.start).line
 			return currentLine isnt prevLine
 
 		while @next().type.label and @current.type.label isnt 'eof'
