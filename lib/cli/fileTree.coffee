@@ -1,5 +1,5 @@
 Promise = require 'bluebird'
-Path = require 'path'
+Path = require '../helpers/path'
 chalk = require 'chalk'
 matchGlob = require '../helpers/matchGlob'
 streamify = require 'streamify-string'

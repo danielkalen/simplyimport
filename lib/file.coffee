@@ -2,12 +2,12 @@ Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
 streamify = require 'streamify-string'
 getStream = require 'get-stream'
-Path = require 'path'
-md5 = require 'md5'
+Path = require './helpers/path'
+stringHash = require 'string-hash'
 chalk = require 'chalk'
 extend = require 'extend'
 Parser = require './external/parser'
-sourcemapConvert = require 'convert-source-map'
+SourceMap = require './sourceMap'
 helpers = require './helpers'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
@@ -32,7 +32,8 @@ class File
 		@isThirdPartyBundle = false
 		@pathExtOriginal = @pathExt
 		@contentOriginal = @content
-		@linesOriginal = helpers.parseContentToLines(@content)
+		@linesOriginal = helpers.lines(@content)
+		@sourceMap = new SourceMap(@)
 		@pkgTransform = @pkg.browserify?.transform
 		@pkgTransform = helpers.normalizeTransforms(@pkgTransform) if @pkgTransform
 		@pkgTransform = do ()=>
@@ -190,11 +191,12 @@ class File
 
 			.then @saveContent.bind(@, 'contentPostConditionals')
 			.catch promiseBreak.end
-			.tap ()-> @linesPostConditionals = helpers.parseContentToLines(@content)
+			.tap ()-> @linesPostConditionals = helpers.lines(@content)
 			.tap @timeEnd
 
 
 	saveContent: (milestone, content)->
+		content = @sourceMap.update(content)
 		if arguments.length is 1
 			content = arguments[0]
 		else
@@ -216,19 +218,18 @@ class File
 	postTransforms: ()->
 		debug "running post-transform functions #{@pathDebug}"
 		@timeStart()
-		@contentPostTransforms = @content
-		@sourceMap = sourcemapConvert.fromSource(@content)?.sourcemap
-		if @sourceMap
-			@contentPostTransforms = @content = sourcemapConvert.removeComments(@content)
+		@contentPostTransforms = @content = @sourceMap.update(@content)
 		
 		if @requiredGlobals.process
 			@contentPostTransforms = @content = "var process = require('process');\n#{@content}"
+			@sourceMap.addNullRange(0, 34, true)
 		
 		if @requiredGlobals.Buffer
 			@contentPostTransforms = @content = "var Buffer = require('buffer').Buffer;\n#{@content}"
+			@sourceMap.addNullRange(0, 39, true)
 
-		@hashPostTransforms = md5(@contentPostTransforms)
-		@linesPostTransforms = helpers.parseContentToLines(@contentPostTransforms)
+		@hashPostTransforms = stringHash(@contentPostTransforms)
+		@linesPostTransforms = helpers.lines(@contentPostTransforms)
 		@timeEnd()
 
 
@@ -318,7 +319,8 @@ class File
 			
 			.reduce((content, transformer)->
 				lastTransformer = transformer
-				transformOpts = extend {_flags:@task.options}, transformer.opts
+				flags = extend true, @task.options
+				transformOpts = extend {_flags:flags}, transformer.opts
 				prevContent = content
 
 				Promise.bind(@)
@@ -336,7 +338,7 @@ class File
 						if @pathExt isnt @pathExtOriginal
 							@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
 						
-						return content
+						return @sourceMap.update(content)
 				
 			, content)
 			.catch (err)->
@@ -553,7 +555,7 @@ class File
 		Promise.bind(@)
 			.tap @timeStart
 			.then ()-> @importStatements.filter {type}
-			.map (statement)->
+			.map (statement,index)->
 				range = @offsetRange(statement.range, targetRangeGroups, rangeGroup)
 				replacement = do ()=>
 					return '' if statement.excluded
@@ -567,8 +569,17 @@ class File
 					return targetContent
 
 				content = content.slice(0,range.start) + replacement + content.slice(range.end)
-				replacementRange = @addRangeOffset rangeGroup, helpers.newReplacementRange(range, replacement)
+				replacementRange = @addRangeOffset rangeGroup, newRange = helpers.newReplacementRange(range, replacement)
 				replacementRange.source = statement.target if type is 'inline-forced'
+				unless statement.excluded
+					@sourceMap.addRange {
+						from: {start:0, end:statement.target.contentOriginal.length}
+						to: newRange
+						file: statement.target
+						offset: 1
+						name: "#{type}:#{index+1}"
+						content
+					}
 
 			.then ()-> content
 			.tap @timeEnd
@@ -605,9 +616,10 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
-
-			@replacedRanges.imports.push helpers.newReplacementRange(range, replacement)
+			# @addRangeOffset 'imports', newRange = helpers.newReplacementRange(range, replacement)
+			@replacedRanges.imports.push newRange = helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
+			@sourceMap.addRange {from:statement.range, to:newRange, name:"import:#{index+1}", content}
 
 		@timeEnd()
 		return content
@@ -668,8 +680,9 @@ class File
 
 				return helpers.prepareMultilineReplacement(content, replacement, @linesPostTransforms, statement.range)
 
-			@addRangeOffset 'exports', helpers.newReplacementRange(range, replacement)
+			@addRangeOffset 'exports', newRange = helpers.newReplacementRange(range, replacement)
 			content = content.slice(0,range.start) + replacement + content.slice(range.end)
+			@sourceMap.addRange {from:statement.range, to:newRange, name:"export:#{index+1}", content}
 
 		@timeEnd()
 		return content

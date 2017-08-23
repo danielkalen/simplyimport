@@ -1,4 +1,4 @@
-Path = require 'path'
+Path = require './path'
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
 helpers = require('./')

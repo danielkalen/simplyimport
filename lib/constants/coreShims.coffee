@@ -1,7 +1,7 @@
 Promise = require 'bluebird'
-path = require 'path'
+Path = require '../helpers/path'
 resolveModule = Promise.promisify require('resolve')
-basedir = 'basedir':path.resolve(__dirname,'..')
+basedir = 'basedir':Path.resolve(__dirname,'..')
 {EMPTY_STUB} = require './'
 
 module.exports = coreShims =

@@ -1,4 +1,4 @@
-Path = require 'path'
+Path = require './path'
 helpers = require('./')
 {EMPTY_STUB} = require('../constants')
 

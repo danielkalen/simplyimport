@@ -1,5 +1,4 @@
 Promise = require 'bluebird'
-Path = require 'path'
 promiseBreak = require 'promise-break'
 program = require 'commander'
 chalk = require 'chalk'

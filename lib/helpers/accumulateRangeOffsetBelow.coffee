@@ -2,9 +2,10 @@ module.exports = accumulateRangeOffsetBelow = (pos, ranges, offset)->
 	for range in ranges
 		targetSTART = pos.start+offset
 		targetEND = pos.end+offset
+		targetIsBetween = targetSTART < range.start and range.start < targetEND < range.end
 
 		# tweener means 'between' i.e. between import/export collection & replacement. This will be true only for export-less modules that were modified to contain 'module.exports = '
-		rangeOffset = if range.isTweener then offset else 0
+		rangeOffset = if range.isTweener or targetIsBetween then offset else 0
 		rangeSTART = range.start+rangeOffset
 		rangeEND = range.end+rangeOffset
 		rangeEND -= range.diff

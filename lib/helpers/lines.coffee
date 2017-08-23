@@ -1,6 +1,6 @@
 LinesAndColumns = require('lines-and-columns').default
 
-parseContentToLines = (content)->
+lines = (content)->
 	new LinesAndColumns(content)
 
-module.exports = parseContentToLines.memoize()
+module.exports = lines.memoize()

@@ -1,4 +1,4 @@
-Path = require 'path'
+Path = require './path'
 findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'

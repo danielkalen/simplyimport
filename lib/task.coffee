@@ -1,7 +1,7 @@
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
-Path = require 'path'
-md5 = require 'md5'
+Path = require './helpers/path'
+stringHash = require 'string-hash'
 fs = require 'fs-jetpack'
 chalk = require 'chalk'
 extend = require 'extend'
@@ -9,6 +9,7 @@ formatError = require './external/formatError'
 Parser = require './external/parser'
 helpers = require './helpers'
 File = require './file'
+SourceMapCombiner = require './sourceMapCombiner'
 REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
@@ -146,7 +147,7 @@ class Task extends require('events')
 					ID: if @options.usePaths then 'entry.js' else ++@currentID
 					isEntry: true
 					content: content
-					hash: md5(content)
+					hash: stringHash(content)
 					pkg: @options.pkg
 					suppliedPath: @options.file or ''
 					context: @options.context
@@ -216,7 +217,7 @@ class Task extends require('events')
 			.tap (config)->
 				fs.readAsync(config.pathAbs).then (content)->
 					config.content = content
-					config.hash = md5(content)
+					config.hash = stringHash(content)
 				
 			.then (config)-> new File(@, config)
 			
@@ -406,7 +407,7 @@ class Task extends require('events')
 			.then file.saveContent.bind(file, 'contentPostInlinement')
 			.return(file)
 
-	
+
 	replaceImportsExports: (file)->
 		return file if file.replacedImportsExports
 		file.replacedImportsExports = true
@@ -450,25 +451,26 @@ class Task extends require('events')
 					.unique('target')
 					.map('target')
 					.append(@entryFile, 0)
-					.sortBy('hash')
 			
 			.tap (files)->
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
-					promiseBreak(@entryFile.content)
+					promiseBreak(@entryFile.content+@entryFile.sourceMap.toComment())
 			
 			.tap ()-> debug "creating bundle AST"
 			.then (files)->
 				bundle = builders.bundle(@)
 				{loader, modules} = builders.loader(@options.target, @options.loaderName)
+				@sourceMap = new SourceMapCombiner(@, bundle, loader)
 				
-				files.sortBy('hash').forEach (file)=>
+				files.forEach (file)=>
 					modules.push builders.moduleProp(file, @options.loaderName)
+					@sourceMap.add(file)
 
 				bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
 				return bundle
 
 			.tap ()-> debug "generating code from bundle AST"
-			.then (ast)-> Parser.generate(ast)
+			.then (ast)-> Parser.generate(ast)+@sourceMap.toComment()
 			.catch promiseBreak.end
 			.then (bundledContent)->
 				if not @options.finalTransform.length
@@ -527,7 +529,7 @@ extendOptions = (suppliedOptions)->
 
 
 normalizeOptions = (options)->
-	options.sourceMap ?= options.debug
+	options.sourceMap ?= options.debug if options.debug
 	options.transform = helpers.normalizeTransforms(options.transform) if options.transform
 	options.globalTransform = helpers.normalizeTransforms(options.globalTransform) if options.globalTransform
 	options.finalTransform = helpers.normalizeTransforms(options.finalTransform) if options.finalTransform

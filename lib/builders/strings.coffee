@@ -11,7 +11,7 @@ exports.loaderBrowser = (loader)-> """
 			return cache[r] ? cache[r].exports
 							: ( cache[r]={exports:{}}, cache[r].exports=modules[r].call(cx, #{loader}, cache[r], cache[r].exports) );
 		};
-	})({},{}this,);
+	})({},{},this);
 """
 
 exports.loaderNode = (loader)-> """
@@ -40,7 +40,10 @@ exports.umd = (loader, name, entryID)-> """
 """
 
 
-
+exports.OFFSETS = 
+	bundle: 1
+	loader: 7
+	module: 2
 
 
 

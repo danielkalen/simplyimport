@@ -1,7 +1,7 @@
 helpers = require './'
 extend = require 'extend'
 chalk = require 'chalk'
-Path = require 'path'
+Path = require './path'
 
 template = (existing)-> extend
 	pathAbs: ''

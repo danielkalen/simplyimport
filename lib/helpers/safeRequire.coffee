@@ -1,6 +1,6 @@
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
-Path = require 'path'
+Path = require './path'
 fs = require 'fs-jetpack'
 helpers = require './'
 

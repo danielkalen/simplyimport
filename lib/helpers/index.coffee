@@ -7,7 +7,7 @@ registerModule = (moduleName)->
 			module.exports[moduleName] = result
 			return result
 
-registerModule 'parseContentToLines'
+registerModule 'lines'
 registerModule 'getNormalizedDirname'
 registerModule 'simplifyPath'
 registerModule 'changeExtension'
@@ -49,5 +49,6 @@ registerModule 'isStream'
 registerModule 'isHttpModule'
 registerModule 'isValidTransformerArray'
 registerModule 'isMatchPath'
+registerModule 'path'
 registerModule 'temp'
 # registerModule 'minifyWhitespace'

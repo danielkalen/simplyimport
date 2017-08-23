@@ -4,10 +4,10 @@
 [x] implement new conditionals system
 [] implement source maps
 [x] implement stream compiler
-[] implement cli import tree outputer
-[] implement url imports
+[x] implement cli import tree outputer
+[x] implement url imports
 [x] add transform-key support
-[] new cli options
+[x] new cli options
 [x] rewrite test suite
 [] write readme
 [x] use consistent names for vars

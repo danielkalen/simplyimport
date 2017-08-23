@@ -1,4 +1,5 @@
-Path = require 'path'
+Path = require './path'
+extend = require 'extend'
 
 module.exports = (targetPath, candidatePath)->
 	target = parsePath(targetPath)
@@ -18,7 +19,7 @@ module.exports = (targetPath, candidatePath)->
 parsePath = ((target)->
 	if typeof target is 'string'
 		parsed = Path.parse(target)
-		parsed.dir = '' if parsed.dir is '.'
+		parsed = extend({}, parsed, {dir:''}) if parsed.dir is '.'
 		return parsed
 	else
 		return target

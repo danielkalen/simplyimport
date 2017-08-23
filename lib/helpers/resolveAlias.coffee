@@ -1,5 +1,5 @@
 helpers = require './'
-Path = require 'path'
+Path = require './path'
 
 module.exports = (suppliedPath, importerDir, pkgDir, aliases)->
 	targetPath = Path.resolve(importerDir, suppliedPath)
