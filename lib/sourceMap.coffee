@@ -27,7 +27,7 @@ class SourceMap
 			newSourceMap = @extractFromContent(content)
 			
 			if newSourceMap
-				@map.applySourceMap(newSourceMap)
+				@map.applySourceMap(new sourceMap.SourceMapConsumer newSourceMap)
 				content = sourceMapConvert.removeComments(content)
 		
 		return content

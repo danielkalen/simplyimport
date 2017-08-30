@@ -89,6 +89,7 @@ class File
 			REGEX.requireArg.test(@content) and @hasRequires
 
 		@isThirdPartyBundle = @isThirdPartyBundle or @hasOwnRequireSystem
+		@options.skip ?= @isThirdPartyBundle and @hasOwnRequireSystem and @hasRequires
 		@timeEnd()
 
 
@@ -435,7 +436,7 @@ class File
 		@content.replace REGEX.inlineImport, (entire, childPath, offset)=>
 			statement = helpers.newImportStatement()
 			statement.source = @
-			statement.target = childPath.removeAll(REGEX.quotes).trim()
+			statement.target = helpers.normalizeTargetPath(childPath, @, true)
 			statement.range.start = offset
 			statement.range.end = offset + entire.length
 			statement.type = 'inline-forced'
@@ -453,8 +454,7 @@ class File
 				@collectedImports = true
 				
 				try
-					shouldSkipRequires = @isThirdPartyBundle and @hasOwnRequireSystem and @hasRequires
-					requires = if shouldSkipRequires then [] else helpers.collectRequires(tokens, @contentPostTransforms)
+					requires = if @options.skip then [] else helpers.collectRequires(tokens, @contentPostTransforms)
 					imports = helpers.collectImports(tokens, @contentPostTransforms)
 					statements = imports.concat(requires).sortBy('tokenRange.start')
 				catch err
@@ -467,6 +467,7 @@ class File
 
 
 				statements.forEach (statement)=>
+					statement.target = helpers.normalizeTargetPath(statement.target, @)
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
@@ -481,7 +482,7 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.pugImport, (entireLine, childPath, offset)=>
 					statement = helpers.newImportStatement()
-					statement.target = childPath.removeAll(REGEX.quotes).trim()
+					statement.target = helpers.normalizeTargetPath(childPath, @, true)
 					statement.range.start = offset
 					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
@@ -493,7 +494,7 @@ class File
 				@collectedImports = true
 				@content.replace REGEX.cssImport, (entireLine, childPath, offset)=>
 					statement = helpers.newImportStatement()
-					statement.target = childPath.removeAll(REGEX.quotes).trim()
+					statement.target = helpers.normalizeTargetPath(childPath, @, true)
 					statement.range.start = offset
 					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
@@ -511,7 +512,7 @@ class File
 		if tokens
 			@collectedExports = true
 			try
-				statements = helpers.collectExports(tokens, @contentPostTransforms)
+				statements = helpers.collectExports(tokens, @contentPostTransforms, @)
 			catch err
 				if err.name is 'TokenError'
 					@task.emit('TokenError', @, err)

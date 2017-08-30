@@ -1,7 +1,7 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
 
-module.exports = collectExports = (tokens, content)->
+collectExports = (tokens, content, importer)->
 	@walkTokens tokens, content, 'export', ()->
 		return if @current.type.keyword isnt 'export'
 		output = helpers.newExportStatement()
@@ -16,14 +16,14 @@ module.exports = collectExports = (tokens, content)->
 
 				if @current.value is 'from'
 					throw @newError() if @next().type.label isnt 'string'
-					output.target = @current.value.removeAll(REGEX.quotes).trim()
+					output.target = helpers.normalizeTargetPath(@current.value, importer, true)
 				else
 					@prev()
 
 
 			when @current.value is '*'
 				throw @newError() if @next().value isnt 'from' or @next().type.label isnt 'string'
-				output.target = @current.value.removeAll(REGEX.quotes).trim()
+				output.target = helpers.normalizeTargetPath(@current.value, importer, true)
 
 			
 			when @current.type.keyword
@@ -53,3 +53,5 @@ module.exports = collectExports = (tokens, content)->
 
 		return output
 
+
+module.exports = collectExports#.memoize (tokens, content, importer)-> "#{importer.path}/#{content}"
