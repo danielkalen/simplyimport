@@ -12,3 +12,4 @@
 [] write readme
 [x] use consistent names for vars
 [x] measure compilation time
+[] fix property getter require false alarms (e.g. context.require('...'))
