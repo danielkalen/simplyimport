@@ -1,6 +1,7 @@
 helpers = require './helpers'
 sourceMap = require 'source-map'
 sourceMapConvert = require 'convert-source-map'
+stringPos = require 'string-pos'
 
 class SourceMap
 	constructor: (@file)->
@@ -64,11 +65,10 @@ class SourceMap
 
 
 	offset: ({from, to, content=@file.content})->
-		lines = helpers.lines(content)
-		offset = lines.locationForIndex(to)
+		offset = stringPos(content, to)
 	
 		for mapping in @map._mappings._array
-			mappingIndex = lines.indexForLocation(line:mapping.generatedLine-1, column:mapping.generatedColumn)
+			mappingIndex = stringPos.toIndex(line:mapping.generatedLine, column:mapping.generatedColumn)
 			continue unless to <= mappingIndex
 			mapping.generatedLine += offset.line
 			mapping.generatedColumn += offset.column
@@ -85,11 +85,10 @@ class SourceMap
 
 getLocation = (file, index, content, offset=0)->
 	if Object.isNumber(index)
-		lines = if content? then helpers.lines(content) else file.linesOriginal
-		loc = lines.locationForIndex(index)
-		return {line:loc.line+1+offset, column:loc.column}
+		loc = if content? then stringPos(content, index) else stringPos(file.contentOriginal, index)
+		return {line:loc.line+offset, column:loc.column}
 	else
-		return {line:index.line+1+offset, column:index.column}
+		return {line:index.line+offset, column:index.column}
 
 
 

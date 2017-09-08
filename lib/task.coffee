@@ -498,12 +498,12 @@ class Task extends require('events')
 		@removeAllListeners()
 		@files.length = 0
 		@importStatements.length = 0
-		delete @files
-		delete @importStatements
-		delete @imports
-		delete @cache
-		delete @options
-		delete @requiredGlobals
+		@files = null
+		@importStatements = null
+		@imports = null
+		@cache = null
+		@options = null
+		@requiredGlobals = null
 
 
 

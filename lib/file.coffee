@@ -351,15 +351,16 @@ class File
 
 	tokenize: ()->
 		unless EXTENSIONS.nonJS.includes(@pathExt)
-			try
-				debug "tokenizing #{@pathDebug}"
-				@timeStart()
-				@Tokens = Parser.tokenize(@content, range:true, sourceType:'module')
-				@Tokens.forEach (token, index)-> token.index = index
-				@timeEnd()
-			catch err
-				@task.emit 'TokenizeError', @, err
+			@timeStart()
+			debug "tokenizing #{@pathDebug}"
+			tokens = helpers.tokenize(@content)
 			
+			if tokens instanceof Error
+				@task.emit 'TokenizeError', @, tokens
+			else
+				@Tokens = tokens
+
+			@timeEnd()			
 
 		return @content
 
