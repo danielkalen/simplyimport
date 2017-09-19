@@ -21,7 +21,7 @@ class File
 	Object.defineProperty @::, 'contentSafe', get: -> @replaceES6Imports(false)
 	constructor: (@task, state)->
 		extend(@, state)
-		@options.transform ?= []		
+		@options.transform ?= []
 		@IDstr = JSON.stringify(@ID)
 		@tokens = @AST = @parsed = null
 		@time = 0

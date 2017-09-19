@@ -10,6 +10,7 @@ REGEX =
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
 	shebang: /^#![^\n]*\n/
+	pathPlaceholder: /%([A-Z]+)/
 	varIncompatible: /[^0-9a-zA-Z_$]/g
 	initialWhitespace: /^[ \t]+/
 	initialExport: /^module\.exports\s*=\s*/

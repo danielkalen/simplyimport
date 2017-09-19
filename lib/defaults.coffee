@@ -16,6 +16,7 @@ module.exports =
 	ignoreFile: []
 	excludeFile: []
 	specific: {}
+	placeholder: {}
 	env: undefined
 	loaderName: 'require'
 	target: 'browser'
