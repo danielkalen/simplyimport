@@ -269,7 +269,7 @@ class File
 
 	applyPkgTransforms: (content)->
 		Promise.resolve(@pkgTransform).bind(@)
-			.tap (transform)-> promiseBreak(content) if not transform
+			.tap (transform)-> promiseBreak(content) if not transform or @options.skip
 			.filter (transform)->
 				name = if typeof transform is 'string' then transform else transform[0]
 				return not name.toLowerCase().includes 'simplyimport/compat'

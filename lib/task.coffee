@@ -29,6 +29,7 @@ class Task extends require('events')
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
+		@options.sourceMap = false # temporary until sourcemaps are fixed
 		@options.context ?= if @options.file then helpers.getNormalizedDirname(@options.file) else process.cwd()
 		if @options.file
 			@options.ext = Path.extname(@options.file).replace('.','') or 'js'
