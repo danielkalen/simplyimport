@@ -35,6 +35,8 @@ class File
 		@contentOriginal = @content
 		@linesOriginal = helpers.lines(@content)
 		@sourceMap = new SourceMap(@)
+		@options.placeholder = helpers.resolvePlaceholders(@)
+		@pkgEntry = helpers.resolvePackageEntry(@pkg)
 		@pkgTransform = @pkg.browserify?.transform
 		@pkgTransform = helpers.normalizeTransforms(@pkgTransform) if @pkgTransform
 		@pkgTransform = do ()=>
