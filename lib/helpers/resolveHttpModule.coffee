@@ -17,8 +17,9 @@ module.exports = (url)->
 	
 	Promise.resolve()
 		.tap ()-> debug "resolving via HTTP #{chalk.dim url}"
-		.then ()-> axios.head(url).get('headers')
-		.then (headers)->
+		.then ()-> axios.head(url)
+		.then (res)->
+			{headers} = res
 			if not headers.etag
 				promiseBreak('requires download')
 			else
