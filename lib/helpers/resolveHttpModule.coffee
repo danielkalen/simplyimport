@@ -34,7 +34,8 @@ module.exports = (url)->
 		.then (status)-> promiseBreak(status) unless status is 'requires download'
 		
 		.tap ()-> debug "downloading #{chalk.dim url}"
-		.then ()-> axios.get(url, responseType:'stream').get('data')
+		.then ()-> axios.get(url, responseType:'stream')
+		.get('data')
 		.then (stream)-> getStream(stream, encoding:'buffer')
 		.tap ()-> debug "finished download #{chalk.dim url}"
 		
