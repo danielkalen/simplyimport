@@ -589,16 +589,10 @@ class File
 				return acc+statement
 			else
 				replacement = @resolveStatementReplacement(statement)
-				# if statement.target.path.endsWith('main.js')
-				# 	console.log acc, '\n\n'
 				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
 				return acc+replacement
 
 		@timeEnd()
-		# if @path.endsWith("moment/src/moment.js")
-		# 	# debugger
-		# 	# console.dir split, colors:true, depth:0
-		# 	console.log content
 		return content
 	
 

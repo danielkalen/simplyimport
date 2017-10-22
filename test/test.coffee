@@ -3828,7 +3828,17 @@ suite "SimplyImport", ()->
 					assert Object.keys(result).length > 1
 	
 
-		test "moment", ()->
+		test.skip "redux", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('redux')"
+				.then ()-> processAndRun file:temp('main.js')
+				.then ({result})->
+					assert.typeOf result, 'object'
+					assert.typeOf result.createStore, 'object'
+					assert Object.keys(result).length > 1
+	
+
+		test.only "moment", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
 				.then ()-> processAndRun file:temp('main.js'), 'moment.js'

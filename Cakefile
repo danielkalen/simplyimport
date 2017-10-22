@@ -11,7 +11,7 @@ testModules = [
 	'mocha', 'chai', 'nock', 'browserify', 'babelify', 'formatio',
 	'babel-preset-es2015-script', 'envify', 'es6ify', 'brfs',
 	'axios', 'moment', 'timeunits', 'yo-yo', 'smart-extend',
-	'p-wait-for', 'source-map-support', 'xmlhttprequest',
+	'p-wait-for', 'source-map-support', 'xmlhttprequest', 'redux',
 	'location', 'pug', 'node-sass', 'html2json', 'modcss', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 
 
