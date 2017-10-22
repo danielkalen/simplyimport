@@ -592,8 +592,10 @@ class File
 				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
 				return acc+replacement
 
+
+
 		@timeEnd()
-		return content
+		return "#{@getExportedFunctions()}#{content}"
 	
 
 	extract: (key, returnActual)->
@@ -692,17 +694,18 @@ class File
 
 
 					else
-						if statement.default
-							replacement += "exports.default = "
-							replacement += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
-						
-						else if statement.identifier
-							replacement += "exports.#{statement.identifier} = "
+						if statement.keyword isnt 'function' or not statement.identifier
+							if statement.default
+								replacement += "exports.default = "
+								replacement += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
+							
+							else if statement.identifier
+								replacement += "exports.#{statement.identifier} = "
 
 						if statement.keyword# and not isDec # function or class
 							replacement += "#{statement.keyword} "
 							if statement.identifier
-								replacement = "var #{statement.identifier} = #{replacement}"
+								replacement = "#{replacement} #{statement.identifier}"
 				
 
 				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
@@ -721,6 +724,17 @@ class File
 				return candidate.target.getStatementSource(statement)
 		
 		return @
+
+
+	getExportedFunctions: ()->
+		exportedFunctions = @statements
+			.filter (statement)-> statement.statementType is 'export' and statement.keyword is 'function' and statement.identifier
+			.map (statement)->
+				targetExport = if statement.default then 'default' else statement.identifier
+				"exports.#{targetExport} = #{statement.identifier};"
+			.join '\n'
+
+		if exportedFunctions then exportedFunctions+'\n' else ''
 
 
 	offsetStatements: (offset)->

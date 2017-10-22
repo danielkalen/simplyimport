@@ -847,6 +847,7 @@ suite "SimplyImport", ()->
 						exports.h2 = {hhh:hhh, HHH:HHH, h2:h2, h1:h1}
 						import * as fff from 'f'
 						exports.f = fff
+						exports.j = import 'j'
 					"""
 					'a.js': """
 						export default abc = 123
@@ -928,6 +929,13 @@ suite "SimplyImport", ()->
 						export var jkl = 'jkl', JKL='JKL'
 						export {a, jKl as default, b}
 					"""
+					'j.js': """
+						export class MyClass {
+							constructor(name) {
+								this.name = name;
+							}
+						}
+					"""
 
 			.then ()-> processAndRun file:temp('main.js'), usePaths:true
 			.then ({writeToDisc, compiled, result, run})->
@@ -961,6 +969,9 @@ suite "SimplyImport", ()->
 				assert.equal result.g.GGG.GHI, 'GHI'
 				assert.equal result.g.GGG.jkl, false
 				assert.deepEqual result.g.GGG.JKL, [12,20]
+				assert.equal typeof result.j, 'object'
+				assert.equal typeof result.j.MyClass, 'function'
+				assert.equal (new result.j.MyClass('random')).name, 'random'
 				# assert.equal result.h1,
 				# assert.equal result.h2,
 				# assert.equal result.f,
@@ -1072,7 +1083,7 @@ suite "SimplyImport", ()->
 					"""
 
 			.then ()-> processAndRun file:temp('main.js')
-			.then ({result})->
+			.then ({result,writeToDisc})->
 				assert.deepEqual result.a1, 123
 				assert.deepEqual result.a2, 123
 				assert.deepEqual result.a3, {default:123, def:456}
@@ -3838,10 +3849,10 @@ suite "SimplyImport", ()->
 					assert Object.keys(result).length > 1
 	
 
-		test.only "moment", ()->
+		test "moment", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
-				.then ()-> processAndRun file:temp('main.js'), 'moment.js'
+				.then ()-> processAndRun file:temp('main.js'), usePaths:true, 'moment.js'
 				.then ({result})->
 					now = Date.now()
 					assert.typeOf result, 'function'
