@@ -22,7 +22,7 @@ SimplyImport.compile = (options, returnStream)->
 	Promise.bind(task)
 		.then task.initEntryFile
 		.then task.processFile
-		.then task.scanImportsExports
+		.then task.scanStatements
 		.then task.compile
 
 	if not returnStream
@@ -53,7 +53,7 @@ SimplyImport.scan = (options)->
 	Promise.bind(task)
 		.then task.initEntryFile
 		.then task.processFile
-		.then ()-> task.scanImportsExports(task.entryFile, options.depth)
+		.then ()-> task.scanStatements(task.entryFile, options.depth)
 		.then task.calcImportTree
 		.then ()->
 			if options.flat
@@ -73,9 +73,10 @@ SimplyImport.scan = (options)->
 				
 				walkImports = (file, output)->
 					includedFiles[file.pathAbs] ?= 'Cyclic'
-					fileImports = file.importStatements.map('target')
-					fileExports = file.exportStatements.filter((s)-> s.target isnt s.source).map('target')
-					fileImports = fileImports.concat(fileExports).unique()
+					fileImports = file.statements
+						.filter (s)-> s.target isnt s.source
+						.map 'target'
+						.unique()
 
 					for child in fileImports# when child isnt file
 						continue if child.pathAbs is EMPTY_STUB

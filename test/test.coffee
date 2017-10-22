@@ -604,7 +604,7 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.e, 'file e.js!'
 
 
-	test "files matching globs specified in options.excludeFile shall be not be included in the package", ()->
+	test "files matching globs specified in options.excludeFile shall be not be included in the bundle", ()->
 		Promise.resolve()
 			.then ()->
 				helpers.lib

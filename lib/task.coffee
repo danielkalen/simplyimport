@@ -24,7 +24,8 @@ class Task extends require('events')
 		@currentID = -1
 		@ID = helpers.randomVar()
 		@files = []
-		@importStatements = []
+		@statements = []
+		@inlineStatements = []
 		@cache = Object.create(null)
 		@requiredGlobals = Object.create(null)
 		
@@ -232,8 +233,8 @@ class Task extends require('events')
 		Promise.bind(file)
 			.tap ()-> debug "processing #{file.pathDebug}"
 			.then file.collectConditionals
-			.then ()=> @scanForceInlineImports(file)
-			.then ()=> @replaceForceInlineImports(file)
+			.then ()=> @scanInlineStatements(file)
+			.then ()=> @replaceInlineStatements(file)
 			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.replaceES6Imports
 			.then file.applyAllTransforms
@@ -251,11 +252,11 @@ class Task extends require('events')
 			.return(file)
 
 
-	scanForceInlineImports: (file)->
+	scanInlineStatements: (file)->
 		file.scannedForceInlineImports = true
 		Promise.bind(@)
 			.then ()-> file.collectForceInlineImports()
-			.tap (imports)-> @importStatements.push(imports...)
+			.tap (imports)-> @inlineStatements.push(imports...)
 			.map (statement)->
 				Promise.bind(@)
 					.then ()-> @initFile(statement.target, file, true)
@@ -267,26 +268,27 @@ class Task extends require('events')
 					.return(statement)
 			
 			.filter (statement)-> not statement.excluded and not statement.target.scannedForceInlineImports
-			.map (statement)-> @scanForceInlineImports(statement.target)
+			.map (statement)-> @scanInlineStatements(statement.target)
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
-			.return(@importStatements)
+			.return(@inlineStatements)
 
 
-	scanImportsExports: (file, depth=Infinity, currentDepth=0)-> if not file.scannedImportsExports
+	scanStatements: (file, depth=Infinity, currentDepth=0)-> if not file.scannedImportsExports
 		file.scannedImportsExports = true
 		importingExports = null
+		collected = []
 		
 		Promise.bind(@)
+			.then ()-> file.collectImports()
+			.tap (imports)-> collected.push(imports...)
+			
 			.then ()-> file.collectExports()
 			.filter (statement)-> statement.target isnt statement.source
-			.tap (exports)-> @importStatements.push(exports...); importingExports = exports
+			.tap (exports)-> collected.push(exports...)
 			
-			.then ()-> file.collectImports()
-			.filter (statement)-> statement.type isnt 'inline-forced'
-			.tap (imports)-> @importStatements.push(imports...)
-			
-			.then (imports)-> imports.concat(importingExports)
+			.then ()-> @statements.push(collected...)
+			.return collected
 			.map (statement)->
 				Promise.bind(@)
 					.then ()-> @initFile(statement.target, statement.source)
@@ -297,24 +299,24 @@ class Task extends require('events')
 					.catch message:'missing', @handleMissingFile.bind(@, statement.source, statement)
 					.return(statement)
 			
-			.tap ()-> promiseBreak(@importStatements) if ++currentDepth > depth
-			.map (statement)-> @scanImportsExports(statement.target, depth, currentDepth) unless statement.excluded
+			.tap ()-> promiseBreak(@statements) if ++currentDepth > depth
+			.map (statement)-> @scanStatements(statement.target, depth, currentDepth) unless statement.excluded
 			
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
-			.return(@importStatements)
+			.return(@statements)
 
 
 
 	calcImportTree: ()->
 		Promise.bind(@)
 			.tap ()-> debug "start calculating import tree"
-			.then ()-> @imports = @importStatements.groupBy('target.pathAbs')
+			.then ()-> @imports = @statements.concat(@inlineStatements).groupBy('target.pathAbs')
 
 			.then ()-> Object.values(@imports)
 			
 			.map (statements)-> # determine statement types
-				statements = statements.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
+				statements = statements.filter (statement)-> not statement.excluded
 
 				if statements.length > 1 or statements.some(helpers.isMixedExtStatement) or statements.some(helpers.isRecursiveImport)
 					targetType = 'module'
@@ -333,7 +335,7 @@ class Task extends require('events')
 					
 					if requiresModification
 						{content, offset} = helpers.exportLastExpression(statement.target)
-						statement.target.addRangeOffset 'exports', {'start':offset.start, 'end':offset.end, 'diff':17, isTweener:true} if offset
+						statement.target.offsetStatements(offset) if offset
 						statement.target.content = content
 						statement.target.becameModule = true
 
@@ -366,7 +368,7 @@ class Task extends require('events')
 
 			.then ()-> # perform dedupe
 				return if not @options.dedupe
-				dupGroups = @importStatements.filter(excluded:undefined).groupBy('target.hashPostTransforms')
+				dupGroups = @statements.filter(excluded:undefined).groupBy('target.hashPostTransforms')
 				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
 				
 				for h,group of dupGroups
@@ -380,49 +382,27 @@ class Task extends require('events')
 
 
 
-	replaceForceInlineImports: (file)->
-		return file if file.insertedForceInline
-		file.insertedForceInline = true
+	replaceInlineStatements: (file)->
+		return file if file.replacedInlineStatements
+		file.replacedInlineStatements = true
 		
-		Promise.resolve(file.importStatements).bind(file)
-			.map (statement)=> @replaceForceInlineImports(statement.target) unless statement.excluded
-			.then file.replaceForceInlineImports
+		Promise.resolve(file.inlineStatements).bind(file)
+			.map (statement)=> @replaceInlineStatements(statement.target) unless statement.excluded
+			.then file.replaceInlineStatements
 			.then file.saveContent.bind(file, 'contentPostForceInlinement')
 
 
 
-	replaceInlineImports: (file, skipModules)->
-		return file if file.insertedInline
-		file.insertedInline = true
-		targetStatements =
-			if skipModules
-				file.importStatements.filter(type:'inline')
-			else
-				file.importStatements
-
-		Promise.resolve(file.importStatements).bind(file)
-			.map (statement)=> @replaceInlineImports(statement.target) unless statement.excluded
-			.return(null)
-			.tap ()-> debug "replacing inline imports #{file.pathDebug}"
-			.then file.replaceInlineImports
-			.then file.saveContent.bind(file, 'contentPostInlinement')
-			.return(file)
-
-
-	replaceImportsExports: (file)->
-		return file if file.replacedImportsExports
-		file.replacedImportsExports = true
+	replaceStatements: (file)->
+		return file if file.replacedStatements
+		file.replacedStatements = true
 		
-		Promise.resolve(file.content).bind(file)
+		Promise.resolve(file.statements).bind(file)
+			.map (statement)=> @replaceStatements(statement.target) unless statement.excluded
 			.tap ()-> debug "replacing imports/exports #{file.pathDebug}"
-			.then file.replaceImportStatements
-			.then file.saveContent.bind(file, 'contentPostImports')
-			.then file.replaceExportStatements
-			.then file.saveContent.bind(file, 'contentPostExports')
-			.return file.importStatements.concat(file.exportStatements)
-			.filter (statement)-> statement.type isnt 'inline-forced' and not statement.excluded
-			.map (statement)=> @replaceImportsExports(statement.target)
-			.return(file)
+			.then file.replaceStatements
+			.then file.saveContent.bind(file, 'contentPostReplacement')
+
 
 
 	genSourceMap: (file)->
@@ -443,11 +423,10 @@ class Task extends require('events')
 			.then @calcImportTree
 			.tap ()-> debug "start replacing imports/exports"
 			.return @entryFile
-			.then @replaceImportsExports
-			.then @replaceInlineImports
+			.then @replaceStatements
 			.tap ()-> debug "done replacing imports/exports"
 			.then ()->
-				@importStatements
+				@statements
 					.filter (statement)=> statement.type is 'module' and not statement.excluded and statement.target isnt @entryFile
 					.unique('target')
 					.map('target')
@@ -498,9 +477,11 @@ class Task extends require('events')
 		file.destroy() for file in @files
 		@removeAllListeners()
 		@files.length = 0
-		@importStatements.length = 0
+		@statements.length = 0
+		@inlineStatements.length = 0
 		@files = null
-		@importStatements = null
+		@statements = null
+		@inlineStatements = null
 		@imports = null
 		@cache = null
 		@options = null

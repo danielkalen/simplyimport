@@ -1,4 +1,5 @@
 module.exports = (keyword='require')->
+	statementType: 'import'
 	type: ''
 	keyword: keyword
 	range: {}

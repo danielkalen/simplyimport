@@ -1,4 +1,5 @@
 
 module.exports = (mainStatement)->
-	mainStatement.target.importStatements.some (statement)->
-		statement.target is mainStatement.source
+	mainStatement.target.statements
+		.filter({statementType:'import'})
+		.some (statement)-> statement.target is mainStatement.source

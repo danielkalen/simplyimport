@@ -25,9 +25,8 @@ class File
 		@IDstr = JSON.stringify(@ID)
 		@tokens = @AST = @parsed = null
 		@time = 0
-		@exportStatements = []
-		@importStatements = []
-		@replacedRanges = imports:[], exports:[], inlines:[], conditionals:[]
+		@statements = []
+		@inlineStatements = []
 		@conditionals = []
 		@requiredGlobals = Object.create(null)
 		@isThirdPartyBundle = false
@@ -189,7 +188,6 @@ class File
 						outputLines.push(line)
 					else
 						index = stringPos.toIndex(@contentOriginal,{line:index+1, column:0})
-						@addRangeOffset 'conditionals', 'start':index, 'end':index, 'diff':line.length*-1
 
 				return outputLines.join('\n')
 
@@ -440,17 +438,20 @@ class File
 			statement = helpers.newImportStatement()
 			statement.source = @
 			statement.target = helpers.normalizeTargetPath(childPath, @, true)
+			statement.offset = 0
 			statement.range.start = offset
 			statement.range.end = offset + entire.length
+			statement.range.length = entire.length
 			statement.type = 'inline-forced'
-			@importStatements.push(statement)
+			@inlineStatements.push(statement)
 		
 		@timeEnd()
-		return @importStatements
+		return @inlineStatements
 
 
 	collectImports: (tokens=@Tokens)->
 		debug "collecting imports #{@pathDebug}"
+		collected = []
 		@timeStart()
 		switch
 			when tokens
@@ -466,7 +467,7 @@ class File
 					else
 						@task.emit('GeneralError', @, err)
 
-					return @importStatements
+					return collected
 
 
 				statements.forEach (statement)=>
@@ -477,7 +478,7 @@ class File
 					statement.range.start = tokens[statement.tokenRange.start].start
 					statement.range.end = tokens[statement.tokenRange.end].end
 					statement.source = @getStatementSource(statement)
-					@importStatements.push(statement)
+					collected.push(statement)
 
 
 
@@ -490,7 +491,7 @@ class File
 					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
 					statement.source = @getStatementSource(statement)
-					@importStatements.push(statement)
+					collected.push(statement)
 
 
 			when @pathExt is 'sass' or @pathExt is 'scss'
@@ -502,18 +503,20 @@ class File
 					statement.range.end = offset + entireLine.length
 					statement.type = 'inline'
 					statement.source = @getStatementSource(statement)
-					@importStatements.push(statement)
+					collected.push(statement)
 
-
+		# if @path.endsWith("moment/src/moment.js")
+		# 	debugger
 		@timeEnd()
-		return @importStatements
+		@statements.push collected...
+		return collected
 
 
 	collectExports: (tokens=@Tokens)->
 		debug "collecting exports #{@pathDebug}"
+		collected = []
 		@timeStart()
 		if tokens
-			@collectedExports = true
 			try
 				statements = helpers.collectExports(tokens, @contentPostTransforms, @)
 			catch err
@@ -522,7 +525,7 @@ class File
 				else
 					@task.emit('GeneralError', @, err)
 
-				return @exportStatements
+				return collected
 
 			statements.forEach (statement)=>
 				statement.range = 'start':tokens[statement.tokenRange.start].start, 'end':tokens[statement.tokenRange.end].end
@@ -533,70 +536,110 @@ class File
 						throw new Error "#{dec} = #{JSON.stringify range}" if Object.keys(range).length is 1
 						statement.decs[dec] = @content.slice(range.start, range.end)
 
-				@exportStatements.push(statement)
+				collected.push(statement)
 				@hasDefaultExport = true if statement.default
 
 		@timeEnd()
-		return @exportStatements
+		@statements.push collected...
+		return collected
 
 
-	replaceForceInlineImports: ()->
-		@replaceInlineImports('inline-forced')
-
-
-	replaceInlineImports: (type='inline')->
-		debug "replacing #{type} imports #{@pathDebug}"
-		content = @content
-		lines = @contentPostTransforms or @contentPostConditionals or @content # the latter 2 will be used when type==='inline-forced'
-
-		if type is 'inline-forced'
-			rangeGroup = 'inlines'
-			targetRangeGroups = ['inlines']
-		else
-			rangeGroup = 'imports'
-			targetRangeGroups = null # All ranges
-
-		Promise.bind(@)
-			.tap @timeStart
-			.then ()-> @importStatements.filter {type}
-			.map (statement,index)->
-				range = @offsetRange(statement.range, targetRangeGroups, rangeGroup)
-				replacement = do ()=>
-					return '' if statement.excluded
-					targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-					targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
-					targetContent = '{}' if not targetContent
-
-					if EXTENSIONS.compat.includes(statement.target.pathExt)
-						targetContent = "(#{targetContent})" if content[range.end] is '.' or content[range.end] is '('
-
-					return targetContent
-
-				content = content.slice(0,range.start) + replacement + content.slice(range.end)
-				replacementRange = @addRangeOffset rangeGroup, newRange = helpers.newReplacementRange(range, replacement)
-				replacementRange.source = statement.target if type is 'inline-forced'
-				unless statement.excluded
-					@sourceMap.addRange {
-						from: {start:0, end:statement.target.contentOriginal.length}
-						to: newRange
-						file: statement.target
-						offset: 0
-						name: "#{type}:#{index+1}"
-						content
-					}
-
-			.then ()-> content
-			.tap @timeEnd
-
-
-	replaceImportStatements: (content)->
+	replaceInlineStatements: ()->
 		@timeStart()
-		debug "replacing imports #{@pathDebug}"
-		loader = @task.options.loaderName
-		for statement,index in @importStatements when statement.type is 'module'
+		debug "replacing force-inline imports #{@pathDebug}"
+		lines = @contentPostConditionals or @content # the latter 2 will be used when type==='inline-forced'
 
-			range = @offsetRange(statement.range, null, 'imports')
-			replacement = do ()=>
+		
+		split = helpers.splitContentByStatements(@content, @inlineStatements)
+		content = split.reduce (acc, statement)=>
+			if typeof statement is 'string'
+				return acc+statement
+			else
+				replacement = @resolveStatementReplacement(statement, {lines})
+				index = @inlineStatements.indexOf(statement)
+				leadingStatements = @inlineStatements.slice(index)
+				leadingStatements.forEach (statement)->
+					statement.offset += replacement.length - statement.range.length
+				# newRange = helpers.newReplacementRange(statement.range, replacement)
+				# replacementRange = @addRangeOffset 'inlines', newRange
+				# replacementRange.source = statement.target
+				# range = @offsetRange(statement.range, ['inline-forced'], rangeGroup)
+				# newRange = helpers.newReplacementRange(range, replacement)
+				# @sourceMap.addRange {
+				# 	from: {start:0, end:statement.target.contentOriginal.length}
+				# 	to: newRange
+				# 	file: statement.target
+				# 	offset: 0
+				# 	name: "#{type}:#{index+1}"
+				# 	content
+				# }
+				return acc+replacement
+
+		@timeEnd()
+		return content
+
+
+	replaceStatements: (content)->
+		@timeStart()
+		debug "replacing imports/exports #{@pathDebug}"
+
+		split = helpers.splitContentByStatements(@content, @statements)
+		content = split.reduce (acc, statement, index)=>
+			if typeof statement is 'string'
+				return acc+statement
+			else
+				replacement = @resolveStatementReplacement(statement)
+				# if statement.target.path.endsWith('main.js')
+				# 	console.log acc, '\n\n'
+				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
+				return acc+replacement
+
+		@timeEnd()
+		# if @path.endsWith("moment/src/moment.js")
+		# 	# debugger
+		# 	# console.dir split, colors:true, depth:0
+		# 	console.log content
+		return content
+	
+
+	extract: (key, returnActual)->
+		try
+			@timeStart()
+			@parsed ?= JSON.parse(@content)
+			@timeEnd()
+		catch err
+			@task.emit 'DataParseError', @, err
+
+		if not @parsed[key] and not Object.has(@parsed, key)
+			@task.emit 'ExtractError', @, new Error "requested key '#{key}' not found"
+		else
+			result = @parsed[key] or Object.get(@parsed, key)
+			return result if returnActual
+			return JSON.stringify(result)
+
+
+	resolveStatementReplacement: (statement, {lines, type}={})->
+		type ?= statement.type or statement.statementType
+		lines ?= @contentPostTransforms
+		loader = @task.options.loaderName
+		lastChar = @content[statement.range.end]
+	
+		switch type
+			when 'inline','inline-forced'
+				return '' if statement.excluded
+				targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
+				targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
+				targetContent = '{}' if not targetContent
+
+				if EXTENSIONS.compat.includes(statement.target.pathExt)
+					lastChar = @content[statement.range.end]
+					targetContent = "(#{targetContent})" if lastChar is '.' or lastChar is '('
+
+				return targetContent
+
+
+
+			when 'module' # regular import
 				return "require('#{statement.target}')" if statement.excluded
 				if not statement.members and not statement.alias # commonJS import / side-effects es6 import
 					replacement = "#{loader}(#{statement.target.IDstr})"
@@ -605,7 +648,7 @@ class File
 					
 					else if statement.target.hasDefaultExport
 						replacement = "#{replacement} ? #{replacement}.default : #{replacement}"
-						replacement = "(#{replacement})" if content[range.end] is '.' or content[range.end] is '('
+						replacement = "(#{replacement})" if lastChar is '.' or lastChar is '('
 
 				else
 					alias = statement.alias or helpers.strToVar(statement.target.IDstr)
@@ -618,25 +661,11 @@ class File
 						decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
 						replacement += ", #{decs.join ', '};"
 
-				return helpers.prepareMultilineReplacement(content, replacement, @contentPostTransforms, statement.range)
-
-			# @addRangeOffset 'imports', newRange = helpers.newReplacementRange(range, replacement)
-			@replacedRanges.imports.push newRange = helpers.newReplacementRange(range, replacement)
-			content = content.slice(0,range.start) + replacement + content.slice(range.end)
-			@sourceMap.addRange {from:statement.range, to:newRange, name:"import:#{index+1}", content}
-
-		@timeEnd()
-		return content
+				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
 
 
-	replaceExportStatements: (content)->
-		@timeStart()
-		debug "replacing exports #{@pathDebug}"
-		loader = @task.options.loaderName
-		for statement,index in @exportStatements
-			
-			range = @offsetRange(statement.range, null, 'exports')
-			replacement = do ()=>
+
+			when 'export'
 				replacement = ''
 			
 				if statement.target isnt statement.source
@@ -682,95 +711,46 @@ class File
 								replacement = "var #{statement.identifier} = #{replacement}"
 				
 
-				return helpers.prepareMultilineReplacement(content, replacement, @contentPostTransforms, statement.range)
-
-			@addRangeOffset 'exports', newRange = helpers.newReplacementRange(range, replacement)
-			content = content.slice(0,range.start) + replacement + content.slice(range.end)
-			@sourceMap.addRange {from:statement.range, to:newRange, name:"export:#{index+1}", content}
-
-		@timeEnd()
-		return content
-
-
-	extract: (key, returnActual)->
-		try
-			@timeStart()
-			@parsed ?= JSON.parse(@content)
-			@timeEnd()
-		catch err
-			@task.emit 'DataParseError', @, err
-
-		if not @parsed[key] and not Object.has(@parsed, key)
-			@task.emit 'ExtractError', @, new Error "requested key '#{key}' not found"
-		else
-			result = @parsed[key] or Object.get(@parsed, key)
-			return result if returnActual
-			return JSON.stringify(result)
+				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
 
 
 	getStatementSource: (statement)->
-		range = statement.range.orig or statement.range
-		for candidate in @replacedRanges.inlines
-			if candidate.start <= range.start and range.end <= candidate.end
+		range = statement.range
+		
+		for candidate,i in @inlineStatements when not candidate.excluded
+			offset = candidate.offset
+			candidateRange = candidate.range
+			candidateRange = start:candidateRange.start+offset, end:candidateRange.end+offset
+			
+			if candidateRange.start <= statement.range.start and statement.range.end <= candidateRange.end
 				statement.range.orig = candidate
-				return candidate.source.getStatementSource(statement)
+				return candidate.target.getStatementSource(statement)
+		
 		return @
 
 
-	offsetRange: (range, targetArrays, sourceArray)->
-		offset = 0
-		targetArrays ?= RANGE_ARRAYS
-		for array,index in targetArrays
-			rangeOffset = 0
-			offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, {rangeOffset})
+	offsetStatements: (offset)->
+		for statement in @statements
+			if statement.range.start >= offset.start
+				length = offset.end - offset.start
+				statement.range.start += length
+				statement.range.end += length
+		return
 
-		if not offset
-			return range
-		else
-			{'start':range.start+offset, 'end':range.end+offset}
-
-
-	# deoffsetRange: (range, targetArrays)->
-	# 	offset = 0
-	# 	targetArrays ?= RANGE_ARRAYS
-	# 	for array in targetArrays
-	# 		offset = helpers.accumulateRangeOffsetBelow(range, @replacedRanges[array], offset, isDeoffset:true)
-
-	# 	if not offset
-	# 		return range
-	# 	else
-	# 		'start':range.start-offset, 'end':range.end-offset
-
-
-
-	addRangeOffset: (target, range)->
-		ranges = @replacedRanges[target]
-		ranges.push(range)
-		ranges.sortBy('start')
-		insertedIndex = i = ranges.indexOf(range)
-
-		if insertedIndex < ranges.length - 1
-			while largerRange = ranges[++i]
-				largerRange.start += range.diff
-				largerRange.end += range.diff
-		
-		return range
 
 
 	destroy: ()->
-		ranges.length = 0 for k,ranges of @replacedRanges
-		@exportStatements.length = 0
-		@importStatements.length = 0
+		@statements.length = 0
+		@inlineStatements.length = 0
 		@conditionals.length = 0
 		@tokens?.length = 0
 		delete @ID
 		delete @AST
 		delete @tokens
-		delete @exportStatements
-		delete @importStatements
+		delete @statements
+		delete @inlineStatements
 		delete @conditionals
 		delete @requiredGlobals
-		delete @replacedRanges
 		delete @parsed
 		delete @options
 		delete @linesPostTransforms

@@ -1,4 +1,5 @@
 module.exports = ()->
+	statementType: 'export'
 	range: {}
 	tokenRange: {}
 	source: null
