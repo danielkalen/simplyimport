@@ -286,6 +286,8 @@ class Task extends require('events')
 			.then ()-> file.collectExports()
 			.filter (statement)-> statement.target isnt statement.source
 			.tap (exports)-> collected.push(exports...)
+
+			.tap ()-> file.resolveNestedStatements()
 			
 			.then ()-> @statements.push(collected...)
 			.return collected

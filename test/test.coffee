@@ -986,7 +986,8 @@ suite "SimplyImport", ()->
 							import a from './a'
 							import * as b from './b'
 							import * as c from './c'
-							return {a:a, b:b, c:c}
+							import * as d from './d'
+							return {a:a, b:b, c:c, d:d}
 						}
 						module.exports = load()
 					"""
@@ -1015,11 +1016,39 @@ suite "SimplyImport", ()->
 							(function(){export {ghi, jkl}})()
 						}
 					"""
+					# 'd.js': """
+					# 	export var abc = 123;
+
+					# 	export function load(){
+					# 		export let def = 456
+					# 		exports.ghi = import './d2'
+					# 		exports.jkl = 999
+					# 	}
+					# """
+					'd.coffee': """
+						export abc = 123
+						export abc2 = 123
+						export load = ()->
+							exports.def = 456
+							exports.ghi = import './d2'
+							exports.jkl = 999
+					"""
+					'd2.js': """
+						module.exports = 789;
+					"""
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, result, writeToDisc})->
 				assert.deepEqual result.a, {abc:123, def:456, ghi:789, jkl:999}
 				assert.deepEqual result.b, {abc:123, def:456, ghi:789, jkl:999}
 				assert.deepEqual result.c, {abc:123}
+				assert.equal result.d.abc, 123
+				assert.equal result.d.def, undefined
+				assert.equal result.d.ghi, undefined
+				assert.equal typeof result.d.load, 'function'
+				result.d.load()
+				assert.equal result.d.def, 456
+				assert.equal result.d.ghi, 789
+				assert.equal result.d.jkl, 999
 
 
 	test "imports/exports should be live", ()->

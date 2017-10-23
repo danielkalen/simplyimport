@@ -6,7 +6,8 @@ splitContentByStatements = (content, statements)->
 		contentIndex = 0
 		statements = statements.sortBy('range.start')
 		
-		for statement,index in statements			
+		for statement,index in statements
+			continue if statement.isNested
 			parts.push content.slice(contentIndex, statement.range.start)
 			parts.push statement
 			contentIndex = statement.range.end

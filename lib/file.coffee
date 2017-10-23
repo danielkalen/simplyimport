@@ -504,9 +504,8 @@ class File
 					statement.type = 'inline'
 					statement.source = @getStatementSource(statement)
 					collected.push(statement)
+		
 
-		# if @path.endsWith("moment/src/moment.js")
-		# 	debugger
 		@timeEnd()
 		@statements.push collected...
 		return collected
@@ -534,7 +533,7 @@ class File
 				if statement.decs
 					for dec,range of statement.decs
 						throw new Error "#{dec} = #{JSON.stringify range}" if Object.keys(range).length is 1
-						statement.decs[dec] = @content.slice(range.start, range.end)
+						statement.decs[dec] = {range, content:@content.slice(range.start, range.end)}
 
 				collected.push(statement)
 				@hasDefaultExport = true if statement.default
@@ -542,6 +541,7 @@ class File
 		@timeEnd()
 		@statements.push collected...
 		return collected
+
 
 
 	replaceInlineStatements: ()->
@@ -579,7 +579,7 @@ class File
 		return content
 
 
-	replaceStatements: (content)->
+	replaceStatements: ()->
 		@timeStart()
 		debug "replacing imports/exports #{@pathDebug}"
 
@@ -587,11 +587,10 @@ class File
 		content = split.reduce (acc, statement, index)=>
 			if typeof statement is 'string'
 				return acc+statement
-			else
+			else				
 				replacement = @resolveStatementReplacement(statement)
 				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
 				return acc+replacement
-
 
 
 		@timeEnd()
@@ -686,10 +685,17 @@ class File
 					
 
 					else if statement.decs
+						for nested in statement.nestedStatements
+							targetDec = statement.decs[nested.dec]
+							targetDec.content =
+								targetDec.content.slice(0, nested.range.start) +
+								@resolveStatementReplacement(nested.statement) +
+								targetDec.content.slice(nested.range.end)
+
 						decs = Object.keys(statement.decs)
 						values = Object.values(statement.decs)
 
-						replacement += "#{statement.keyword} #{values.join ', '}\n"
+						replacement += "#{statement.keyword} #{values.map('content').join ', '}\n"
 						replacement += "exports.#{dec} = #{dec}; " for dec in decs
 
 
@@ -743,6 +749,13 @@ class File
 				length = offset.end - offset.start
 				statement.range.start += length
 				statement.range.end += length
+		return
+
+	resolveNestedStatements: ()->
+		exportStatements = @statements.filter({statementType:'export'})
+		importStatements = @statements.filter({statementType:'import'})
+		for statement in importStatements
+			statement.isNested = helpers.matchNestingStatement(statement, exportStatements)
 		return
 
 

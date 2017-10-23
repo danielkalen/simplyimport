@@ -14,6 +14,8 @@ module.exports = (prefix='', err)->
 		err = prefix
 		prefix = ''
 
+	return err if err.formatted
+
 	if err.stack and err.message and err.stack.includes(err.message)
 		err.message = err.stack.slice(0, err.stack.indexOf(err.message)+err.message.length)
 		err.stack = err.stack.slice(err.message.length)
@@ -24,6 +26,7 @@ module.exports = (prefix='', err)->
 		#{filter(err.stack, '\t')}
 	"""
 	err.stack = ''
+	Object.defineProperty err, 'formatted', value:true
 	return err
 
 

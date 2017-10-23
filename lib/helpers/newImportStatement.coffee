@@ -9,3 +9,4 @@ module.exports = (keyword='require')->
 	extract: undefined
 	members: null
 	alias: null
+	isNested: false
