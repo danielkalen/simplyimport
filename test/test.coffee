@@ -1124,6 +1124,41 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.c3, 'innerValue'
 
 
+	test "es6 imports importing commonJS modules using the 'default' property should resolve to the entire module", ()->
+		Promise.resolve()
+			.then ()->
+				helpers.lib
+					'main.js': """
+						import a1 from './a'
+						exports.a1 = a1
+						exports.a2 = require('./a')
+						import b1 from './b'
+						exports.b1 = b1
+						exports.b2 = require('./b')
+						import c1 from './c'
+						exports.c1 = c1
+						exports.c2 = require('./c')
+					"""
+					'a.js': """
+						module.exports.abc = 123
+					"""
+					'b.js': """
+						module.exports = 456
+					"""
+					'c.js': """
+						export default 789
+					"""
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({result,writeToDisc})->
+				assert.deepEqual result.a1, abc:123
+				assert.deepEqual result.a2, abc:123
+				assert.deepEqual result.b1, 456
+				assert.deepEqual result.b2, 456
+				assert.deepEqual result.c1, 789
+				assert.deepEqual result.c2, 789
+
+
 	suite "the module loader should be returned when options.returnLoader is set", ()->
 		test "when identifiers are numeric", ()->
 			Promise.resolve()

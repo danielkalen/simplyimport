@@ -216,6 +216,7 @@ class File
 		@isDataType = true if EXTENSIONS.data.includes(@pathExt)
 
 
+
 	postTransforms: ()->
 		debug "running post-transform functions #{@pathDebug}"
 		@timeStart()
@@ -536,7 +537,7 @@ class File
 						statement.decs[dec] = {range, content:@content.slice(range.start, range.end)}
 
 				collected.push(statement)
-				@hasDefaultExport = true if statement.default
+				@hasDefaultExport = true if statement.default or statement.members?.default
 
 		@timeEnd()
 		@statements.push collected...
@@ -646,16 +647,23 @@ class File
 						replacement = "(#{replacement})" if lastChar is '.' or lastChar is '('
 
 				else
-					alias = statement.alias or helpers.strToVar(statement.target.IDstr)
+					alias = statement.alias or helpers.strToVar(statement.target.pathName)
 					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})"
 
 					if statement.members
 						nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
 						decs = []
-						decs.push("#{statement.members.default} = #{alias}.default") if statement.members.default
+						
+						if statement.members.default
+							if statement.target.hasDefaultExport
+								decs.push("#{statement.members.default} = #{alias}.default")
+							else
+								decs.push("#{statement.members.default} = #{alias}")
+
 						decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
 						replacement += ", #{decs.join ', '};"
 
+				
 				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
 
 
@@ -664,7 +672,7 @@ class File
 				replacement = ''
 			
 				if statement.target isnt statement.source
-					alias = helpers.strToVar(statement.target.IDstr)
+					alias = helpers.strToVar(statement.target.pathName)
 					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})\n"
 
 					if statement.members
@@ -673,7 +681,7 @@ class File
 						replacement += decs.join ', '
 					
 					else
-						key = helpers.strToVar(statement.target.IDstr)
+						key = helpers.strToVar(statement.target.pathName)
 						replacement += "var #{key}; for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}];"
 
 
