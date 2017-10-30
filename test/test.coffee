@@ -3878,6 +3878,18 @@ suite "SimplyImport", ()->
 					store = result.createStore(->)
 					assert.typeOf store.dispatch, 'function'
 					assert Object.keys(result).length > 1
+
+
+		test "lodash", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib "main.js": "module.exports = require('lodash')"
+				.then ()-> processAndRun file:temp('main.js'), usePaths:true
+				.then ({result,writeToDisc})->
+					writeToDisc()
+					assert.typeOf result, 'function'
+					assert.typeOf result.last, 'function'
+					assert.equal result.last([1,2,3]), 3
+					assert Object.keys(result).length > 1
 	
 
 		test "moment", ()->
