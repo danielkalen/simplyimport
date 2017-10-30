@@ -192,6 +192,15 @@ REGEX =
 		\) 												# trailing char after 'require' (bracket close)
 	///
 
+	defaultExport: ///
+		\b
+		exports
+		\.
+		default
+		\s*
+		=
+	///
+
 	
 
 

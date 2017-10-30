@@ -63,8 +63,9 @@ processAndRun = (opts, filename='script.js', context={})->
 
 suite "SimplyImport", ()->
 	suiteTeardown ()-> fs.removeAsync(temp())
-	suiteSetup ()-> 
+	suiteSetup ()->
 		Promise.all [
+			emptyTemp()
 			fs.writeAsync temp('basicMain.js'), "var abc = require('./basic.js')\nvar def = require('./exportless')"
 			fs.writeAsync temp('basic.js'), "module.exports = 'abc123'"
 			fs.writeAsync temp('exportless.js'), "'def456'"
@@ -979,6 +980,7 @@ suite "SimplyImport", ()->
 
 	test "es6 imports/exports can be placed in nested scopes", ()->
 		Promise.resolve()
+			.then emptyTemp
 			.then ()->
 				helpers.lib
 					'main.js': """
@@ -1116,8 +1118,8 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.a1, 123
 				assert.deepEqual result.a2, 123
 				assert.deepEqual result.a3, {default:123, def:456}
-				assert.deepEqual result.b1, {default:123, def:456}
-				assert.deepEqual result.b2, {default:123, def:456}
+				assert.deepEqual result.b1, 123
+				assert.deepEqual result.b2, 123
 				assert.deepEqual result.b3, {default:123, def:456}
 				assert.deepEqual result.c1, 20
 				assert.deepEqual result.c2, 35
@@ -1138,6 +1140,9 @@ suite "SimplyImport", ()->
 						import c1 from './c'
 						exports.c1 = c1
 						exports.c2 = require('./c')
+						import d1 from './d'
+						exports.d1 = d1
+						exports.d2 = require('./d')
 					"""
 					'a.js': """
 						module.exports.abc = 123
@@ -1148,6 +1153,9 @@ suite "SimplyImport", ()->
 					'c.js': """
 						export default 789
 					"""
+					'd.js': """
+						exports.default = 999
+					"""
 
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({result,writeToDisc})->
@@ -1157,6 +1165,8 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.b2, 456
 				assert.deepEqual result.c1, 789
 				assert.deepEqual result.c2, 789
+				assert.deepEqual result.d1, 999
+				assert.deepEqual result.d2, 999
 
 
 	suite "the module loader should be returned when options.returnLoader is set", ()->
@@ -2361,6 +2371,7 @@ suite "SimplyImport", ()->
 
 		test "coffeescript files will be automatically transformed by default", ()->
 			Promise.resolve()
+				.then emptyTemp
 				.then ()->
 					helpers.lib
 						'main.js': """

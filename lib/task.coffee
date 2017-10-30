@@ -303,6 +303,7 @@ class Task extends require('events')
 			
 			.tap ()-> promiseBreak(@statements) if ++currentDepth > depth
 			.map (statement)-> @scanStatements(statement.target, depth, currentDepth) unless statement.excluded
+			.then ()-> file.postScans()
 			
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err

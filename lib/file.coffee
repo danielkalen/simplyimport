@@ -216,6 +216,9 @@ class File
 		@isDataType = true if EXTENSIONS.data.includes(@pathExt)
 
 
+	postScans: ()->
+		@hasDefaultExport ?= @type isnt 'inline' and REGEX.defaultExport.test(@content)
+
 
 	postTransforms: ()->
 		debug "running post-transform functions #{@pathDebug}"
@@ -655,6 +658,13 @@ class File
 						decs = []
 						
 						if statement.members.default
+							# if statement.target.path.endsWith('mapbox-gl-directions/src/reducers/index.js')
+							# 	s = extend {}, statement
+							# 	delete s.target
+							# 	delete s.source
+							# 	# console.log statement.target.statements.map('statementType')
+							# 	# console.log(s, statement.target.hasDefaultExport) or process.exit()
+							# 	# console.log(statement.target.content) or process.exit()
 							if statement.target.hasDefaultExport
 								decs.push("#{statement.members.default} = #{alias}.default")
 							else

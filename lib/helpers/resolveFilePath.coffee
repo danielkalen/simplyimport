@@ -27,11 +27,11 @@ resolveFilePath = (input, importer)->
 
 			if candidates.length
 				exactMatch = candidates.find(params.base) # Can be dir or file i.e. if provided /path/to/module and /path/to contains 'module.js' or 'module'
-				fileMatch = candidates.find (targetPath)->
-					fileNameSplit = targetPath.replace(params.base, '').split('.')
-					return !fileNameSplit[0] and # esnrues path is not a dir (most likely as it doesn't have an ext)
-							fileNameSplit.length is 2 and # ensures path is exactly the inputPath+extname
-							targetPath[0] isnt '.' # ensures isnt a base-less name like /.bin
+				fileMatch = matchBestCandidate candidates, (candidate)->
+					nameSplit = candidate.replace(params.base, '').split('.')
+					return !nameSplit[0] and # esnrues path is not a dir (most likely as it doesn't have an ext)
+							nameSplit.length is 2 and # ensures path is exactly the inputPath+extname
+							candidate[0] isnt '.' # ensures isnt a base-less name like /.bin
 
 				if fileMatch
 					return Path.join(params.dir, fileMatch)
@@ -53,11 +53,25 @@ resolveFilePath = (input, importer)->
 				.tap (stats)-> debug "scanning dir #{chalk.dim resolvedPath}"
 				.then ()-> fs.listAsync(resolvedPath)
 				.then (dirListing)->
-					indexFile = dirListing.find (file)-> file.includes('index')
-					return Path.join(params.dir, params.base, if indexFile then indexFile else 'index.js')
+					indexFile = matchBestCandidate dirListing, (file)-> file.includes('index')
+					return Path.join(params.dir, params.base, indexFile or 'index.js')
+
 				.tap (resolvedPath)-> debug "using index file #{chalk.dim resolvedPath}"
 
 		.catch promiseBreak.end
+
+
+
+matchBestCandidate = (candidates, filter)->
+	matches = candidates.filter(filter)
+
+	if matches.length > 1
+		jsMatch = matches.find (candidate)-> candidate.endsWith('.js')
+		match = jsMatch or matches[0]
+	else
+		match = matches[0]
+
+	return match
 
 
 
