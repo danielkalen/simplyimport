@@ -4,6 +4,8 @@ Path = require './path'
 normalizeTargetPath = (path, importer, removeQuotes)->
 	result = path.replace REGEX.pathPlaceholder, (original, placeholder)->
 		switch
+			when custom = importer.options.placeholder[placeholder]
+				Path.resolve(importer.pkg.dirPath, custom)
 			when placeholder is 'CWD' then process.cwd()
 			when placeholder is 'ROOT' then importer.pkg.dirPath
 			when placeholder is 'BASE'
@@ -11,9 +13,6 @@ normalizeTargetPath = (path, importer, removeQuotes)->
 					importer.task.entryFile.context
 				else
 					importer.pkgEntry.dir
-
-			when custom = importer.options.placeholder[placeholder]
-				Path.resolve(importer.pkg.dirPath, custom)
 			
 			else original
 

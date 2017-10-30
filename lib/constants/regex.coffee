@@ -89,7 +89,7 @@ REGEX =
 				\{.+\} 			# specific members
 			)?
 			\ from
-			\s*					# whitespace after members
+			\s+					# whitespace after members
 		)?
 		(
 			".+?"
@@ -178,14 +178,6 @@ REGEX =
 		)?
 	///m
 
-	# commonImport: ///^
-	# 	\b
-	# 	require 										# require reference
-	# 	\( 												# trailing char after 'require' (bracket open)
-	# 	\s*
-	# 	(.+)
-	# 	\) 												# trailing char after 'require' (bracket close)
-	# $///
 
 	commonImportReal: ///
 		\b
@@ -199,11 +191,6 @@ REGEX =
 		)
 		\) 												# trailing char after 'require' (bracket close)
 	///
-
-
-	# comment:
-	# 	singleLine: /([^:]|^)\/\/(.*)$/mg
-	# 	multiLine: /(^|[^\\])(\/\*([\s\S]*?)\*\/)/mg
 
 	
 

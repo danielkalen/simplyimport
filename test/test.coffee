@@ -3868,13 +3868,15 @@ suite "SimplyImport", ()->
 					assert Object.keys(result).length > 1
 	
 
-		test.skip "redux", ()->
+		test "redux", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('redux')"
 				.then ()-> processAndRun file:temp('main.js')
 				.then ({result})->
 					assert.typeOf result, 'object'
-					assert.typeOf result.createStore, 'object'
+					assert.typeOf result.createStore, 'function'
+					store = result.createStore(->)
+					assert.typeOf store.dispatch, 'function'
 					assert Object.keys(result).length > 1
 	
 

@@ -403,7 +403,7 @@ class File
 
 	replaceES6Imports: (save=true)->
 		hasImports = false
-		newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)->
+		newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)=>
 			hasImports = true
 			body = "#{childPath}"
 			body += ",'#{meta.replace /\s+from\s+/, ''}'" if meta
