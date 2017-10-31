@@ -217,9 +217,11 @@ class File
 
 
 	postScans: ()->
-		@hasDefaultExport ?= @type isnt 'inline' and REGEX.defaultExport.test(@content)
-		# @isWebpackModule = REGEX.webpackModule.test(@content)
 		@options.extractDefaults ?= true
+		@hasDefaultExport ?=
+			@type isnt 'inline' and
+			REGEX.defaultExport.test(@content) and
+			not REGEX.defaultExportDeassign.test(@content)
 
 
 	postTransforms: ()->

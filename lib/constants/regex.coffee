@@ -210,6 +210,25 @@ REGEX =
 		=
 	///
 
+	defaultExportDeassign: ///
+		\b
+		exports
+		\s*
+		=
+		\s*
+		exports
+		(?:
+			\.
+			default
+				|
+			\[
+			['"]
+			default
+			['"]
+			\]
+		)
+	///
+
 	
 
 
