@@ -1143,6 +1143,9 @@ suite "SimplyImport", ()->
 						import d1 from './d'
 						exports.d1 = d1
 						exports.d2 = require('./d')
+						import e1 from './e'
+						exports.e1 = e1
+						exports.e2 = require('./e')
 					"""
 					'a.js': """
 						module.exports.abc = 123
@@ -1154,7 +1157,10 @@ suite "SimplyImport", ()->
 						export default 789
 					"""
 					'd.js': """
-						exports.default = 999
+						exports.default = 111
+					"""
+					'e.js': """
+						exports['default'] = 222
 					"""
 
 			.then ()-> processAndRun file:temp('main.js')
@@ -1165,8 +1171,10 @@ suite "SimplyImport", ()->
 				assert.deepEqual result.b2, 456
 				assert.deepEqual result.c1, 789
 				assert.deepEqual result.c2, 789
-				assert.deepEqual result.d1, 999
-				assert.deepEqual result.d2, 999
+				assert.deepEqual result.d1, 111
+				assert.deepEqual result.d2, 111
+				assert.deepEqual result.e1, 222
+				assert.deepEqual result.e2, 222
 
 
 	suite "the module loader should be returned when options.returnLoader is set", ()->

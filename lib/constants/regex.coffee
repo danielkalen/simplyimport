@@ -195,8 +195,16 @@ REGEX =
 	defaultExport: ///
 		\b
 		exports
-		\.
-		default
+		(?:
+			\.
+			default
+				|
+			\[
+			['"]
+			default
+			['"]
+			\]
+		)
 		\s*
 		=
 	///
