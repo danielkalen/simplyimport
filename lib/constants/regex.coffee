@@ -14,6 +14,7 @@ REGEX =
 	varIncompatible: /[^0-9a-zA-Z_$]/g
 	initialWhitespace: /^[ \t]+/
 	initialExport: /^module\.exports\s*=\s*/
+	webpackModule: /__esModule/
 	decKeyword: /var|let|const/
 	requireArg: /\brequire[,\)]/
 	requireDec: /\bfunction require\b/

@@ -218,6 +218,8 @@ class File
 
 	postScans: ()->
 		@hasDefaultExport ?= @type isnt 'inline' and REGEX.defaultExport.test(@content)
+		# @isWebpackModule = REGEX.webpackModule.test(@content)
+		@options.extractDefaults ?= true
 
 
 	postTransforms: ()->
@@ -645,7 +647,7 @@ class File
 					if statement.extract
 						replacement += "['#{statement.extract}']"
 					
-					else if statement.target.hasDefaultExport
+					else if statement.target.hasDefaultExport and @options.extractDefaults
 						replacement = "#{replacement} ? #{replacement}.default : #{replacement}"
 						replacement = "(#{replacement})" if lastChar is '.' or lastChar is '('
 
@@ -658,14 +660,7 @@ class File
 						decs = []
 						
 						if statement.members.default
-							# if statement.target.path.endsWith('mapbox-gl-directions/src/reducers/index.js')
-							# 	s = extend {}, statement
-							# 	delete s.target
-							# 	delete s.source
-							# 	# console.log statement.target.statements.map('statementType')
-							# 	# console.log(s, statement.target.hasDefaultExport) or process.exit()
-							# 	# console.log(statement.target.content) or process.exit()
-							if statement.target.hasDefaultExport
+							if statement.target.hasDefaultExport and @options.extractDefaults
 								decs.push("#{statement.members.default} = #{alias}.default")
 							else
 								decs.push("#{statement.members.default} = #{alias}")

@@ -3,6 +3,7 @@ module.exports =
 	usePaths: false
 	sourceMap: null
 	debug: false
+	extractDefaults: true
 	bundleExternal: true
 	ignoreGlobals: false
 	ignoreMissing: false
