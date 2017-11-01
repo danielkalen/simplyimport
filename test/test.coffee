@@ -912,6 +912,7 @@ suite "SimplyImport", ()->
 					'f.js': """
 						export * from 'nested/f2'
 						export * from 'nested/f3'
+						export {a,b,default} from 'nested/f4'
 						export var fff = 'fFf'
 					"""
 					'nested/f2.js': """
@@ -920,7 +921,7 @@ suite "SimplyImport", ()->
 						export {jkl as jkl_, JKL} from 'f4'
 
 						module.exports.def = 456
-						export var def = 456, ghi = 789
+						export var def = 4566, ghi = 789
 					"""
 					'nested/f3.js': """
 						export var GHI = 'GHI'
@@ -973,9 +974,19 @@ suite "SimplyImport", ()->
 				assert.equal typeof result.j, 'object'
 				assert.equal typeof result.j.MyClass, 'function'
 				assert.equal (new result.j.MyClass('random')).name, 'random'
-				# assert.equal result.h1,
-				# assert.equal result.h2,
-				# assert.equal result.f,
+				assert.deepEqual result.h1, {hhh:'kinsta', HHH:'hHh', h2:'H2', h1:undefined}
+				assert.deepEqual result.h2, {hhh:'kinsta', HHH:'hHh', h2:'H2', h1:undefined}
+				assert.equal result.f.fff, 'fFf'
+				assert.equal result.f.abc, 123
+				assert.equal result.f.jkl, undefined
+				assert.equal result.f.jkl_, 'jkl'
+				assert.equal result.f.JKL, 'JKL'
+				assert.equal result.f.def, 4566
+				assert.equal result.f.ghi, 789
+				assert.equal result.f.GHI, 'GHI'
+				assert.equal result.f.a, 1
+				assert.equal result.f.b, 2
+				assert.equal result.f.default, 'jKl'
 
 
 	test "es6 imports/exports can be placed in nested scopes", ()->

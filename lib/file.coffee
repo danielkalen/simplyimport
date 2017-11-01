@@ -546,6 +546,7 @@ class File
 				collected.push(statement)
 				@hasDefaultExport = true if statement.default or statement.members?.default
 
+
 		@timeEnd()
 		@statements.push collected...
 		return collected
@@ -622,7 +623,8 @@ class File
 
 
 	resolveStatementReplacement: (statement, {lines, type}={})->
-		type ?= statement.type or statement.statementType
+		# type ?= statement.type or statement.statementType
+		type ?= if statement.statementType is 'export' then 'export' else statement.type
 		lines ?= @contentPostTransforms
 		loader = @task.options.loaderName
 		lastChar = @content[statement.range.end]
