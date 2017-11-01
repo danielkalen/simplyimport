@@ -652,8 +652,8 @@ class File
 						replacement += "['#{statement.extract}']"
 					
 					else if statement.target.hasDefaultExport and @options.extractDefaults
-						replacement = "#{replacement} ? #{replacement}.default : #{replacement}"
-						replacement = "(#{replacement})" if lastChar is '.' or lastChar is '('
+						key = helpers.strToVar(statement.target.pathName)
+						replacement = "(function(){var #{key}=#{replacement};return #{key} && 'default' in #{key} ? #{key}.default:#{key}}())"
 
 				else
 					alias = statement.alias or helpers.strToVar(statement.target.pathName)

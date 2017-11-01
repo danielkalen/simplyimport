@@ -3936,7 +3936,7 @@ suite "SimplyImport", ()->
 		test "redux", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib "main.js": "module.exports = require('redux')"
-				.then ()-> processAndRun file:temp('main.js')
+				.then ()-> processAndRun file:temp('main.js'), usePaths:true
 				.then ({result})->
 					assert.typeOf result, 'object'
 					assert.typeOf result.createStore, 'function'

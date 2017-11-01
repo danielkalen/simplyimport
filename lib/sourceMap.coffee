@@ -11,7 +11,7 @@ class SourceMap
 			@initialMap = @extractFromContent()
 			if @initialMap
 				@map = sourceMap.SourceMapGenerator.fromSource(new sourceMap.SourceMapConsumer @initialMap)
-				@file.content = sourceMapConvert.removeComments(@file.content)
+				@file.content = @removeComments(@file.content)
 			else
 				@map = new sourceMap.SourceMapGenerator(file:@file.pathRel)
 
@@ -22,6 +22,10 @@ class SourceMap
 		@lastContent = content
 		sourceMapConvert.fromSource(content)?.sourcemap
 
+	removeComments: (content)->
+		content = sourceMapConvert.removeComments(@file.content)
+		content = sourceMapConvert.removeMapFileComments(@file.content)
+		return content
 
 	update: (content)->
 		unless @disabled
@@ -29,7 +33,7 @@ class SourceMap
 			
 			if newSourceMap
 				@map.applySourceMap(new sourceMap.SourceMapConsumer newSourceMap)
-				content = sourceMapConvert.removeComments(content)
+				content = @removeComments(content)
 		
 		return content
 
