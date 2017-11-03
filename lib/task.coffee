@@ -489,6 +489,7 @@ class Task extends require('events')
 		@cache = null
 		@options = null
 		@requiredGlobals = null
+		@prevFileInit = null
 
 
 

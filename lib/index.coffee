@@ -93,6 +93,8 @@ SimplyImport.scan = (options)->
 				walkImports(task.entryFile, output)
 				return output
 
+		.tap ()-> setTimeout task.destroy.bind(task)
+
 
 
 module.exports = SimplyImport
