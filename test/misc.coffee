@@ -575,7 +575,7 @@ test "files matching globs specified in options.excludeFile shall be not be incl
 			assert.equal context.inline2, 'file g.js!'
 			assert.notInclude compiled, 'inline1'
 			assert.notInclude compiled, "import './b'"
-			assert.include compiled, "require('./b')"
+			assert.include compiled, 'require("./b")'
 
 
 test "files external to the importer shall be not be included in the package when options.bundleExternal is false", ()->

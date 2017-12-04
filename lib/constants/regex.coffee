@@ -12,6 +12,7 @@ REGEX =
 	shebang: /^#![^\n]*\n/
 	pathPlaceholder: /%([A-Z]+)/
 	varIncompatible: /[^0-9a-zA-Z_$]/g
+	varCompatible: /^[a-zA-Z_\$][0-9a-zA-Z_\$]*$/
 	initialWhitespace: /^[ \t]+/
 	initialExport: /^module\.exports\s*=\s*/
 	webpackModule: /__esModule/

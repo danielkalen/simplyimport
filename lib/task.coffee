@@ -160,6 +160,7 @@ class Task extends require('events')
 					pathRel: base
 					pathExt: @options.ext
 					pathBase: base
+					pathName: 'entry'
 				
 				config.options = @options.specific.entry
 				config.options ||= helpers.matchFileSpecificOptions(config, @options.specific) if @options.file
@@ -461,7 +462,7 @@ class Task extends require('events')
 				else
 					config = {ID:'bundle', pkg:@options.pkg, options:{}, content:bundledContent}
 					config = helpers.newPathConfig @entryFile.pathAbs, null, config
-					
+
 					Promise.resolve(new File(@, config)).bind(@)
 						.tap ()-> debug "applying final transform"
 						.then (file)-> file.applyTransforms(file.content, @options.finalTransform, 'final')

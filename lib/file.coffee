@@ -645,34 +645,34 @@ class File
 
 
 			when 'module' # regular import
-				return "require('#{statement.target}')" if statement.excluded
-				if not statement.members and not statement.alias # commonJS import / side-effects es6 import
-					replacement = "#{loader}(#{statement.target.IDstr})"
-					if statement.extract
-						replacement += "['#{statement.extract}']"
+				replacement = require('./builders').import(statement, loader)
+				# return "require('#{statement.target}')" if statement.excluded
+				# if not statement.members and not statement.alias # commonJS import / side-effects es6 import
+				# 	replacement = "#{loader}(#{statement.target.IDstr})"
+				# 	if statement.extract
+				# 		replacement += "['#{statement.extract}']"
 					
-					else if statement.target.hasDefaultExport and @options.extractDefaults
-						key = helpers.strToVar(statement.target.pathName)
-						replacement = "(function(){var #{key}=#{replacement};return #{key} && 'default' in #{key} ? #{key}.default:#{key}}())"
+				# 	else if statement.target.hasDefaultExport and @options.extractDefaults
+				# 		key = helpers.strToVar(statement.target.pathName)
+				# 		replacement = "(function(){var #{key}=#{replacement};return #{key} && 'default' in #{key} ? #{key}.default:#{key}}())"
 
-				else
-					alias = statement.alias or helpers.strToVar(statement.target.pathName)
-					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})"
+				# else
+				# 	alias = statement.alias or helpers.strToVar(statement.target.pathName)
+				# 	replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})"
 
-					if statement.members
-						nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
-						decs = []
+				# 	if statement.members
+				# 		nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
+				# 		decs = []
 						
-						if statement.members.default
-							if statement.target.hasDefaultExport and @options.extractDefaults
-								decs.push("#{statement.members.default} = #{alias}.default")
-							else
-								decs.push("#{statement.members.default} = #{alias}")
+				# 		if statement.members.default
+				# 			if statement.target.hasDefaultExport and @options.extractDefaults
+				# 				decs.push("#{statement.members.default} = #{alias}.default")
+				# 			else
+				# 				decs.push("#{statement.members.default} = #{alias}")
 
-						decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
-						replacement += ", #{decs.join ', '};"
+				# 		decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
+				# 		replacement += ", #{decs.join ', '};"
 
-				
 				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
 
 

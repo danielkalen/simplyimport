@@ -1,6 +1,10 @@
-Parser = require('../external/parser')
+parser = require('../external/parser')
+helpers = require '../helpers'
 stringBuilders = require './strings'
-b = require('ast-types').builders
+types = require('ast-types')
+n = types.namedTypes
+b = types.builders
+B = exports
 
 exports.bundle = (task)->
 	loaderName = task.options.loaderName
@@ -20,11 +24,11 @@ exports.bundle = (task)->
 		args.push 'global'
 		values.push stringBuilders.globalDec()
 	
-	return Parser.parse stringBuilders.iife(args, values, body)
+	return parser.parse stringBuilders.iife(args, values, body)
 
 exports.loader = (target, loaderName)->
 	targetLoader = if target is 'node' then 'loaderNode' else 'loaderBrowser'
-	loader = Parser.parse(stringBuilders[targetLoader](loaderName)).body[0]
+	loader = parser.parse(stringBuilders[targetLoader](loaderName)).body[0]
 	modules = loader.expression.right.arguments[1].properties
 	return {loader, modules}
 
@@ -47,7 +51,7 @@ exports.moduleFn = (file, loaderName)->
 			args.push '__dirname'
 			values.push "'/#{file.contextRel}'"
 		
-		moduleBody.push wrapper = Parser.parseExpr stringBuilders.iife(args, values)
+		moduleBody.push wrapper = parser.parseExpr stringBuilders.iife(args, values)
 		moduleBody = wrapper.callee.object.expression.body.body
 	
 	moduleBody.push b.content(file.content)
@@ -62,12 +66,106 @@ exports.moduleFn = (file, loaderName)->
 		b.blockStatement(body)
 	)
 
+exports.varDeclaration = (pairs...)->
+	b.variableDeclaration 'var', pairs.map (pair)->
+		B.varAssignment(pair[0], pair[1])
+
+exports.varAssignment = (key, value)->
+	[value] = astify(value)
+	key = b.identifier(key) if typeof key is 'string'
+	b.variableDeclarator key, value
+
+exports.assignment = (key, value, operator='=')->
+	[value] = astify(value)
+	key = b.identifier(key) if typeof key is 'string'
+	b.assignmentExpression operator, key, value
+
+exports.inExpression = (left, right)->
+	[left, right] = astify(left, right)
+	b.binaryExpression 'in', left, right
+
+exports.andExpression = (left, right)->
+	[left, right] = astify(left, right)
+	b.logicalExpression '&&', left, right
+
+exports.propertyAccess = (object, property)->
+	[object, property] = astify(object, property)
+	b.memberExpression object, property
+
+exports.callExpression = (target, args...)->
+	[target] = astify(target)
+	args = args.map (arg)-> astify(arg)[0]
+	b.callExpression target, args
+
+
+
+exports.import = (statement, loader)->
+	{target, source} = statement
+
+	switch
+		when statement.excluded
+			ast = B.callExpression ['require','id'], target.ID or target
+		
+		when not statement.members and not statement.alias # commonJS import / side-effects es6 import
+			ast = B.callExpression [loader,'id'], target.ID
+
+			if statement.extract
+				ast = B.propertyAccess ast, statement.extract
+			
+			else if target.hasDefaultExport and source.options.extractDefaults
+				key = b.identifier helpers.strToVar(target.pathName)
+				ast = b.parenthesizedExpression b.callExpression(
+					b.functionExpression null, [], b.blockStatement [
+						B.varDeclaration([key, ast])
+						b.returnStatement b.conditionalExpression(
+							B.andExpression(key, B.inExpression('default',key))
+							B.propertyAccess(key, 'default')
+							key
+						)
+					]
+				,[])
+
+		else
+			alias = b.identifier statement.alias or helpers.strToVar(target.pathName)
+			decs = []
+			decs.push [alias, B.callExpression([loader,'id'], target.ID)]
+			
+			if statement.members
+				nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
+				
+				if statement.members.default
+					if target.hasDefaultExport and source.options.extractDefaults
+						decs.push [statement.members.default, B.propertyAccess(alias, 'default')]
+					else
+						decs.push [statement.members.default, alias]
+
+				for key,keyAlias of nonDefault
+					decs.push [keyAlias, B.propertyAccess(alias, key)]
+
+			ast = B.varDeclaration(decs...)
+
+	return parser.generate(ast)
 
 
 
 
 
+astify = (args...)->
+	args.map (arg)-> switch
+		when arg and arg.type? then arg
+		when Array.isArray(arg) and arg[1] is 'id' then b.identifier(arg[0])
+		when Array.isArray(arg) then b.arrayExpression(arg)
+		when Object.isObject(arg) then b.objectExpression(properties arg)
+		else b.literal(arg)
 
+properties = (obj)->
+	{varCompatible} = require('../constants/regex')
+	Object.keys(obj).map (key)->
+		b.property(
+			'init'
+			if varCompatible.test(key) then b.identifier(key) else b.literal(key)
+			astify(obj[key])[0]
+		)
 
 
 

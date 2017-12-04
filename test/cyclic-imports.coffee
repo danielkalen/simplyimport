@@ -111,7 +111,59 @@ suite "cyclic imports", ()->
 				assert.equal result.version, '2.5602'
 
 
-	test.skip "es6 destructing imports should be live", ()->;
+	test.skip "es6 destructing imports should be live", ()->
+		Promise.resolve()
+			.then ()-> helpers.lib
+				'main.js': """
+					import * as a from './a'
+					import * as b from './b'
+					import * as c from './c'
+					export {a,b,c};
+					export let buffer = [];
+					export let name = 'main.js';
+				"""
+				'a.js': """
+					import {buffer} from './main'
+					import * as b from './b'
+					export let name = 'a.js';
+					export let log = function(data){buffer.push(name+': '+data)};
+					export let load = function(source){buffer.push(name+' from '+source)};
+					export let bufferType = typeof buffer;
+					export let loadB = function(){b.load(name)};
+				"""
+				'b.js': """
+					import {buffer} from './main'
+					import {name as aName} from './a.js'
+					export let name = 'b.js';
+					export let log = function(data){buffer.push(name+': '+data)};
+					export let load = function(source){buffer.push(name+' from '+source)};
+					export let loadA = function(source){buffer.push(aName+' from '+source)};
+				"""
+				'c.js': """
+					import {name as mainName} from './main'
+					export let name = 'c.js';
+					export let getMainName = function(){return mainName};
+				"""
+
+			.then ()-> processAndRun file:temp('main.js')
+			.then ({result})->
+				{a,b,c,buffer} = result
+				expect(buffer).to.eql []
+				expect(a.bufferType).to.equal 'undefined'
+
+				expect(()->
+					a.load('tester')
+					a.loadB()
+					b.load('tester')
+					b.loadA('b.js tester')
+				).not.to.throw()
+
+				expect(buffer).to.eql [
+					'a.js from tester'
+					'b.js from a.js'
+					'b.js from tester'
+					'a.js from b.js tester'
+				]
 
 
 
