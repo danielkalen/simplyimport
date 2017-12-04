@@ -1,4 +1,4 @@
-global.Promise = require 'bluebird'
+global.Promise = require('bluebird').config warnings:false, longStackTraces:false
 fs = require 'fs-jetpack'
 Path = require 'path'
 mocha = require 'mocha'
