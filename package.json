@@ -113,7 +113,8 @@
   },
   "devDependencies": {
     "@danielkalen/print-code": "^1.0.3",
-    "clarify": "^2.0.0"
+    "clarify": "^2.0.0",
+    "package-install": "^1.2.1"
   },
   "false": {}
 }
