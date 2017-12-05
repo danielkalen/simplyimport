@@ -646,89 +646,63 @@ class File
 
 			when 'module' # regular import
 				replacement = require('./builders').import(statement, loader)
-				# return "require('#{statement.target}')" if statement.excluded
-				# if not statement.members and not statement.alias # commonJS import / side-effects es6 import
-				# 	replacement = "#{loader}(#{statement.target.IDstr})"
-				# 	if statement.extract
-				# 		replacement += "['#{statement.extract}']"
-					
-				# 	else if statement.target.hasDefaultExport and @options.extractDefaults
-				# 		key = helpers.strToVar(statement.target.pathName)
-				# 		replacement = "(function(){var #{key}=#{replacement};return #{key} && 'default' in #{key} ? #{key}.default:#{key}}())"
-
-				# else
-				# 	alias = statement.alias or helpers.strToVar(statement.target.pathName)
-				# 	replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})"
-
-				# 	if statement.members
-				# 		nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
-				# 		decs = []
-						
-				# 		if statement.members.default
-				# 			if statement.target.hasDefaultExport and @options.extractDefaults
-				# 				decs.push("#{statement.members.default} = #{alias}.default")
-				# 			else
-				# 				decs.push("#{statement.members.default} = #{alias}")
-
-				# 		decs.push("#{keyAlias} = #{alias}.#{key}") for key,keyAlias of nonDefault
-				# 		replacement += ", #{decs.join ', '};"
-
 				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
 
 
 
 			when 'export'
-				replacement = ''
+				replacement = require('./builders').export(statement, loader)
+				# replacement = ''
 			
-				if statement.target isnt statement.source
-					alias = helpers.strToVar(statement.target.pathName)
-					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})\n"
+				# if statement.target isnt statement.source
+				# 	alias = helpers.strToVar(statement.target.pathName)
+				# 	replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})\n"
 
-					if statement.members
-						decs = []
-						decs.push("exports.#{keyAlias} = #{alias}.#{key}") for keyAlias,key of statement.members
-						replacement += decs.join ', '
+				# 	if statement.members
+				# 		decs = []
+				# 		decs.push("exports.#{keyAlias} = #{alias}.#{key}") for keyAlias,key of statement.members
+				# 		replacement += decs.join ', '
 					
-					else
-						key = helpers.strToVar(statement.target.pathName)
-						replacement += "var #{key}; for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}];"
+				# 	else
+				# 		key = helpers.strToVar(statement.target.pathName)
+				# 		replacement += "var #{key}; for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}];"
 
 
-				else
-					if statement.members
-						decs = []
-						decs.push("exports.#{keyAlias} = #{key}") for keyAlias,key of statement.members
-						replacement += decs.join ', '
+				# else
+				# 	if statement.members
+				# 		decs = []
+				# 		decs.push("exports.#{keyAlias} = #{key}") for keyAlias,key of statement.members
+				# 		replacement += decs.join ', '
 					
 
-					else if statement.decs
-						for nested in statement.nestedStatements
-							targetDec = statement.decs[nested.dec]
-							targetDec.content =
-								targetDec.content.slice(0, nested.range.start) +
-								@resolveStatementReplacement(nested.statement) +
-								targetDec.content.slice(nested.range.end)
+				# 	else if statement.decs
+				# 		for nested in statement.nestedStatements
+				# 			targetDec = statement.decs[nested.dec]
+				# 			targetDec.content =
+				# 				targetDec.content.slice(0, nested.range.start) +
+				# 				@resolveStatementReplacement(nested.statement) +
+				# 				targetDec.content.slice(nested.range.end)
 
-						decs = Object.keys(statement.decs)
-						values = Object.values(statement.decs)
+				# 		decs = Object.keys(statement.decs)
+				# 		values = Object.values(statement.decs)
 
-						replacement += "#{statement.keyword} #{values.map('content').join ', '}\n"
-						replacement += "exports.#{dec} = #{dec}; " for dec in decs
+				# 		replacement += "#{statement.keyword} #{values.map('content').join ', '}\n"
+				# 		replacement += "exports.#{dec} = #{dec}; " for dec in decs
 
 
-					else
-						if statement.keyword isnt 'function' or not statement.identifier
-							if statement.default
-								replacement += "exports.default = "
-								replacement += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
+				# 	else
+				# 		if statement.keyword isnt 'function' or not statement.identifier
+				# 			if statement.default
+				# 				replacement += "exports.default = "
+				# 				replacement += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
 							
-							else if statement.identifier
-								replacement += "exports.#{statement.identifier} = "
+				# 			else if statement.identifier
+				# 				replacement += "exports.#{statement.identifier} = "
 
-						if statement.keyword# and not isDec # function or class
-							replacement += "#{statement.keyword} "
-							if statement.identifier
-								replacement = "#{replacement} #{statement.identifier}"
+				# 		if statement.keyword# and not isDec # function or class
+				# 			replacement += "#{statement.keyword} "
+				# 			if statement.identifier
+				# 				replacement = "#{replacement} #{statement.identifier}"
 				
 
 				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)

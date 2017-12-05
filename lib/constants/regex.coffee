@@ -13,6 +13,7 @@ REGEX =
 	pathPlaceholder: /%([A-Z]+)/
 	varIncompatible: /[^0-9a-zA-Z_$]/g
 	varCompatible: /^[a-zA-Z_\$][0-9a-zA-Z_\$]*$/
+	assignmentValue: /[^=]+?=\s*([\w\W]+)/
 	initialWhitespace: /^[ \t]+/
 	initialExport: /^module\.exports\s*=\s*/
 	webpackModule: /__esModule/

@@ -1,7 +1,8 @@
-parser = require('../external/parser')
+parser = require '../external/parser'
 helpers = require '../helpers'
 stringBuilders = require './strings'
-types = require('ast-types')
+REGEX = require '../constants/regex'
+types = require 'ast-types'
 n = types.namedTypes
 b = types.builders
 B = exports
@@ -66,12 +67,15 @@ exports.moduleFn = (file, loaderName)->
 		b.blockStatement(body)
 	)
 
-exports.varDeclaration = (pairs...)->
-	b.variableDeclaration 'var', pairs.map (pair)->
+exports.customDeclaration = (type, pairs...)->
+	b.variableDeclaration type, pairs.map (pair)->
 		B.varAssignment(pair[0], pair[1])
 
+exports.varDeclaration = ()->
+	B.customDeclaration 'var', arguments...
+
 exports.varAssignment = (key, value)->
-	[value] = astify(value)
+	[value] = astify(value) unless value is null
 	key = b.identifier(key) if typeof key is 'string'
 	b.variableDeclarator key, value
 
@@ -79,6 +83,9 @@ exports.assignment = (key, value, operator='=')->
 	[value] = astify(value)
 	key = b.identifier(key) if typeof key is 'string'
 	b.assignmentExpression operator, key, value
+
+exports.assignmentStatement = (key, value, operator)->
+	b.expressionStatement B.assignment(key, value, operator)
 
 exports.inExpression = (left, right)->
 	[left, right] = astify(left, right)
@@ -88,9 +95,19 @@ exports.andExpression = (left, right)->
 	[left, right] = astify(left, right)
 	b.logicalExpression '&&', left, right
 
-exports.propertyAccess = (object, property)->
-	[object, property] = astify(object, property)
-	b.memberExpression object, property
+exports.propertyAccess = (object, property, computed)->
+	object = b.identifier(object) if typeof object is 'string'
+	if typeof property is 'string'
+		if REGEX.varCompatible.test(property)
+			property = b.identifier(property)
+		else
+			property = b.literal(property)
+			computed = true
+	
+	if computed?
+		b.memberExpression object, property, computed
+	else
+		b.memberExpression object, property
 
 exports.callExpression = (target, args...)->
 	[target] = astify(target)
@@ -148,6 +165,78 @@ exports.import = (statement, loader)->
 
 
 
+exports.export = (statement, loader)->
+	{target, source} = statement
+
+	switch
+		when target isnt source
+			alias = b.identifier helpers.strToVar(target.pathName)
+			ast = B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+
+			if statement.members
+				decs = for keyAlias,key of statement.members
+					B.assignmentStatement B.propertyAccess('exports', keyAlias), B.propertyAccess(alias, key)
+				ast = b.program [ast, decs...]
+			
+			else
+				key = b.identifier helpers.strToVar(target.pathName)
+				extractLoop = b.forInStatement key, alias, b.blockStatement [
+					B.assignmentStatement B.propertyAccess('exports',key,true), B.propertyAccess(alias,key,true)
+				]
+				ast.declarations.push B.varAssignment(key, null)
+				ast = b.program [ast, extractLoop]
+		
+
+		when statement.members
+			ast = b.program(for keyAlias,key of statement.members
+				B.assignmentStatement B.propertyAccess('exports', keyAlias), b.identifier(key)
+			)
+
+		when statement.decs
+			for nested in statement.nestedStatements
+				targetDec = statement.decs[nested.dec]
+				targetDec.content =
+					targetDec.content.slice(0, nested.range.start) +
+					target.resolveStatementReplacement(nested.statement) +
+					targetDec.content.slice(nested.range.end)
+
+			decs = []
+			assignments = []
+			for key in Object.keys(statement.decs)
+				value = b.content statement.decs[key].content.match(REGEX.assignmentValue)[1]
+				decs.push [key, value]
+				assignments.push B.assignmentStatement(B.propertyAccess('exports',key), b.identifier(key))
+			
+			ast = b.program [
+				B.customDeclaration(statement.keyword, decs...)
+				assignments...
+			]
+
+		when not statement.identifier and not statement.keyword
+			ast = 'exports.default ='
+			# ast = b.assignment B.propertyAccess('exports','default'), 
+			# console.dir statement, depth:0, colors:1
+			# console.log statement.source.content.slice(statement.range.start, statement.range.end)
+		else
+			if statement.keyword isnt 'function' or not statement.identifier
+				if statement.default
+					ast = "exports.default = "
+					ast += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
+				
+				else if statement.identifier
+					ast += "exports.#{statement.identifier} = "
+
+			if statement.keyword# and not isDec # function or class
+				ast ||= ''
+				ast += "#{statement.keyword} "
+				if statement.identifier
+					ast = "#{ast} #{statement.identifier}"
+
+	# return parser.generate(ast)
+	return if typeof ast is 'string' then ast else parser.generate(ast)
+
+
+
 
 
 astify = (args...)->
@@ -159,11 +248,10 @@ astify = (args...)->
 		else b.literal(arg)
 
 properties = (obj)->
-	{varCompatible} = require('../constants/regex')
 	Object.keys(obj).map (key)->
 		b.property(
 			'init'
-			if varCompatible.test(key) then b.identifier(key) else b.literal(key)
+			if REGEX.varCompatible.test(key) then b.identifier(key) else b.literal(key)
 			astify(obj[key])[0]
 		)
 
