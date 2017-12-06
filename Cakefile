@@ -4,7 +4,7 @@ chalk = require 'chalk'
 execa = require 'execa'
 packageInstall = require 'package-install'
 Path = require 'path'
-mocha = Path.resolve 'node_modules','.bin','mocha'
+mocha = Path.resolve 'node_modules','mocha','bin','mocha'
 nyc = Path.resolve 'node_modules','nyc','bin','nyc.js'
 process.env.SOURCE_MAPS ?= 1
 testModules = [
@@ -20,11 +20,13 @@ task 'test', ()->
 	Promise.resolve()
 		.then ()-> packageInstall testModules
 		.then ()-> runTests()
+		.catch handleError
 
 task 'test:debug', ()->
 	Promise.resolve()
 		.then ()-> packageInstall testModules
 		.then ()-> runTests(['--inspect-brk'])
+		.catch handleError
 
 
 
@@ -33,7 +35,10 @@ task 'coverage', ()->
 		.then ()-> packageInstall ['nyc', 'badge-gen'].concat(testModules)
 		.then ()-> [mocha].concat prepareOptions ['--require','coffee-coverage/register-istanbul']
 		.then (options)-> execa nyc, covReporters.concat(options), {stdio:'inherit'}
+		.catch handleError
 
+handleError = (err)-> unless err.message.startsWith('Command failed')
+	console.error chalk.red err.message
 
 runTests = (options)->
 	options = prepareOptions(options)
