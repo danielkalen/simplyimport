@@ -25,22 +25,12 @@
     "url": "https://github.com/danielkalen/simplyimport"
   },
   "license": "MIT",
-  "mocha_opts": "-u tdd --compilers coffee:coffee-register --slow 1000 --timeout 8000",
   "scripts": {
     "prepublishOnly": "npm run test -s",
     "postpublish": "git push",
     "publish-next": "npm publish --tag next",
-    "build": "npm run compile && npm run prependbin && npm run makeexec",
-    "compile": "npm run compile:module && npm run compile:bin",
-    "compile:module": "foreach -g 'lib/*' -x 'cat {{path}} | coffee -c -s -b > forCoverage/{{name}}.js'",
-    "compile:bin": "coffee -o ./forCoverage -c -b lib/cli.coffee",
-    "prependbin": "echo '#!/usr/bin/env node' | cat - forCoverage/cli.js > forCoverage/bin && rm -rf forCoverage/cli.js",
-    "makeexec": "chmod +x forCoverage/bin",
-    "coverage": "npm run build && npm run coverage:run && npm run coverage:badge",
-    "coverage:run": "mocha $npm_package_mocha_opts --require coffee-coverage/register-istanbul; istanbul report",
-    "coverage:badge": "badge-gen -d ./.config/badges/coverage",
-    "test:debug": "mocha $npm_package_mocha_opts test/test.coffee --inspect-brk",
-    "test:prof": "mocha $npm_package_mocha_opts test/test.coffee --prof --perf-basic-prof",
+    "coverage": "cake coverage",
+    "test:debug": "cake test:debug",
     "test": "cake test"
   },
   "dependencies": {
@@ -114,6 +104,8 @@
   "devDependencies": {
     "@danielkalen/print-code": "^1.0.3",
     "clarify": "^2.0.0",
+    "coffee-coverage": "^2.0.1",
+    "execa": "^0.8.0",
     "package-install": "^1.2.1"
   },
   "false": {}

@@ -1,11 +1,14 @@
 global.Promise = require('bluebird').config warnings:false, longStackTraces:process.env.DEBUG
 fs = require 'fs-jetpack'
 chalk = require 'chalk'
+execa = require 'execa'
 packageInstall = require 'package-install'
 Path = require 'path'
+mocha = Path.resolve 'node_modules','.bin','mocha'
+nyc = Path.resolve 'node_modules','nyc','bin','nyc.js'
 process.env.SOURCE_MAPS ?= 1
 testModules = [
-	'mocha', 'chai', 'nock', 'browserify', 'babelify', 'formatio',
+	'mocha@3.5.3', 'chai', 'nock', 'browserify', 'babelify', 'formatio',
 	'babel-preset-es2015-script', 'envify', 'es6ify', 'brfs',
 	'axios', 'moment', 'timeunits', 'yo-yo', 'smart-extend',
 	'p-wait-for', 'source-map-support', 'xmlhttprequest',
@@ -16,56 +19,38 @@ testModules = [
 task 'test', ()->
 	Promise.resolve()
 		.then ()-> packageInstall testModules
-		.then runTests
+		.then ()-> runTests()
+
+task 'test:debug', ()->
+	Promise.resolve()
+		.then ()-> packageInstall testModules
+		.then ()-> runTests(['--inspect-brk'])
 
 
 
 task 'coverage', ()->
 	Promise.resolve()
-		.then ()-> packageInstall ['istanbul', 'badge-gen', 'coffee-coverage']
-		.then ()->
-			coffeeCoverage = require 'coffee-coverage'
-			coverageVar = coffeeCoverage.findIstanbulVariable()
-			
-			coffeeCoverage.register
-				instrumentor: 'istanbul'
-				basePath: process.cwd()
-				exclude: ['/test','/scripts','/node_modules','/.git','/.config','/coverage']
-				covreageVar: covreageVar
-				writeOnExit: if coverageVar? then Path.resolve('coverage','coverage-coffee.json') else null
-				initAll: true
-
-			runTests()
-
-		.then ()->
-			istanbul = require 'istanbul'
-			Report = istanbul.Report
-			collector = new istanbul.Collector
-			reporter = new istanbul.Reporter
-				dir: Path.resolve('coverage')
-				root: Path.resolve()
-				formats: ['html', 'lcov']
-
-			collector.add fs.read(Path.resolve('coverage','coverage-coffee.json'), 'json')
-			new Promise (resolve, reject)->
-				reporter.write collector, false, (err)->
-					if err then reject(err) else resolve()
-
-		.then ()-> console.log 'Done'
+		.then ()-> packageInstall ['nyc', 'badge-gen'].concat(testModules)
+		.then ()-> [mocha].concat prepareOptions ['--require','coffee-coverage/register-istanbul']
+		.then (options)-> execa nyc, covReporters.concat(options), {stdio:'inherit'}
 
 
+runTests = (options)->
+	options = prepareOptions(options)
+	execa mocha, options, {stdio:'inherit'}
 
+prepareOptions = (options=[])->
+	mochaOptions.concat(options).concat 'test/test.coffee'
 
-runTests = ()->
-	mocha = new (require 'mocha')
-		ui: 'tdd'
-		bail: not process.env.DEBUG
-		timeout: if process.env.DEBUG then 20000 else 8000
-		slow: if process.env.DEBUG then 7000 else 1500
-		userColors: true
+mochaOptions = [
+	'--bail'
+	'-u','tdd'
+	'--compilers','coffee:coffee-register'
+	'--slow',(if process.env.DEBUG then '7000' else '1500')
+	'--timeout',(if process.env.DEBUG then '20000' else '8000')
+]
 
-	mocha.addFile Path.join('test','test.coffee')
-	mocha.run (failures)->
-		process.on 'exit', ()-> process.exit(failures)
-
-
+covReporters = [
+	'--reporter','text'
+	'--reporter','html'
+]
