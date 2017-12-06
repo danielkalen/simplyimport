@@ -1,7 +1,19 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
+parser = require '../external/parser'
 
 collectExports = (tokens, content, importer)->
+	# # ast = parser.parseStrict(content)
+	# try
+	# 	ast = parser.parseStrict(importer.contentSafe)
+	# catch err
+	# 	chalk = require 'chalk'
+	# 	cnt = importer.contentSafe
+	# 	cnt = content
+	# 	console.log chalk.yellow cnt
+	# 	console.log chalk.green parser.generate parser.parse(cnt)
+	# 	# console.dir parser.parse(cnt), colors:1, depth:Infinity
+	# 	# throw err
 	@walkTokens tokens, content, 'export', ()->
 		return if @current.type.keyword isnt 'export'
 		output = helpers.newExportStatement()
