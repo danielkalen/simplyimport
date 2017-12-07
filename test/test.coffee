@@ -35,6 +35,7 @@ suite "SimplyImport", ()->
 
 
 	require './misc'
+	require './exports'
 	require './node-target'
 	require './importInline'
 	require './deduping'

@@ -752,7 +752,7 @@ test "duplicate import statements within the same file are allowed (both module 
 			assert.equal context.b, 'abcdefdefabc'
 
 
-test "es6 exports will be transpiled to commonJS exports", ()->
+test.skip "es6 exports will be transpiled to commonJS exports", ()->
 	Promise.resolve()
 		.then emptyTemp
 		.then ()->

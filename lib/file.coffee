@@ -410,6 +410,7 @@ class File
 
 
 	replaceES6Imports: (save=true)->
+		return @content if not EXTENSIONS.js.includes(@pathExt)
 		hasImports = false
 		newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)=>
 			hasImports = true
@@ -433,10 +434,7 @@ class File
 		@content = @content.replace REGEX.tempImport, (entire, childPath, meta='')->
 			childPath = childPath.slice(1,-1)
 			meta = meta.slice(1,-1)
-			body = if meta then "#{meta} from " else ""
-			body += "'#{childPath}'"
-			replacement = "import #{body}"
-			return replacement
+			if not meta then entire else "import #{meta} from '#{childPath}'"
 
 
 	collectForceInlineImports: ()->
