@@ -7,9 +7,10 @@ stringHash = require 'string-hash'
 chalk = require 'chalk'
 extend = require 'extend'
 stringPos = require 'string-pos'
-Parser = require './external/parser'
+parser = require './external/parser'
 SourceMap = require './sourceMap'
 helpers = require './helpers'
+builders = require './builders'
 REGEX = require './constants/regex'
 EXTENSIONS = require './constants/extensions'
 GLOBALS = require './constants/globals'
@@ -19,12 +20,14 @@ debug = require('debug')('simplyimport:file')
 
 class File
 	Object.defineProperty @::, 'contentSafe', get: -> @replaceES6Imports(false)
+	# Object.defineProperty @::, 'contentLatest', get: -> if @ast then parser.generate(@ast) else @content
 	constructor: (@task, state)->
 		extend(@, state)
 		@options.transform ?= []
 		@IDstr = JSON.stringify(@ID)
-		@tokens = @AST = @parsed = null
+		@ast = @parsed = null
 		@time = 0
+		@has = Object.create(null)
 		@statements = []
 		@inlineStatements = []
 		@conditionals = []
@@ -64,14 +67,14 @@ class File
 			@timeStart()
 			content = content.replace REGEX.es6import, ()-> "importPlaceholder()"
 			
-			if err = Parser.check(content, @pathAbs)
+			if err = parser.check(content, @pathAbs)
 				@task.emit 'SyntaxError', @, err
 
 			@timeEnd()
 	).memoize()
 
 
-	checkIfIsThirdPartyBundle: ()->
+	runChecks: ()->
 		debug "checking 3rd party bundle status #{@pathDebug}"
 		@timeStart()
 		### istanbul ignore next ###
@@ -84,14 +87,17 @@ class File
 			REGEX.defineCheck.test(@content) or
 			REGEX.requireCheck.test(@content)
 
-		@hasRequires = REGEX.commonImportReal.test(@content)
-		@hasOwnRequireSystem =
+		@has.requires = REGEX.commonImportReal.test(@content)
+		@has.exports = REGEX.commonExport.test(@content) or REGEX.es6export.test(@content)
+		@has.imports = @has.requires or REGEX.es6import.test(@content) or REGEX.tempImport.test(@content)
+		@has.ownRequireSystem =
 			REGEX.requireDec.test(@content) or
-			REGEX.requireArg.test(@content) and @hasRequires
+			REGEX.requireArg.test(@content) and @has.requires
 
-		@isThirdPartyBundle = @isThirdPartyBundle or @hasOwnRequireSystem
-		@options.skip ?= @isThirdPartyBundle and @hasOwnRequireSystem and @hasRequires
+		@isThirdPartyBundle = @isThirdPartyBundle or @has.ownRequireSystem
+		@options.skip ?= @isThirdPartyBundle and @has.ownRequireSystem and @has.requires
 		@timeEnd()
+		return
 
 
 	collectRequiredGlobals: ()-> if not @isThirdPartyBundle and not EXTENSIONS.static.includes(@pathExt)
@@ -127,7 +133,7 @@ class File
 						match: @task.options.matchAllConditions or do ()=>
 							file = @
 							jsString = ''
-							tokens = Parser.tokenize(start[2])
+							tokens = parser.tokenize(start[2])
 							env = @task.options.env
 							BUNDLE_TARGET = @task.options.target
 
@@ -218,7 +224,7 @@ class File
 
 	postScans: ()->
 		@options.extractDefaults ?= true
-		@hasDefaultExport ?=
+		@has.defaultExport ?=
 			@type isnt 'inline' and
 			REGEX.defaultExport.test(@content) and
 			not REGEX.defaultExportDeassign.test(@content)
@@ -227,29 +233,32 @@ class File
 	postTransforms: ()->
 		debug "running post-transform functions #{@pathDebug}"
 		@timeStart()
-		@contentPostTransforms = @content = @sourceMap.update(@content)
+		@content = @sourceMap.update(@content)
 		
 		if @requiredGlobals.process
-			@contentPostTransforms = @content = "var process = require('process');\n#{@content}"
+			@content = "var process = require('process');\n#{@content}"
 			@sourceMap.addNullRange(0, 34, true)
+			@has.imports = true
 		
 		if @requiredGlobals.Buffer
-			@contentPostTransforms = @content = "var Buffer = require('buffer').Buffer;\n#{@content}"
+			@content = "var Buffer = require('buffer').Buffer;\n#{@content}"
 			@sourceMap.addNullRange(0, 39, true)
+			@has.imports = true
 
-		@hashPostTransforms = stringHash(@contentPostTransforms)
+		@hashPostTransforms = stringHash(@content)
 		@timeEnd()
 
 
-	applyAllTransforms: (content=@content)->
+	applyAllTransforms: ()->
 		@allTransforms = [].concat @options.transform, @task.options.transform, @task.options.globalTransform, @pkgTransform
 
-		Promise.resolve(content).bind(@)
+		Promise.resolve(@content).bind(@)
 			.tap ()-> debug "start applying transforms #{@pathDebug}"
 			.then @applySpecificTransforms							# ones found in "simplyimport:specific" package.json field
 			.then @applyPkgTransforms								# ones found in "browserify.transform" package.json field
 			.then(@applyRegularTransforms unless @isExternal)		# ones provided through options.transform (applied to all files of entry-level package)
 			.then @applyGlobalTransforms							# ones provided through options.globalTransform (applied to all processed files)
+			.then @saveContent
 			.tap ()-> debug "done applying transforms #{@pathDebug}"
 
 
@@ -356,23 +365,23 @@ class File
 			.tap @timeEnd
 
 
-
-	tokenize: ()->
-		unless EXTENSIONS.nonJS.includes(@pathExt)
+	parse: ()->
+		unless EXTENSIONS.nonJS.includes(@pathExt) or (not @has.imports and not @has.exports)
 			@timeStart()
 			debug "tokenizing #{@pathDebug}"
-			@ast = Parser.parse(@content)
-			tokens = helpers.tokenize(@content)
+			# @ast = parser.parseStrict(@content)
+			try
+				@ast = parser.parseStrict(@content)
+			catch err
+				@task.emit 'ASTParseError', @, err
 			
-			if tokens instanceof Error
-				@task.emit 'TokenizeError', @, tokens
-			else
-				@Tokens = tokens
-
+			@has.ast = true
 			@timeEnd()			
+		
+		if not @ast
+			@ast = builders.b.program [builders.b.content(@content)]
 
-		return @content
-
+		return
 
 
 	genAST: ()->
@@ -381,7 +390,7 @@ class File
 		try
 			debug "generating AST #{@pathDebug}"
 			@timeStart()
-			@AST = Parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
+			@ast = parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
 			@timeEnd()
 		catch err
 			@task.emit 'ASTParseError', @, err
@@ -393,9 +402,9 @@ class File
 		if @sourceMap
 			return @sourceMap
 		
-		else if @AST
+		else if @ast
 			@timeStart()
-			@sourceMap = JSON.parse Parser.generate(@AST, comment:true, sourceMap:true)
+			@sourceMap = JSON.parse parser.generate(@ast, comment:true, sourceMap:true)
 			@timeEnd()
 			return @sourceMap
 
@@ -410,7 +419,7 @@ class File
 		# 	mapping
 
 
-	replaceES6Imports: (save=true)->
+	replaceES6Imports: ()->
 		return @content if not EXTENSIONS.js.includes(@pathExt)
 		hasImports = false
 		newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)=>
@@ -427,8 +436,7 @@ class File
 		if hasImports and @pathExt is 'ts'
 			newContent = "declare function _$sm(...a: any[]): any;\n#{newContent}"
 
-		@content = newContent if save
-		return newContent
+		return @content = newContent
 
 
 	restoreES6Imports: ()->
@@ -456,25 +464,20 @@ class File
 		return @inlineStatements
 
 
-	collectImports: (tokens=@Tokens)->
+	collectImports: ()->
 		debug "collecting imports #{@pathDebug}"
 		collected = []
 		@timeStart()
 		switch
-			when tokens
+			when @has.ast
 				@collectedImports = true
 				
 				try
-					# requires = if @options.skip then [] else helpers.collectRequires(@ast, @)
-					requires = if @options.skip then [] else helpers.collectRequires(tokens, @contentPostTransforms)
-					imports = helpers.collectImports(tokens, @contentPostTransforms, @)
-					statements = imports.concat(requires).sortBy('tokenRange.start')
+					requires = if @options.skip then [] else helpers.collectRequires(@ast, @)
+					imports = helpers.collectImports(@ast, @)
+					statements = imports.concat(requires).sortBy('range.start')
 				catch err
-					if err.name is 'TokenError'
-						@task.emit('TokenError', @, err)
-					else
-						@task.emit('GeneralError', @, err)
-
+					@task.emit('GeneralError', @, err)
 					return collected
 
 
@@ -483,8 +486,6 @@ class File
 					targetSplit = statement.target.split(REGEX.extractDelim)
 					statement.target = targetSplit[0]
 					statement.extract = targetSplit[1]
-					statement.range.start = tokens[statement.tokenRange.start].start
-					statement.range.end = tokens[statement.tokenRange.end].end
 					statement.source = @getStatementSource(statement)
 					collected.push(statement)
 
@@ -513,7 +514,6 @@ class File
 					statement.source = @getStatementSource(statement)
 					collected.push(statement)
 		
-
 		@timeEnd()
 		@statements.push collected...
 		return collected
@@ -523,7 +523,7 @@ class File
 		debug "collecting exports #{@pathDebug}"
 		collected = []
 		@timeStart()
-		if @ast
+		if @has.ast
 			try
 				statements = helpers.collectExports(@ast, @)
 			catch err
@@ -534,7 +534,7 @@ class File
 				statement.source = @getStatementSource(statement)
 				statement.target ?= @
 				collected.push(statement)
-				@hasDefaultExport = true if statement.exportType is 'default'
+				@has.defaultExport = true if statement.kind is 'default'
 
 
 		@timeEnd()
@@ -550,7 +550,7 @@ class File
 
 		
 		split = helpers.splitContentByStatements(@content, @inlineStatements)
-		content = split.reduce (acc, statement)=>
+		@content = split.reduce (acc, statement)=>
 			if typeof statement is 'string'
 				return acc+statement
 			else
@@ -575,25 +575,19 @@ class File
 				return acc+replacement
 
 		@timeEnd()
-		return content
+		return
 
 
 	replaceStatements: ()->
 		@timeStart()
 		debug "replacing imports/exports #{@pathDebug}"
-
-		split = helpers.splitContentByStatements(@content, @statements)
-		content = split.reduce (acc, statement, index)=>
-			if typeof statement is 'string'
-				return acc+statement
-			else				
-				replacement = @resolveStatementReplacement(statement)
+		if @has.ast
+			for statement in @statements
+				parser.replaceNode @ast, statement.node, @resolveStatementReplacement(statement)
 				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
-				return acc+replacement
-
 
 		@timeEnd()
-		return "#{@getExportedFunctions()}#{content}"
+		return
 	
 
 	extract: (key, returnActual)->
@@ -615,12 +609,12 @@ class File
 	resolveStatementReplacement: (statement, {lines, type}={})->
 		# type ?= statement.type or statement.statementType
 		type ?= if statement.statementType is 'export' then 'export' else statement.type
-		lines ?= @contentPostTransforms
+		lines ?= @content
 		loader = @task.options.loaderName
 		lastChar = @content[statement.range.end]
 	
 		switch type
-			when 'inline','inline-forced'
+			when 'inline-forced'
 				return '' if statement.excluded
 				targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
 				targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
@@ -631,18 +625,28 @@ class File
 					targetContent = "(#{targetContent})" if lastChar is '.' or lastChar is '('
 
 				return targetContent
+			
+			when 'inline'
+				# return '' if statement.excluded
+				# return statement.target.ast if statement.target.ast
+				# console.log statement.target.content if not statement.target.ast
+				return statement.target.ast
+				# targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
+				# targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
+				# targetContent = '{}' if not targetContent
 
+				# if EXTENSIONS.compat.includes(statement.target.pathExt)
+				# 	lastChar = @content[statement.range.end]
+				# 	targetContent = "(#{targetContent})" if lastChar is '.' or lastChar is '('
+
+				# return if type is 'inline' then builders.b.content(targetContent) else targetContent
 
 
 			when 'module' # regular import
-				replacement = require('./builders').import(statement, loader)
-				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
-
-
+				return builders.import(statement, loader)
 
 			when 'export'
-				replacement = require('./builders').export(statement, loader)				
-				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
+				return builders.export(statement, loader)
 
 
 	getStatementSource: (statement)->
@@ -660,16 +664,6 @@ class File
 		return @
 
 
-	getExportedFunctions: ()->
-		exportedFunctions = @statements
-			.filter (statement)-> statement.statementType is 'export' and statement.keyword is 'function' and statement.identifier
-			.map (statement)->
-				targetExport = if statement.default then 'default' else statement.identifier
-				"exports.#{targetExport} = #{statement.identifier};"
-			.join '\n'
-
-		if exportedFunctions then exportedFunctions+'\n' else ''
-
 
 	offsetStatements: (offset)->
 		for statement in @statements
@@ -682,7 +676,7 @@ class File
 	resolveNestedStatements: ()->
 		exportStatements = @statements.filter({statementType:'export'})
 		importStatements = @statements.filter({statementType:'import'})
-		for statement in importStatements
+		for statement in importStatements when statement.node
 			statement.isNested = helpers.matchNestingStatement(statement, exportStatements)
 		return
 
@@ -692,10 +686,8 @@ class File
 		@statements.length = 0
 		@inlineStatements.length = 0
 		@conditionals.length = 0
-		@tokens?.length = 0
 		delete @ID
-		delete @AST
-		delete @tokens
+		delete @ast
 		delete @statements
 		delete @inlineStatements
 		delete @conditionals

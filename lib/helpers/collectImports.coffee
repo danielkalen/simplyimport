@@ -1,22 +1,28 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
+parser = require '../external/parser'
 
-module.exports = collectImports = (tokens, content)->
-	@walkTokens tokens, content, 'import', ()->
-		output = helpers.newImportStatement('import')
-		if @next().type.keyword
-			throw @newError()
-		else
-			@prev()
+module.exports = collectImports = (ast, file)->
+	output = []
+	nodes = parser.find ast, 'ImportDeclaration'
 
-		while @next().type.label isnt 'string' then switch
-			when @current.value is '{' or @current.value is '*'
-				@handleMemebers(output)
+	for node in nodes
+		output.push statement = helpers.newImportStatement()
+		statement.kind = 'named'
+		statement.node = node
+		statement.target = helpers.normalizeTargetPath(node.source.value, file, true)
+		statement.range.start = node.start
+		statement.range.end = node.end
 
-			when @current.type.label is 'name' and @current.value isnt 'from'
-				@handleDefault(output)
+		for specifier in node.specifiers then switch specifier.type
+			when 'ImportNamespaceSpecifier'
+				statement.namespace = specifier.local.name
 
-		if @current.type.label is 'string'
-			output.target = @current.value.removeAll(REGEX.quotes).trim()
+			when 'ImportDefaultSpecifier'
+				statement.default = specifier.local.name
 
-		return output
+			when 'ImportSpecifier'
+				statement.specifiers ||= Object.create(null)
+				statement.specifiers[specifier.imported.name] = specifier.local.name
+
+	return output

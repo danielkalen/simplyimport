@@ -6,7 +6,7 @@ fs = require 'fs-jetpack'
 chalk = require 'chalk'
 extend = require 'extend'
 formatError = require './external/formatError'
-Parser = require './external/parser'
+parser = require './external/parser'
 helpers = require './helpers'
 File = require './file'
 SourceMapCombiner = require './sourceMapCombiner'
@@ -60,9 +60,6 @@ class Task extends require('events')
 
 		@.on 'missingEntry', ()=>
 			throw formatError "#{LABELS.error} cannot find '#{chalk.yellow @options.file}'", helpers.blankError()
-
-		@.on 'TokenizeError', (file, err)=>
-			@throw formatError "#{LABELS.error} Failed to tokenize #{file.pathDebug}", err
 		
 		@.on 'ASTParseError', (file, err)=>
 			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
@@ -239,15 +236,14 @@ class Task extends require('events')
 			.tap ()-> promiseBreak() if file.type is 'inline-forced'
 			.then file.replaceES6Imports
 			.then file.applyAllTransforms
-			.then file.saveContent.bind(file, 'contentPostTransforms')
+			.then file.replaceES6Imports
 			.then file.checkSyntaxErrors
 			.then file.restoreES6Imports
-			.then file.checkIfIsThirdPartyBundle
+			.then file.runChecks
 			.then(file.collectRequiredGlobals unless @options.target is 'node')
 			.then file.postTransforms
 			.then file.determineType
-			.then file.tokenize
-			.then file.saveContent.bind(file, 'contentPostTokenize')
+			.then file.parse
 			.catch promiseBreak.end
 			.tap ()-> debug "done processing #{file.pathDebug}"
 			.return(file)
@@ -263,7 +259,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'excluded', ()-> statement.type = 'inline-forced'; statement.excluded = true
+					.catch message:'excluded', ()-> statement.type = 'inline-forced'; statement.excluded = true; statement.kind = 'excluded'
 					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
@@ -297,7 +293,7 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, statement.source)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'excluded', ()-> statement.type = 'module'; statement.excluded = true
+					.catch message:'excluded', ()-> statement.type = 'module'; statement.excluded = true; statement.kind = 'excluded'
 					.catch message:'ignored', @handleIgnoredFile.bind(@, statement.source, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, statement.source, statement)
 					.return(statement)
@@ -338,6 +334,7 @@ class Task extends require('events')
 						not statement.target.path isnt EMPTY_STUB
 					
 					if requiresModification
+						# helpers.exportLastExpression(statement.target)
 						{content, offset} = helpers.exportLastExpression(statement.target)
 						statement.target.offsetStatements(offset) if offset
 						statement.target.content = content
@@ -393,7 +390,6 @@ class Task extends require('events')
 		Promise.resolve(file.inlineStatements).bind(file)
 			.map (statement)=> @replaceInlineStatements(statement.target) unless statement.excluded
 			.then file.replaceInlineStatements
-			.then file.saveContent.bind(file, 'contentPostForceInlinement')
 
 
 
@@ -405,19 +401,18 @@ class Task extends require('events')
 			.map (statement)=> @replaceStatements(statement.target) unless statement.excluded
 			.tap ()-> debug "replacing imports/exports #{file.pathDebug}"
 			.then file.replaceStatements
-			.then file.saveContent.bind(file, 'contentPostReplacement')
 
 
 
-	genSourceMap: (file)->
-		Promise.resolve(file.content).bind(file)
-			.tap ()-> debug "generating sourcemap #{file.pathDebug}"
-			.then ()-> promiseBreak() if not @options.sourceMap
-			.then file.genAST
-			.then file.genSourceMap
-			.then file.adjustSourceMap
-			.catch promiseBreak.end
-			.return(file)
+	# genSourceMap: (file)->
+	# 	Promise.resolve(file.content).bind(file)
+	# 		.tap ()-> debug "generating sourcemap #{file.pathDebug}"
+	# 		.then ()-> promiseBreak() if not @options.sourceMap
+	# 		.then file.genAST
+	# 		.then file.genSourceMap
+	# 		.then file.adjustSourceMap
+	# 		.catch promiseBreak.end
+	# 		.return(file)
 
 	
 	compile: ()->
@@ -438,7 +433,7 @@ class Task extends require('events')
 			
 			.tap (files)->
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
-					promiseBreak(@entryFile.content+@entryFile.sourceMap.toComment())
+					promiseBreak(parser.generate(@entryFile.ast)+@entryFile.sourceMap.toComment())
 			
 			.tap ()-> debug "creating bundle AST"
 			.then (files)->
@@ -454,7 +449,7 @@ class Task extends require('events')
 				return bundle
 
 			.tap ()-> debug "generating code from bundle AST"
-			.then (ast)-> Parser.generate(ast)+@sourceMap.toComment()
+			.then (ast)-> parser.generate(ast)+@sourceMap.toComment()
 			.catch promiseBreak.end
 			.then (bundledContent)->
 				if not @options.finalTransform.length

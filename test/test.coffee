@@ -26,12 +26,13 @@ mocha.Runner::fail = do ()->
 suite "SimplyImport", ()->
 	suiteTeardown ()-> fs.removeAsync(temp())
 	suiteSetup ()->
-		Promise.all [
-			emptyTemp()
-			fs.writeAsync temp('basicMain.js'), "var abc = require('./basic.js')\nvar def = require('./exportless')"
-			fs.writeAsync temp('basic.js'), "module.exports = 'abc123'"
-			fs.writeAsync temp('exportless.js'), "'def456'"
-		]
+		Promise.resolve()
+			.then emptyTemp
+			.then ()-> Promise.all [
+				fs.writeAsync temp('basicMain.js'), "var abc = require('./basic.js')\nvar def = require('./exportless')"
+				fs.writeAsync temp('basic.js'), "module.exports = 'abc123'"
+				fs.writeAsync temp('exportless.js'), "'def456'"
+			]
 
 
 	require './misc'

@@ -45,7 +45,7 @@ test "compile command will return a promise by default and a stream if passed a 
 		.then ()-> assert.equal promiseResult, streamResult
 
 
-test "inline imports will be wrapped in paranthesis when the import statement is part of a member expression", ()->
+test.only "inline imports will be wrapped in paranthesis when the import statement is part of a member expression", ()->
 	Promise.resolve()
 		.then ()->
 			helpers.lib
@@ -115,6 +115,7 @@ test "inline imports will be wrapped in paranthesis when the import statement is
 				function eee(){return 'eee'};
 				this.f = (function fff(){return 'fff'})();
 				this.f2 = (function fff(){return 'fff'})();
+				
 			"""
 
 
@@ -919,7 +920,7 @@ test.skip "es6 exports will be transpiled to commonJS exports", ()->
 			assert.equal result.f.default, 'jKl'
 
 
-test.skip "es6 imports/exports can be placed in nested scopes", ()->
+test "es6 imports/exports can be placed in nested scopes", ()->
 	Promise.resolve()
 		.then emptyTemp
 		.then ()->
@@ -936,8 +937,8 @@ test.skip "es6 imports/exports can be placed in nested scopes", ()->
 					export var abc = 123;
 
 					export default function(){
-						import {abc, ghi} from './a2'
-						exports.abc = abc;
+						import {def, ghi} from './a2'
+						exports.def = def;
 						exports.ghi = ghi;
 					}
 				"""
@@ -952,7 +953,7 @@ test.skip "es6 imports/exports can be placed in nested scopes", ()->
 				'a2.js': "export var def = 456, ghi = 789"
 				'b2.js': "export default 789"
 				
-		.then ()-> processAndRun file:temp('main.js')
+		.then ()-> processAndRun file:temp('main.js'), usePaths:true
 		.then ({compiled, result, writeToDisc})->
 			assert.equal result.a.abc, 123
 			assert.equal result.a.def, undefined

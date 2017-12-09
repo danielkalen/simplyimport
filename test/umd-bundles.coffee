@@ -103,6 +103,7 @@ suite "UMD bundles", ()->
 
 			.then ()-> processAndRun file:temp('main.js'),usePaths:true
 			.then ({result, writeToDisc})->
+				writeToDisc()
 				now = Date.now()
 				assert.notEqual result.a, result.b
 				assert.typeOf result.a, 'function'

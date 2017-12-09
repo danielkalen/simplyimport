@@ -1,7 +1,7 @@
 matchNestingStatement = (statement, candidates)->
 	if match = findNester(statement, candidates)
 		match.nested ||= []
-		match.nested.push prepareEntry(statement, match)
+		match.nested.push statement
 
 	return match
 
@@ -12,13 +12,6 @@ findNester = (statement, candidates)->
 			return candidate
 	
 	return false
-
-
-prepareEntry = (statement, nester)->
-	start = statement.range.start - nester.dec.start
-	end = statement.range.end - nester.dec.start
-	return {statement, dec:statement.dec, range:{start, end}}
-
 
 
 module.exports = matchNestingStatement

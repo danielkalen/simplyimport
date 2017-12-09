@@ -1,13 +1,15 @@
+walk = require './walk'
+
 find = (ast, target)->
 	result = []
 	
-	require('astw')(ast) (node)->
-		result.push(node) if matchesTargets(node, target)
+	walk ast, (node)->
+		result.push(node) if matchesTarget(node, target)
 
 	return result
 
 
-matchesTargets = (node, target)-> switch
+matchesTarget = (node, target)-> switch
 	when typeof target is 'string'
 		node.type.includes(target)
 	

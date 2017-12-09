@@ -4,8 +4,9 @@ stringBuilders = require './strings'
 REGEX = require '../constants/regex'
 types = require 'ast-types'
 n = types.namedTypes
-b = types.builders
-B = exports
+b = require './builders'
+
+exports.b = b
 
 exports.bundle = (task)->
 	loaderName = task.options.loaderName
@@ -55,11 +56,11 @@ exports.moduleFn = (file, loaderName)->
 		moduleBody.push wrapper = parser.parseExpr stringBuilders.iife(args, values)
 		moduleBody = wrapper.callee.object.expression.body.body
 	
-	moduleBody.push b.content(file.content)
-	body.push b.returnStatement b.memberExpression(b.identifier('module'), b.identifier('exports')) unless file.hasExplicitReturn
+	moduleBody.push file.ast.body...
+	body.push b.returnStatement b.memberExpression(b.identifier('module'), b.identifier('exports')) unless file.has.explicitReturn
 
-	body = body.map (node)->
-		if node.type.includes('Statement') or node.type.includes('Declaration') then node else b.expressionStatement(node)
+	# body = body.map (node)->
+	# 	if n.Statement.check(node) or n.Declaration.check(node) then node else b.expressionStatement(node)
 
 	b.functionExpression(
 		null
@@ -67,127 +68,74 @@ exports.moduleFn = (file, loaderName)->
 		b.blockStatement(body)
 	)
 
-exports.customDeclaration = (type, pairs...)->
-	b.variableDeclaration type, pairs.map (pair)->
-		B.varAssignment(pair[0], pair[1])
-
-exports.varDeclaration = ()->
-	B.customDeclaration 'var', arguments...
-
-exports.varAssignment = (key, value)->
-	[value] = astify(value) unless value is null
-	key = b.identifier(key) if typeof key is 'string'
-	b.variableDeclarator key, value
-
-exports.assignment = (key, value, operator='=')->
-	[value] = astify(value)
-	key = b.identifier(key) if typeof key is 'string'
-	b.assignmentExpression operator, key, value
-
-exports.assignmentStatement = (key, value, operator)->
-	b.expressionStatement B.assignment(key, value, operator)
-
-exports.inExpression = (left, right)->
-	[left, right] = astify(left, right)
-	b.binaryExpression 'in', left, right
-
-exports.andExpression = (left, right)->
-	[left, right] = astify(left, right)
-	b.logicalExpression '&&', left, right
-
-exports.propertyAccess = (object, property, computed)->
-	object = b.identifier(object) if typeof object is 'string'
-	if typeof property is 'string'
-		if REGEX.varCompatible.test(property)
-			property = b.identifier(property)
-		else
-			property = b.literal(property)
-			computed = true
-	
-	if computed?
-		b.memberExpression object, property, computed
-	else
-		b.memberExpression object, property
-
-exports.callExpression = (target, args...)->
-	[target] = astify(target)
-	args = args.map (arg)-> astify(arg)[0]
-	b.callExpression target, args
-
 
 
 exports.import = (statement, loader)->
 	{target, source} = statement
 
-	switch
-		when statement.excluded
-			ast = B.callExpression ['require','id'], target.ID or target
+	switch statement.kind
+		when 'excluded'
+			ast = b.callExpression ['require','id'], target.ID or target
 		
-		when not statement.members and not statement.alias # commonJS import / side-effects es6 import
-			ast = B.callExpression [loader,'id'], target.ID
-
-			if statement.extract
-				ast = B.propertyAccess ast, statement.extract
+		when 'require'
+			ast = b.callExpression [loader,'id'], target.ID
 			
-			else if target.hasDefaultExport and source.options.extractDefaults
+			if statement.extract
+				ast = b.propertyAccess ast, statement.extract
+			
+			else if target.has.defaultExport and source.options.extractDefaults
 				key = b.identifier helpers.strToVar(target.pathName)
 				ast = b.parenthesizedExpression b.callExpression(
 					b.functionExpression null, [], b.blockStatement [
-						B.varDeclaration([key, ast])
+						b.varDeclaration([key, ast])
 						b.returnStatement b.conditionalExpression(
-							B.andExpression(key, B.inExpression('default',key))
-							B.propertyAccess(key, 'default')
+							b.andExpression(key, b.inExpression('default',key))
+							b.propertyAccess(key, 'default')
 							key
 						)
 					]
 				,[])
 
-		else
-			alias = b.identifier statement.alias or helpers.strToVar(target.pathName)
+		when 'named'
+			module = b.callExpression [loader,'id'], target.ID
+			alias = b.identifier statement.namespace or helpers.strToVar(target.pathName)
 			decs = []
-			decs.push [alias, B.callExpression([loader,'id'], target.ID)]
-			
-			if statement.members
-				nonDefault = Object.exclude(statement.members, (k,v)-> v is 'default')
-				
-				if statement.members.default
-					if target.hasDefaultExport and source.options.extractDefaults
-						decs.push [statement.members.default, B.propertyAccess(alias, 'default')]
-					else
-						decs.push [statement.members.default, alias]
+			decs.push [alias, module]
 
-				for key,keyAlias of nonDefault
-					decs.push [keyAlias, B.propertyAccess(alias, key)]
+			if statement.default
+				if target.has.defaultExport and source.options.extractDefaults
+					decs.push [statement.default, b.propertyAccess(alias, 'default')]
+				else
+					decs.push [statement.default, alias]
 
-			ast = B.varDeclaration(decs...)
+			if statement.specifiers
+				for imported,local of statement.specifiers
+					decs.push [local, b.propertyAccess(alias, imported)]
 
-	return parser.generate(ast)
+			ast = b.varDeclaration decs...
+
+
+	return ast
+
 
 
 
 exports.export = (statement, loader)->
 	{target, source} = statement
 
-	# if statement.nested
-		# console.log statement.nested[0].statement.source.path
-		# console.log statement.nested
-	# 	for nested in statement.nested
-	# 		statement.dec = 
-	# 		targetDec = statement.decs[nested.dec]
-	# 		targetDec.content =
-	# 			targetDec.content.slice(0, nested.range.start) +
-	# 			target.resolveStatementReplacement(nested.statement) +
-	# 			targetDec.content.slice(nested.range.end)
+	if statement.nested
+		for nested in statement.nested
+			parser.replaceNode statement.dec, nested.node, target.resolveStatementReplacement(nested)
 
-	switch statement.exportType
+	switch statement.kind
 		when 'all'
 			alias = b.identifier helpers.strToVar(target.pathName)
 			key = b.identifier '__tmp'
 			ast = b.program [
-				B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+				b.varDeclaration([alias, b.callExpression([loader,'id'], target.ID)])
 				
 				b.forInStatement key, alias, b.blockStatement [
-					B.assignmentStatement B.propertyAccess('exports',key,true), B.propertyAccess(alias,key,true)
+					b.assignmentStatement b.propertyAccess('exports',key,true), b.propertyAccess(alias,key,true)
 				]
 			]
 
@@ -197,7 +145,7 @@ exports.export = (statement, loader)->
 			else
 				alias = b.identifier helpers.strToVar(target.pathName)
 				ast = b.program	[
-					B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+					b.varDeclaration([alias, b.callExpression([loader,'id'], target.ID)])
 					exportSpecifiers(statement.specifiers, alias)...
 				]
 
@@ -206,7 +154,7 @@ exports.export = (statement, loader)->
 				when target isnt source
 					alias = b.identifier helpers.strToVar(target.pathName)
 					ast = b.program [
-						B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+						b.varDeclaration([alias, b.callExpression([loader,'id'], target.ID)])
 						exportSpecifiers(statement.specifiers)...
 					]
 				
@@ -214,23 +162,23 @@ exports.export = (statement, loader)->
 					ast = statement.dec
 					for dec in statement.dec.declarations
 						dec.init.id = dec.id if n.FunctionExpression.check(dec.init) and not dec.init.id
-						dec.init = B.assignment B.propertyAccess('exports', dec.id.name), dec.init
+						dec.init = b.assignment b.propertyAccess('exports', dec.id.name), dec.init
 				
 				else
 					id = statement.dec.id
 					ast = b.program [
 						statement.dec
-						B.assignmentStatement B.propertyAccess('exports',id), id
+						b.assignmentStatement b.propertyAccess('exports',id), id
 					]
 
 
 		when 'default'
 			ast = b.program []
 			dec = statement.dec
-			property = B.propertyAccess('exports','default')
+			property = b.propertyAccess('exports','default')
 			switch
 				when n.Expression.check(statement.dec)
-					ast.body.push B.assignmentStatement property, dec
+					ast.body.push b.assignmentStatement property, dec
 					
 					if n.AssignmentExpression.check(dec) and not dec.right.id
 						if n.FunctionExpression.check(dec.right) or n.ClassExpression.check(dec.right)
@@ -239,48 +187,40 @@ exports.export = (statement, loader)->
 				when n.FunctionDeclaration.check(dec)
 					if not dec.id
 						dec.type = 'FunctionExpression'
-						ast.body.push B.assignmentStatement property, dec
+						ast.body.push b.assignmentStatement property, dec
 					else
 						ast.body.push dec
-						ast.body.push B.assignmentStatement property, dec.id
+						ast.body.push b.assignmentStatement property, dec.id
 
 				when n.ClassDeclaration.check(dec)
 					dec.id ||= b.identifier '__class'
 					ast.body.push dec
-					ast.body.push B.assignmentStatement property, dec.id
+					ast.body.push b.assignmentStatement property, dec.id
 
 				else
-					ast.body.push B.assignmentStatement property, dec
+					ast.body.push b.assignmentStatement property, dec
 
 
-	return parser.generate(ast)
-
-
-
+	return ast
 
 
 
-astify = (args...)->
-	args.map (arg)-> switch
-		when arg and arg.type? then arg
-		when Array.isArray(arg) and arg[1] is 'id' then b.identifier(arg[0])
-		when Array.isArray(arg) then b.arrayExpression(arg)
-		when Object.isObject(arg) then b.objectExpression(properties arg)
-		else b.literal(arg)
+
+
 
 properties = (obj)->
 	Object.keys(obj).map (key)->
 		b.property(
 			'init'
 			if REGEX.varCompatible.test(key) then b.identifier(key) else b.literal(key)
-			astify(obj[key])[0]
+			b.astify(obj[key])[0]
 		)
 
 
 exportSpecifiers = (mapping, target)->
 	for exported,local of mapping
-		exported = if target then B.propertyAccess(target, exported) else b.identifier(exported)
-		B.assignmentStatement B.propertyAccess('exports', local), exported
+		exported = if target then b.propertyAccess(target, exported) else b.identifier(exported)
+		b.assignmentStatement b.propertyAccess('exports', local), exported
 
 
 

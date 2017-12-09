@@ -25,7 +25,7 @@ processAndRun = (opts, filename='script.js', context={})->
 	SimplyImport(opts).then (compiled)->
 		debugPath = debug(filename)
 		writeToDisc = ()-> fs.writeAsync(debugPath, compiled).timeout(500)
-		run = ()-> runCompiled(filename, compiled, context)
+		run = ()-> runCompiled(debugPath, compiled, context)
 		
 		Promise.resolve()
 			.then run

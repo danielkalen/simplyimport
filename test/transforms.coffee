@@ -521,7 +521,6 @@ suite "transforms", ()->
 					"""
 					'b/index.ts': """
 						function exporter(obj?: {a:string, b:string}) {
-							var result;
 							import * as result from '../c'
 							return result;
 						}
@@ -539,7 +538,6 @@ suite "transforms", ()->
 							return 'maybe';
 						}
 						export var a = extract()
-						var innerModule;
 						import {output as innerModule} from './inner'
 						export var b = innerModule;
 					"""

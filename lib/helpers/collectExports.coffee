@@ -8,38 +8,30 @@ collectExports = (ast, file)->
 
 	for node in nodes
 		output.push statement = helpers.newExportStatement()
+		statement.node = node
 		statement.range.start = node.start
 		statement.range.end = node.end
 		
 		switch node.type
 			when 'ExportAllDeclaration'
-				statement.exportType = 'all'
+				statement.kind = 'all'
 				statement.target = helpers.normalizeTargetPath(node.source.value, file, true)
 
 			when 'ExportDefaultDeclaration'
-				statement.exportType = 'default'
-				statement.dec = objectWithout node.declaration, 'parent'
+				statement.kind = 'default'
+				statement.dec = node.declaration
 
 			when 'ExportNamedDeclaration'
 				if node.declaration
-					statement.exportType = 'named-dec'
-					statement.dec = objectWithout node.declaration, 'parent'
+					statement.kind = 'named-dec'
+					statement.dec = node.declaration
 				else
-					statement.exportType = 'named-spec'
+					statement.kind = 'named-spec'
 					statement.target = helpers.normalizeTargetPath(node.source.value, file, true) if node.source
 					statement.specifiers = Object.create(null)
 					for specifier in node.specifiers
 						statement.specifiers[specifier.local.name] = specifier.exported.name
 
-	return output
-
-
-objectWithout = (object, exclude)->
-	output = Object.create(null)
-
-	for key in Object.keys(object) when key isnt exclude
-		output[key] = object[key]
-	
 	return output
 
 

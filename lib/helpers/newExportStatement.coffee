@@ -1,6 +1,6 @@
 module.exports = ()->
 	statementType: 'export'
-	exportType: ''
+	kind: ''
 	type: ''
 	range: {start:0, end:0}
 	source: null

@@ -1,9 +1,14 @@
-Parser = require '../external/parser'
+parser = require '../external/parser'
 EXTENSIONS = require '../constants/extensions'
+
+# exportLastExpression = (file)->
+# 	return if EXTENSIONS.static.includes(file.pathExt)
+# 	if not file.ast
+
 
 exportLastExpression = (file)->
 	return file.content if EXTENSIONS.static.includes(file.pathExt)
-	ast = try Parser.parseStrict(file.contentSafe, range:true)
+	ast = try parser.parseStrict(file.contentSafe, range:true)
 	
 	if not ast
 		return content:"module.exports = #{file.content}", offset:{start:0, end:17}
@@ -27,7 +32,7 @@ exportLastExpression = (file)->
 				return content:"#{file.content}\nmodule.exports = #{last.id.name}"
 
 			when 'ReturnStatement'
-				file.hasExplicitReturn = true
+				file.has.explicitReturn = true
 				return content:file.content if not last.argument
 				return insertExport(last.argument.start)
 

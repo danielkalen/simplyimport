@@ -1,12 +1,13 @@
-module.exports = (keyword='require')->
+module.exports = ()->
 	statementType: 'import'
+	kind: ''
 	type: ''
-	keyword: keyword
 	range: {start:0, end:0}
-	tokenRange: {}
 	source: null
 	target: null
 	extract: undefined
-	members: null
-	alias: null
-	isNested: false
+	specifiers: null
+	default: null
+	namespace: null
+	node: null
+	isNested: null

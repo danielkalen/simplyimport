@@ -16,6 +16,7 @@ class Parser
 	attachComments: (ast)-> require('escodegen').attachComments ast, ast.comments, ast.tokens
 	check: (content, path, opts={sourceType:'module'})-> require('syntax-error-plus')(content, path, @opts(opts))
 	find: require './find'
+	replaceNode: require './replaceNode'
 
 
 
