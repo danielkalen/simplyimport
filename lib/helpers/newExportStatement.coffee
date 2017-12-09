@@ -1,12 +1,9 @@
 module.exports = ()->
 	statementType: 'export'
-	range: {}
-	tokenRange: {}
-	nestedStatements: []
+	exportType: ''
+	type: ''
+	range: {start:0, end:0}
 	source: null
 	target: null
-	default: null
-	members: null
-	keyword: null
-	identifier: null
-	decs: null
+	dec: null
+	specifiers: null

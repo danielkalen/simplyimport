@@ -1,13 +1,21 @@
-find = (ast, targets)->
-	targets = [targets] if typeof targets is 'string'
+find = (ast, target)->
 	result = []
-	walk = require('astw')(ast)
 	
-	walk (node)->
-		for target in targets
-			return result.push(node) if node.type.includes(target)
+	require('astw')(ast) (node)->
+		result.push(node) if matchesTargets(node, target)
 
 	return result
+
+
+matchesTargets = (node, target)-> switch
+	when typeof target is 'string'
+		node.type.includes(target)
+	
+	when typeof target is 'function'
+		target(node)
+	
+	when Array.isArray(target)
+		target.some (target)-> node.type.includes(target)
 
 
 module.exports = find

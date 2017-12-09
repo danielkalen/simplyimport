@@ -2,7 +2,7 @@ module.exports = (keyword='require')->
 	statementType: 'import'
 	type: ''
 	keyword: keyword
-	range: {}
+	range: {start:0, end:0}
 	tokenRange: {}
 	source: null
 	target: null

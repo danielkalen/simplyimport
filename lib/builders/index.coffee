@@ -168,72 +168,93 @@ exports.import = (statement, loader)->
 exports.export = (statement, loader)->
 	{target, source} = statement
 
-	switch
-		when target isnt source
-			alias = b.identifier helpers.strToVar(target.pathName)
-			ast = B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+	# if statement.nested
+		# console.log statement.nested[0].statement.source.path
+		# console.log statement.nested
+	# 	for nested in statement.nested
+	# 		statement.dec = 
+	# 		targetDec = statement.decs[nested.dec]
+	# 		targetDec.content =
+	# 			targetDec.content.slice(0, nested.range.start) +
+	# 			target.resolveStatementReplacement(nested.statement) +
+	# 			targetDec.content.slice(nested.range.end)
 
-			if statement.members
-				decs = for keyAlias,key of statement.members
-					B.assignmentStatement B.propertyAccess('exports', keyAlias), B.propertyAccess(alias, key)
-				ast = b.program [ast, decs...]
-			
-			else
-				key = b.identifier helpers.strToVar(target.pathName)
-				extractLoop = b.forInStatement key, alias, b.blockStatement [
+	switch statement.exportType
+		when 'all'
+			alias = b.identifier helpers.strToVar(target.pathName)
+			key = b.identifier '__tmp'
+			ast = b.program [
+				B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+				
+				b.forInStatement key, alias, b.blockStatement [
 					B.assignmentStatement B.propertyAccess('exports',key,true), B.propertyAccess(alias,key,true)
 				]
-				ast.declarations.push B.varAssignment(key, null)
-				ast = b.program [ast, extractLoop]
-		
-
-		when statement.members
-			ast = b.program(for keyAlias,key of statement.members
-				B.assignmentStatement B.propertyAccess('exports', keyAlias), b.identifier(key)
-			)
-
-		when statement.decs
-			for nested in statement.nestedStatements
-				targetDec = statement.decs[nested.dec]
-				targetDec.content =
-					targetDec.content.slice(0, nested.range.start) +
-					target.resolveStatementReplacement(nested.statement) +
-					targetDec.content.slice(nested.range.end)
-
-			decs = []
-			assignments = []
-			for key in Object.keys(statement.decs)
-				value = b.content statement.decs[key].content.match(REGEX.assignmentValue)[1]
-				decs.push [key, value]
-				assignments.push B.assignmentStatement(B.propertyAccess('exports',key), b.identifier(key))
-			
-			ast = b.program [
-				B.customDeclaration(statement.keyword, decs...)
-				assignments...
 			]
 
-		when not statement.identifier and not statement.keyword
-			ast = 'exports.default ='
-			# ast = b.assignment B.propertyAccess('exports','default'), 
-			# console.dir statement, depth:0, colors:1
-			# console.log statement.source.content.slice(statement.range.start, statement.range.end)
-		else
-			if statement.keyword isnt 'function' or not statement.identifier
-				if statement.default
-					ast = "exports.default = "
-					ast += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
+		when 'named-spec'
+			if target is source
+				ast = b.program exportSpecifiers(statement.specifiers)
+			else
+				alias = b.identifier helpers.strToVar(target.pathName)
+				ast = b.program	[
+					B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+					exportSpecifiers(statement.specifiers, alias)...
+				]
+
+		when 'named-dec'
+			switch
+				when target isnt source
+					alias = b.identifier helpers.strToVar(target.pathName)
+					ast = b.program [
+						B.varDeclaration([alias, B.callExpression([loader,'id'], target.ID)])
+						exportSpecifiers(statement.specifiers)...
+					]
 				
-				else if statement.identifier
-					ast += "exports.#{statement.identifier} = "
+				when n.VariableDeclaration.check(statement.dec)
+					ast = statement.dec
+					for dec in statement.dec.declarations
+						dec.init.id = dec.id if n.FunctionExpression.check(dec.init) and not dec.init.id
+						dec.init = B.assignment B.propertyAccess('exports', dec.id.name), dec.init
+				
+				else
+					id = statement.dec.id
+					ast = b.program [
+						statement.dec
+						B.assignmentStatement B.propertyAccess('exports',id), id
+					]
 
-			if statement.keyword# and not isDec # function or class
-				ast ||= ''
-				ast += "#{statement.keyword} "
-				if statement.identifier
-					ast = "#{ast} #{statement.identifier}"
 
-	# return parser.generate(ast)
-	return if typeof ast is 'string' then ast else parser.generate(ast)
+		when 'default'
+			ast = b.program []
+			dec = statement.dec
+			property = B.propertyAccess('exports','default')
+			switch
+				when n.Expression.check(statement.dec)
+					ast.body.push B.assignmentStatement property, dec
+					
+					if n.AssignmentExpression.check(dec) and not dec.right.id
+						if n.FunctionExpression.check(dec.right) or n.ClassExpression.check(dec.right)
+							statement.dec.right.id = ast.dec.left
+
+				when n.FunctionDeclaration.check(dec)
+					if not dec.id
+						dec.type = 'FunctionExpression'
+						ast.body.push B.assignmentStatement property, dec
+					else
+						ast.body.push dec
+						ast.body.push B.assignmentStatement property, dec.id
+
+				when n.ClassDeclaration.check(dec)
+					dec.id ||= b.identifier '__class'
+					ast.body.push dec
+					ast.body.push B.assignmentStatement property, dec.id
+
+				else
+					ast.body.push B.assignmentStatement property, dec
+
+
+	return parser.generate(ast)
+
 
 
 
@@ -255,6 +276,11 @@ properties = (obj)->
 			astify(obj[key])[0]
 		)
 
+
+exportSpecifiers = (mapping, target)->
+	for exported,local of mapping
+		exported = if target then B.propertyAccess(target, exported) else b.identifier(exported)
+		B.assignmentStatement B.propertyAccess('exports', local), exported
 
 
 

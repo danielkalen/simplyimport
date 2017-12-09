@@ -30,7 +30,7 @@ suite "es6 exports will be transpiled to commonJS exports", ()->
 				expect(result.sub(2,6)).to.equal -4
 
 
-	test.only "named list export", ()->
+	test "named list export", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib
 				'named-list.js': """
@@ -57,15 +57,19 @@ suite "es6 exports will be transpiled to commonJS exports", ()->
 					export * from './a'
 					export * from './b.js'
 					export * from 'c'
+					export {d1, d2 as D2} from './d'
 				"""
 				'a.js': "export var aaa = 111"
 				'b.js': "module.exports.bbb = 222"
 				'c.js': "exports.ccc = 333"
+				'd.js': "export var d1 = 123, d2 = 456"
 
-			.then ()-> processAndRun file:temp('all.js')
+			.then ()-> processAndRun file:temp('all.js'), usePaths:true
 			.then ({result})->
 				values = extend.keys(['aaa','bbb','ccc']).clone(result)
 				expect(values).to.eql aaa:111, bbb:222, ccc:333
+				expect(result.d1).to.equal 123
+				expect(result.D2).to.equal 456
 
 
 	test "default export", ()->
@@ -96,7 +100,7 @@ suite "es6 exports will be transpiled to commonJS exports", ()->
 					}
 				"""
 
-			.then ()-> processAndRun file:temp('default.js')
+			.then ()-> processAndRun file:temp('default.js'), usePaths:true
 			.then ({result})->
 				values = extend.keys(['aaa','bbb','ccc','ddd']).clone(result)
 				expect(values.aaa).to.eql default:111

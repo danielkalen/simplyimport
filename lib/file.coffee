@@ -361,6 +361,7 @@ class File
 		unless EXTENSIONS.nonJS.includes(@pathExt)
 			@timeStart()
 			debug "tokenizing #{@pathDebug}"
+			@ast = Parser.parse(@content)
 			tokens = helpers.tokenize(@content)
 			
 			if tokens instanceof Error
@@ -464,6 +465,7 @@ class File
 				@collectedImports = true
 				
 				try
+					# requires = if @options.skip then [] else helpers.collectRequires(@ast, @)
 					requires = if @options.skip then [] else helpers.collectRequires(tokens, @contentPostTransforms)
 					imports = helpers.collectImports(tokens, @contentPostTransforms, @)
 					statements = imports.concat(requires).sortBy('tokenRange.start')
@@ -517,32 +519,22 @@ class File
 		return collected
 
 
-	collectExports: (tokens=@Tokens)->
+	collectExports: ()->
 		debug "collecting exports #{@pathDebug}"
 		collected = []
 		@timeStart()
-		if tokens
+		if @ast
 			try
-				statements = helpers.collectExports(tokens, @contentPostTransforms, @)
+				statements = helpers.collectExports(@ast, @)
 			catch err
-				if err.name is 'TokenError'
-					@task.emit('TokenError', @, err)
-				else
-					@task.emit('GeneralError', @, err)
-
+				@task.emit('GeneralError', @, err)
 				return collected
 
 			statements.forEach (statement)=>
-				statement.range = 'start':tokens[statement.tokenRange.start].start, 'end':tokens[statement.tokenRange.end].end
 				statement.source = @getStatementSource(statement)
 				statement.target ?= @
-				if statement.decs
-					for dec,range of statement.decs
-						throw new Error "#{dec} = #{JSON.stringify range}" if Object.keys(range).length is 1
-						statement.decs[dec] = {range, content:@content.slice(range.start, range.end)}
-
 				collected.push(statement)
-				@hasDefaultExport = true if statement.default or statement.members?.default
+				@hasDefaultExport = true if statement.exportType is 'default'
 
 
 		@timeEnd()
@@ -649,60 +641,7 @@ class File
 
 
 			when 'export'
-				# replacement = require('./builders').export(statement, loader)
-				replacement = ''
-			
-				if statement.target isnt statement.source
-					alias = helpers.strToVar(statement.target.pathName)
-					replacement = "var #{alias} = #{loader}(#{statement.target.IDstr})\n"
-
-					if statement.members
-						decs = []
-						decs.push("exports.#{keyAlias} = #{alias}.#{key}") for keyAlias,key of statement.members
-						replacement += decs.join ', '
-					
-					else
-						key = helpers.strToVar(statement.target.pathName)
-						replacement += "var #{key}; for (#{key} in #{alias}) exports[#{key}] = #{alias}[#{key}];"
-
-
-				else
-					if statement.members
-						decs = []
-						decs.push("exports.#{keyAlias} = #{key}") for keyAlias,key of statement.members
-						replacement += decs.join ', '
-					
-
-					else if statement.decs
-						for nested in statement.nestedStatements
-							targetDec = statement.decs[nested.dec]
-							targetDec.content =
-								targetDec.content.slice(0, nested.range.start) +
-								@resolveStatementReplacement(nested.statement) +
-								targetDec.content.slice(nested.range.end)
-
-						decs = Object.keys(statement.decs)
-						values = Object.values(statement.decs)
-
-						replacement += "#{statement.keyword} #{values.map('content').join ', '}\n"
-						replacement += "exports.#{dec} = #{dec}; " for dec in decs
-
-
-					else
-						if statement.keyword isnt 'function' or not statement.identifier
-							if statement.default
-								replacement += "exports.default = "
-								replacement += statement.identifier if statement.identifier and not statement.keyword # assignment-expr-left
-							
-							else if statement.identifier
-								replacement += "exports.#{statement.identifier} = "
-
-						if statement.keyword# and not isDec # function or class
-							replacement += "#{statement.keyword} "
-							if statement.identifier
-								replacement = "#{replacement} #{statement.identifier}"
-				
-
+				replacement = require('./builders').export(statement, loader)				
 				return helpers.prepareMultilineReplacement(@content, replacement, lines, statement.range)
 
 

@@ -919,83 +919,60 @@ test.skip "es6 exports will be transpiled to commonJS exports", ()->
 			assert.equal result.f.default, 'jKl'
 
 
-test "es6 imports/exports can be placed in nested scopes", ()->
+test.skip "es6 imports/exports can be placed in nested scopes", ()->
 	Promise.resolve()
 		.then emptyTemp
 		.then ()->
 			helpers.lib
 				'main.js': """
-					load = function(){
-						import a from './a'
+					var load = function(){
+						import * as a from './a'
 						import * as b from './b'
-						import * as c from './c'
-						import * as d from './d'
-						return {a:a, b:b, c:c, d:d}
+						return {a:a, b:b}
 					}
 					module.exports = load()
 				"""
 				'a.js': """
-					export var abc = 123
-					load = function(){
-						var def = 456, ghi = 789, jkl = 999;
-						export default result = {abc:abc, def:def, ghi:ghi, jkl:jkl}
-					}
-					load()
-				"""
-				'b.js': """
 					export var abc = 123;
-					load = function(){
-						var ghi = 789, jkl = 999;
-						export let def = 456
-						(function(){export {ghi, jkl}})()
-					}
-					load()
-				"""
-				'c.js': """
-					export var abc = 123
-					load = function(){
-						var ghi = 789, jkl = 999;
-						export let def = 456
-						(function(){export {ghi, jkl}})()
-					}
-				"""
-				# 'd.js': """
-				# 	export var abc = 123;
 
-				# 	export function load(){
-				# 		export let def = 456
-				# 		exports.ghi = import './d2'
-				# 		exports.jkl = 999
-				# 	}
-				# """
-				'd.coffee': """
+					export default function(){
+						import {abc, ghi} from './a2'
+						exports.abc = abc;
+						exports.ghi = ghi;
+					}
+				"""
+				'b.coffee': """
 					export abc = 123
 					export abc2 = 123
 					export load = ()->
 						exports.def = 456
-						exports.ghi = import './d2'
+						exports.ghi = import './b2'
 						exports.jkl = 999
 				"""
-				'd2.js': """
-					module.exports = 789;
-				"""
+				'a2.js': "export var def = 456, ghi = 789"
+				'b2.js': "export default 789"
+				
 		.then ()-> processAndRun file:temp('main.js')
 		.then ({compiled, result, writeToDisc})->
-			assert.deepEqual result.a, {abc:123, def:456, ghi:789, jkl:999}
-			assert.deepEqual result.b, {abc:123, def:456, ghi:789, jkl:999}
-			assert.deepEqual result.c, {abc:123}
-			assert.equal result.d.abc, 123
-			assert.equal result.d.def, undefined
-			assert.equal result.d.ghi, undefined
-			assert.equal typeof result.d.load, 'function'
-			result.d.load()
-			assert.equal result.d.def, 456
-			assert.equal result.d.ghi, 789
-			assert.equal result.d.jkl, 999
+			assert.equal result.a.abc, 123
+			assert.equal result.a.def, undefined
+			assert.equal typeof result.a.default, 'function'
+			result.a.default()
+			assert.equal result.a.def, 456
+			assert.equal result.a.ghi, 789
+
+			assert.equal result.b.abc, 123
+			assert.equal result.b.def, undefined
+			assert.equal typeof result.b.load, 'function'
+			result.b.load()
+			assert.equal result.b.def, 456
+			assert.equal result.b.ghi, 789
+			assert.equal result.b.jkl, 999
 
 
 test "imports/exports should be live", ()->
 	Promise.resolve()
+		.then emptyTemp
 		.then ()->
 			helpers.lib
 				'main.js': """
@@ -1017,7 +994,7 @@ test "imports/exports should be live", ()->
 					module.exports = a
 					a.def = a.def.toUpperCase()
 				"""
-		.then ()-> processAndRun file:temp('main.js')
+		.then ()-> processAndRun file:temp('main.js'), usePaths:true
 		.then ({compiled, result})->
 			assert.deepEqual result.a, {abc:'abc', def:'DEF'}
 			assert.equal result.a, result.b
@@ -1054,7 +1031,7 @@ test "commonJS (and commonJS-style) imports importing es6 modules should extract
 					abc.inner = 'innerValue'
 				"""
 
-		.then ()-> processAndRun file:temp('main.js')
+		.then ()-> processAndRun file:temp('main.js'), usePaths:true
 		.then ({result,writeToDisc})->
 			assert.deepEqual result.a1, 123
 			assert.deepEqual result.a2, 123

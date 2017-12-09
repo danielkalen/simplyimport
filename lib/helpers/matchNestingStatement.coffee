@@ -1,8 +1,7 @@
 matchNestingStatement = (statement, candidates)->
-	match = findNester(statement, candidates)
-
-	if match
-		match.nestedStatements.push prepareEntry(statement, match)
+	if match = findNester(statement, candidates)
+		match.nested ||= []
+		match.nested.push prepareEntry(statement, match)
 
 	return match
 
@@ -15,22 +14,10 @@ findNester = (statement, candidates)->
 	return false
 
 
-findDeclaration = (statement, nester)->
-	decs = Object.keys(nester.decs)
-
-	for dec in decs
-		value = nester.decs[dec]
-
-		if value.range.start <= statement.range.start <= value.range.end
-			return dec
-
-
 prepareEntry = (statement, nester)->
-	dec = findDeclaration(statement, nester)
-	decRange = nester.decs[dec].range
-	start = statement.range.start - decRange.start
-	end = statement.range.end - decRange.start
-	return {statement, dec, range:{start, end}}
+	start = statement.range.start - nester.dec.start
+	end = statement.range.end - nester.dec.start
+	return {statement, dec:statement.dec, range:{start, end}}
 
 
 

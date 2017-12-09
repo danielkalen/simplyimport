@@ -2,57 +2,45 @@ REGEX = require '../constants/regex'
 helpers = require('./')
 parser = require '../external/parser'
 
-collectExports = (tokens, content, importer)->
-	@walkTokens tokens, content, 'export', ()->
-		return if @current.type.keyword isnt 'export'
-		output = helpers.newExportStatement()
-		@next()
+collectExports = (ast, file)->
+	output = []
+	nodes = parser.find ast, ['ExportNamedDeclaration', 'ExportDefaultDeclaration', 'ExportAllDeclaration']
 
-		switch
-			when @current.value is '{'
-				@handleMemebers(output)
-				output.members = Object.invert(output.members) if output.members
-				
-				@next() if @current.value is '}'
+	for node in nodes
+		output.push statement = helpers.newExportStatement()
+		statement.range.start = node.start
+		statement.range.end = node.end
+		
+		switch node.type
+			when 'ExportAllDeclaration'
+				statement.exportType = 'all'
+				statement.target = helpers.normalizeTargetPath(node.source.value, file, true)
 
-				if @current.value is 'from'
-					throw @newError() if @next().type.label isnt 'string'
-					output.target = helpers.normalizeTargetPath(@current.value, importer, true)
+			when 'ExportDefaultDeclaration'
+				statement.exportType = 'default'
+				statement.dec = objectWithout node.declaration, 'parent'
+
+			when 'ExportNamedDeclaration'
+				if node.declaration
+					statement.exportType = 'named-dec'
+					statement.dec = objectWithout node.declaration, 'parent'
 				else
-					@prev()
+					statement.exportType = 'named-spec'
+					statement.target = helpers.normalizeTargetPath(node.source.value, file, true) if node.source
+					statement.specifiers = Object.create(null)
+					for specifier in node.specifiers
+						statement.specifiers[specifier.local.name] = specifier.exported.name
+
+	return output
 
 
-			when @current.value is '*'
-				throw @newError() if @next().value isnt 'from' or @next().type.label isnt 'string'
-				output.target = helpers.normalizeTargetPath(@current.value, importer, true)
+objectWithout = (object, exclude)->
+	output = Object.create(null)
 
-			
-			when @current.type.keyword
-				if @current.value is 'default'
-					output.default = true
-					@next()
-				
-				if @current.type.keyword # var|let|const|function|class
-					output.keyword = @current.value
-
-					if REGEX.decKeyword.test(output.keyword) # var|let|const
-						@storeDecs(output.decs = Object.create(null))
-						return output
-
-					@next()
-
-
-				if @current.type.label is 'name' # function-name|class-name|assignment-expr-left 
-					output.identifier = @current.value
-					while @next().type.label and @current.value is '.' or @current.type.label is 'name'
-						output.identifier += @current.value
-														
-				@prev()
-
-
-			else throw @newError()
-
-		return output
+	for key in Object.keys(object) when key isnt exclude
+		output[key] = object[key]
+	
+	return output
 
 
 module.exports = collectExports#.memoize (tokens, content, importer)-> "#{importer.path}/#{content}"
