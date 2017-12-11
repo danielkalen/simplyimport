@@ -25,3 +25,4 @@ module.exports =
 	returnLoader: false
 	returnExports: false
 	noPkgConfig: false
+	indent: false

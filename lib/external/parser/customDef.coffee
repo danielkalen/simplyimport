@@ -5,5 +5,10 @@ def('Content')
 	.build 'content'
 	.field 'content', String
 
+def('ProgramContent')
+	.bases 'Expression', 'Statement'
+	.build 'content'
+	.field 'content', def('Node')
+
 
 require('ast-types').finalize()

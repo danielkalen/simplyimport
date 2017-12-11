@@ -7,6 +7,7 @@ n = types.namedTypes
 b = require './builders'
 
 exports.b = b
+exports.n = n
 
 exports.bundle = (task)->
 	loaderName = task.options.loaderName
@@ -53,20 +54,48 @@ exports.moduleFn = (file, loaderName)->
 			args.push '__dirname'
 			values.push "'/#{file.contextRel}'"
 		
-		moduleBody.push wrapper = parser.parseExpr stringBuilders.iife(args, values)
-		moduleBody = wrapper.callee.object.expression.body.body
-	
-	moduleBody.push file.ast.body...
-	body.push b.returnStatement b.memberExpression(b.identifier('module'), b.identifier('exports')) unless file.has.explicitReturn
+		moduleBody.push wrapper = parser.parse(stringBuilders.iife(args, values)).body[0]
+		moduleBody = wrapper.expression.callee.object.expression.body.body
 
-	# body = body.map (node)->
-	# 	if n.Statement.check(node) or n.Declaration.check(node) then node else b.expressionStatement(node)
+	file.ast = b.content(file.content) if not file.ast
+	
+	if n.Content.check(file.ast)
+		moduleBody.push file.ast
+		lastStatement = file.ast
+	else
+		moduleBody.push file.ast.body...
+		lastStatement = file.ast.body.last()
+
+	unless n.ReturnStatement.check(lastStatement)
+		body.push b.returnStatement b.propertyAccess('module', 'exports')
 
 	b.functionExpression(
 		null
 		[b.identifier(loaderName), b.identifier('module'), b.identifier('exports')]
 		b.blockStatement(body)
 	)
+
+
+
+exports.inlineImport = (statement)->
+	{target, source} = statement
+	lastChar = source.content[statement.range.end]
+	needsWrapping = lastChar is '.' or lastChar is '('
+	
+	switch
+		when statement.kind is 'excluded'
+			return b.content ''
+		
+		when statement.extract
+			ast = b.content target.extract(statement.extract) or '{}'
+
+		when target.has.ast
+			ast = b.programContent(target.ast)
+
+		else
+			ast = target.ast
+
+	return if needsWrapping then b.parenthesizedExpression(ast) else ast
 
 
 
@@ -201,7 +230,7 @@ exports.export = (statement, loader)->
 					ast.body.push b.assignmentStatement property, dec
 
 
-	return ast
+	return b.programContent ast
 
 
 

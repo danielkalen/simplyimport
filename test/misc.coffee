@@ -45,7 +45,7 @@ test "compile command will return a promise by default and a stream if passed a 
 		.then ()-> assert.equal promiseResult, streamResult
 
 
-test.only "inline imports will be wrapped in paranthesis when the import statement is part of a member expression", ()->
+test "inline imports will be wrapped in paranthesis when the import statement is part of a member expression", ()->
 	Promise.resolve()
 		.then ()->
 			helpers.lib
@@ -180,7 +180,7 @@ test "files without exports won't be considered inline if they are imported more
 					module.exports = 'gHi'
 				"""
 
-		.then ()-> processAndRun file:temp('main.js'), 'script.js', abcA:1
+		.then ()-> processAndRun file:temp('main.js'), usePaths:true
 		.then ({compiled, result, context})->
 			assert.include compiled, 'require =', "should have a module loader"
 			assert.equal context.abcA, 'ABC'
@@ -251,7 +251,7 @@ test "inline imports turned into module exports will me modified to export their
 					if (0) {throw new Error}
 				"""
 
-		.then ()-> processAndRun file:temp('main.js'), ignoreSyntaxErrors:true, 'script.js', abcA:1
+		.then ()-> processAndRun file:temp('main.js'), ignoreSyntaxErrors:true, usePaths:true, 'script.js', abcA:1
 		.then ({compiled, result, context, writeToDisc})->
 			assert.equal context.a, 'AaA', 'last assignment should be exported'
 			assert.equal context.abc, 'aAa'

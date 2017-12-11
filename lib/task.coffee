@@ -259,12 +259,12 @@ class Task extends require('events')
 					.then ()-> @initFile(statement.target, file, true)
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'excluded', ()-> statement.type = 'inline-forced'; statement.excluded = true; statement.kind = 'excluded'
+					.catch message:'excluded', ()-> statement.type = 'inline-forced'; statement.kind = 'excluded'
 					.catch message:'ignored', @handleIgnoredFile.bind(@, file, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, file, statement)
 					.return(statement)
 			
-			.filter (statement)-> not statement.excluded and not statement.target.scannedForceInlineImports
+			.filter (statement)-> statement.kind isnt 'excluded' and not statement.target.scannedForceInlineImports
 			.map (statement)-> @scanInlineStatements(statement.target)
 			.catch promiseBreak.end
 			.catch (err)-> @emit 'GeneralError', file, err
@@ -291,15 +291,16 @@ class Task extends require('events')
 			.map (statement)->
 				Promise.bind(@)
 					.then ()-> @initFile(statement.target, statement.source)
+					.tap (childFile)-> resetFile(childFile) if childFile.type is 'inline-forced'
 					.then (childFile)-> @processFile(childFile)
 					.then (childFile)-> statement.target = childFile
-					.catch message:'excluded', ()-> statement.type = 'module'; statement.excluded = true; statement.kind = 'excluded'
+					.catch message:'excluded', ()-> statement.type = 'module'; statement.kind = 'excluded'
 					.catch message:'ignored', @handleIgnoredFile.bind(@, statement.source, statement)
 					.catch message:'missing', @handleMissingFile.bind(@, statement.source, statement)
 					.return(statement)
 			
 			.tap ()-> promiseBreak(@statements) if ++currentDepth > depth
-			.map (statement)-> @scanStatements(statement.target, depth, currentDepth) unless statement.excluded
+			.map (statement)-> @scanStatements(statement.target, depth, currentDepth) unless statement.kind is 'excluded'
 			.then ()-> file.postScans()
 			
 			.catch promiseBreak.end
@@ -316,7 +317,7 @@ class Task extends require('events')
 			.then ()-> Object.values(@imports)
 			
 			.map (statements)-> # determine statement types
-				statements = statements.filter (statement)-> not statement.excluded
+				statements = statements.filter (statement)-> statement.kind isnt 'excluded'
 
 				if statements.length > 1 or statements.some(helpers.isMixedExtStatement) or statements.some(helpers.isRecursiveImport)
 					targetType = 'module'
@@ -334,10 +335,7 @@ class Task extends require('events')
 						not statement.target.path isnt EMPTY_STUB
 					
 					if requiresModification
-						# helpers.exportLastExpression(statement.target)
-						{content, offset} = helpers.exportLastExpression(statement.target)
-						statement.target.offsetStatements(offset) if offset
-						statement.target.content = content
+						statement.target.exportLastExpression()
 						statement.target.becameModule = true
 
 			
@@ -350,26 +348,26 @@ class Task extends require('events')
 
 					if statements.length > 1
 						if someExtract and REGEX.commonExport.test(file.content)
-							file.content = file.content.replace(REGEX.commonExport, '').replace(REGEX.endingSemi, '')
+							file.setContent file.ast.content.replace(REGEX.commonExport, '').replace(REGEX.endingSemi, '')
 						
 
 						if allExtract
 							extracts = statements.map('extract').unique()
-							file.content = JSON.stringify new ()-> @[key] = file.extract(key, true) for key in extracts; @
+							file.setContent JSON.stringify new ()-> @[key] = file.extract(key, true) for key in extracts; @
 						
 						else if someExtract
 							extracts = statements.filter((s)-> s.extract).map('extract').unique()
 							for key in extracts
 								extract = file.extract(key,true)
 								file.parsed[key] = extract
-							file.content = JSON.stringify file.parsed
+							file.setContent JSON.stringify file.parsed
 
-						file.content = "module.exports = #{file.content}"
+						file.setContent "module.exports = #{file.content}"
 
 
 			.then ()-> # perform dedupe
 				return if not @options.dedupe
-				dupGroups = @statements.filter(excluded:undefined).groupBy('target.hashPostTransforms')
+				dupGroups = @statements.filter((s)-> s.kind isnt 'excluded').groupBy('target.hashPostTransforms')
 				dupGroups = Object.filter dupGroups, (group)-> group.length > 1
 				
 				for h,group of dupGroups
@@ -388,7 +386,7 @@ class Task extends require('events')
 		file.replacedInlineStatements = true
 		
 		Promise.resolve(file.inlineStatements).bind(file)
-			.map (statement)=> @replaceInlineStatements(statement.target) unless statement.excluded
+			.map (statement)=> @replaceInlineStatements(statement.target) unless statement.kind is 'excluded'
 			.then file.replaceInlineStatements
 
 
@@ -398,7 +396,7 @@ class Task extends require('events')
 		file.replacedStatements = true
 		
 		Promise.resolve(file.statements).bind(file)
-			.map (statement)=> @replaceStatements(statement.target) unless statement.excluded
+			.map (statement)=> @replaceStatements(statement.target) unless statement.kind is 'excluded'
 			.tap ()-> debug "replacing imports/exports #{file.pathDebug}"
 			.then file.replaceStatements
 
@@ -417,6 +415,9 @@ class Task extends require('events')
 	
 	compile: ()->
 		builders = require('./builders')
+		generateOpts =
+			comments: true
+			indent: if @options.indent then '  ' else ''
 		
 		Promise.bind(@)
 			.then @calcImportTree
@@ -426,14 +427,14 @@ class Task extends require('events')
 			.tap ()-> debug "done replacing imports/exports"
 			.then ()->
 				@statements
-					.filter (statement)=> statement.type is 'module' and not statement.excluded and statement.target isnt @entryFile
+					.filter (statement)=> statement.type is 'module' and statement.kind isnt 'excluded' and statement.target isnt @entryFile
 					.unique('target')
 					.map('target')
 					.append(@entryFile, 0)
 			
 			.tap (files)->
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
-					promiseBreak(parser.generate(@entryFile.ast)+@entryFile.sourceMap.toComment())
+					promiseBreak(parser.generate(@entryFile.ast, generateOpts)+@entryFile.sourceMap.toComment())
 			
 			.tap ()-> debug "creating bundle AST"
 			.then (files)->
@@ -449,7 +450,7 @@ class Task extends require('events')
 				return bundle
 
 			.tap ()-> debug "generating code from bundle AST"
-			.then (ast)-> parser.generate(ast)+@sourceMap.toComment()
+			.then (ast)-> parser.generate(ast, generateOpts)+@sourceMap.toComment()
 			.catch promiseBreak.end
 			.then (bundledContent)->
 				if not @options.finalTransform.length
@@ -541,6 +542,9 @@ normalizeEnv = (env, context)-> switch
 	else process.env
 
 
+resetFile = (file)->
+	file.processed = null
+	file.type = null
 
 
 
