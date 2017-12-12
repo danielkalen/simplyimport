@@ -3,9 +3,9 @@ helpers = require('./')
 parser = require '../external/parser'
 n = require('ast-types').namedTypes
 
-module.exports = collectRequires = (ast, file)->
+collectRequires = (file)->
 	output = []
-	nodes = parser.find ast, matchNode
+	nodes = file.statementNodes.filter(matchNode)
 
 	for node in nodes
 		output.push statement = helpers.newImportStatement()
@@ -26,3 +26,6 @@ matchNode = (node)->
 		node.callee.name is 'require' or
 		node.callee.name is '_$sm'
 	)
+
+module.exports = collectRequires
+module.exports.match = matchNode

@@ -15,7 +15,7 @@ class SourceMap
 			else
 				@map = new sourceMap.SourceMapGenerator(file:@file.pathRel)
 
-			@map.setSourceContent @file.pathRel, @file.contentOriginal
+			@map.setSourceContent @file.pathRel, @file.original.content
 
 
 	extractFromContent: (content=@file.content)-> unless @disabled or @lastContent is content
@@ -46,7 +46,7 @@ class SourceMap
 			name: name
 
 		if file isnt @file
-			@map.setSourceContent file.pathRel, file.contentOriginal
+			@map.setSourceContent file.pathRel, file.original.content
 
 
 	addNull: (mapping)-> unless @disabled
@@ -89,7 +89,7 @@ class SourceMap
 
 getLocation = (file, index, content, offset=0)->
 	if Object.isNumber(index)
-		loc = if content? then stringPos(content, index) else stringPos(file.contentOriginal, index)
+		loc = if content? then stringPos(content, index) else stringPos(file.original.content, index)
 		return {line:loc.line+offset, column:loc.column}
 	else
 		return {line:index.line+offset, column:index.column}

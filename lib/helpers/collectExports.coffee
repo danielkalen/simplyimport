@@ -2,9 +2,9 @@ REGEX = require '../constants/regex'
 helpers = require('./')
 parser = require '../external/parser'
 
-collectExports = (ast, file)->
+collectExports = (file)->
 	output = []
-	nodes = parser.find ast, ['ExportNamedDeclaration', 'ExportDefaultDeclaration', 'ExportAllDeclaration']
+	nodes = file.statementNodes.filter(matchNode)
 
 	for node in nodes
 		output.push statement = helpers.newExportStatement()
@@ -34,5 +34,10 @@ collectExports = (ast, file)->
 
 	return output
 
+matchNode = (node)->
+	node.type is 'ExportNamedDeclaration' or
+	node.type is 'ExportDefaultDeclaration' or
+	node.type is 'ExportAllDeclaration'
 
 module.exports = collectExports#.memoize (tokens, content, importer)-> "#{importer.path}/#{content}"
+module.exports.match = matchNode

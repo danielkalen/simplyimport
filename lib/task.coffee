@@ -238,7 +238,7 @@ class Task extends require('events')
 			.then file.replaceES6Imports
 			.then file.applyAllTransforms
 			.then file.replaceES6Imports
-			.then file.checkSyntaxErrors
+			# .then file.checkSyntaxErrors
 			.then file.restoreES6Imports
 			.then file.runChecks
 			.then(file.collectRequiredGlobals unless @options.target is 'node')
@@ -278,6 +278,7 @@ class Task extends require('events')
 		collected = []
 		
 		Promise.bind(@)
+			.then ()-> file.preCollection()
 			.then ()-> file.collectImports()
 			.tap (imports)-> collected.push(imports...)
 			

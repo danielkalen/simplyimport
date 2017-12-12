@@ -2,9 +2,9 @@ REGEX = require '../constants/regex'
 helpers = require('./')
 parser = require '../external/parser'
 
-module.exports = collectImports = (ast, file)->
+collectImports = (file)->
 	output = []
-	nodes = parser.find ast, 'ImportDeclaration'
+	nodes = file.statementNodes.filter(matchNode)
 
 	for node in nodes
 		output.push statement = helpers.newImportStatement()
@@ -26,3 +26,9 @@ module.exports = collectImports = (ast, file)->
 				statement.specifiers.push local:specifier.local.name, imported:specifier.imported.name
 
 	return output
+
+matchNode = (node)->
+	node.type is 'ImportDeclaration'
+
+module.exports = collectImports
+module.exports.match = matchNode

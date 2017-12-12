@@ -18,11 +18,10 @@ class File
 		@statements = []
 		@inlineStatements = []
 		@conditionals = []
+		@statementNodes = null
 		@pendingMods = renames:[], hoist:[]
 		@requiredGlobals = Object.create(null)
-		@pathExtOriginal = @pathExt
-		@contentOriginal = @content
-		@linesOriginal = helpers.lines(@content)
+		@original = {@pathExt, @content}
 		@sourceMap = new SourceMap(@)
 		@options.placeholder = helpers.resolvePlaceholders(@)
 		@pkgEntry = helpers.resolvePackageEntry(@pkg)
@@ -35,7 +34,7 @@ class File
 				helpers.normalizeTransforms(transforms)
 
 		if REGEX.shebang.test(@content)
-			@content = @contentOriginal = @content.replace REGEX.shebang, (@shebang)=> return ''
+			@content = @original.content = @content.replace REGEX.shebang, (@shebang)=> return ''
 
 		return @task.cache[@pathAbs] = @
 
@@ -81,7 +80,6 @@ class File
 		delete @options
 		delete @linesPostTransforms
 		delete @linesPostConditionals
-		delete @linesOriginal
 		delete @pkgTransform
 		delete @task
 		for prop of @ when prop.startsWith('content') or prop.startsWith('file')

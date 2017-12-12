@@ -36,8 +36,8 @@ exports.collectConditionals = ()->
 				end ?= [@content.length - 1]
 				@conditionals.push 
 					range: [start[0], end[0]]
-					start: stringPos(@contentOriginal, start[0]).line-1
-					end: stringPos(@contentOriginal, end[0]).line-1
+					start: stringPos(@original.content, start[0]).line-1
+					end: stringPos(@original.content, end[0]).line-1
 					match: @task.options.matchAllConditions or do ()=>
 						file = @
 						jsString = ''
@@ -45,7 +45,7 @@ exports.collectConditionals = ()->
 						env = @task.options.env
 						BUNDLE_TARGET = @task.options.target
 
-						helpers.walkTokens tokens, @contentOriginal, null, (token)->
+						helpers.walkTokens tokens, @original.content, null, (token)->
 							switch token.type.label
 								when 'name'
 									if @_prev?.value is '.' or GLOBALS.includes(token.value)
@@ -101,7 +101,7 @@ exports.collectConditionals = ()->
 				if not linesToRemove[index]
 					outputLines.push(line)
 				else
-					index = stringPos.toIndex(@contentOriginal,{line:index+1, column:0})
+					index = stringPos.toIndex(@original.content,{line:index+1, column:0})
 
 			return outputLines.join('\n')
 
@@ -135,8 +135,8 @@ exports.collectImports = ()->
 	@timeStart()
 	switch
 		when @has.ast and @has.imports
-			requires = if @options.skip then [] else helpers.collectRequires(@ast, @)
-			imports = helpers.collectImports(@ast, @)
+			requires = if @options.skip then [] else helpers.collectRequires(@)
+			imports = helpers.collectImports(@)
 			statements = imports.concat(requires).sortBy('range.start')
 
 			for statement in statements
@@ -180,7 +180,7 @@ exports.collectExports = ()->
 	collected = []
 	@timeStart()
 	if @has.ast and @has.exports
-		statements = helpers.collectExports(@ast, @)
+		statements = helpers.collectExports(@)
 
 		for statement in statements
 			statement.source = @getStatementSource(statement)

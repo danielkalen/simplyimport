@@ -1,6 +1,7 @@
 REGEX = require '../constants/regex'
 stringHash = require 'string-hash'
 parser = require '../external/parser'
+helpers = require '../helpers'
 debug = require('../debug')('simplyimport:file')
 
 exports.postScans = ()->
@@ -37,6 +38,13 @@ exports.postReplacements = ()-> if @has.ast
 	if @pendingMods.hoist.length
 		parser.hoistAssignments @ast, @pendingMods.hoist
 
+
+exports.preCollection = ()-> if @has.ast
+	@statementNodes = parser.find @ast, (node)->
+		helpers.collectRequires.match(node) or
+		helpers.collectImports.match(node) or
+		helpers.collectExports.match(node)
+	return
 
 
 

@@ -56,7 +56,7 @@ exports.replaceInlineStatements = ()->
 			# range = @offsetRange(statement.range, ['inline-forced'], rangeGroup)
 			# newRange = helpers.newReplacementRange(range, replacement)
 			# @sourceMap.addRange {
-			# 	from: {start:0, end:statement.target.contentOriginal.length}
+			# 	from: {start:0, end:statement.target.original.content.length}
 			# 	to: newRange
 			# 	file: statement.target
 			# 	offset: 0

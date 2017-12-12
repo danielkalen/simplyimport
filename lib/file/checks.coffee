@@ -56,7 +56,7 @@ exports.detectExternalBundle = ()->
 exports.determineType = ()->
 	@type = switch
 		when @type is 'inline-forced' then @type
-		when @pathExtOriginal is 'ts' then 'module'
+		when @original.pathExt is 'ts' then 'module'
 		when not @has.exports then 'inline'
 		else 'module'
 

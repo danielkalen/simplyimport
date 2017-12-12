@@ -60,7 +60,7 @@ exports.genSourceMap = ()->
 
 
 exports.adjustSourceMap = ()-> if @sourceMap
-	return @sourceMap is @contentOriginal is @content
+	return @sourceMap is @original.content is @content
 	output = require('inline-source-map')(file:@pathRel)
 	mappings = require('combine-source-map/lib/mappings-from-map')(@sourceMap)
 	currentOffset = 0

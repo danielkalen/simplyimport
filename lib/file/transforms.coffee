@@ -109,7 +109,7 @@ exports.applyTransforms = (content, transforms, label)->
 						content = content.replace /^module\.exports\s*=\s*/, ''
 						content = content.slice(0,-1) if content[content.length-1] is ';'
 					
-					if @pathExt isnt @pathExtOriginal
+					if @pathExt isnt @original.pathExt
 						@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
 					
 					return @sourceMap.update(content)
