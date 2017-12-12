@@ -16,6 +16,11 @@ Promise.resolve()
 				node.callFrame.url.startsWith(target)
 			, removeNode
 		
+		if args.notfile then [].concat(args.notfile).forEach (target)->
+			iterate (node)->
+				not node.callFrame.url.startsWith(target)
+			, removeNode
+		
 		if args.simplepath then [].concat(args.simplepath).forEach (target)->
 			iterate (node)->
 				node.callFrame.url.startsWith(target)

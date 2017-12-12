@@ -39,5 +39,5 @@ matchNode = (node)->
 	node.type is 'ExportDefaultDeclaration' or
 	node.type is 'ExportAllDeclaration'
 
-module.exports = collectExports#.memoize (tokens, content, importer)-> "#{importer.path}/#{content}"
+module.exports = collectExports
 module.exports.match = matchNode

@@ -1,7 +1,6 @@
 REGEX = require '../constants/regex'
 helpers = require('./')
 parser = require '../external/parser'
-n = require('ast-types').namedTypes
 
 collectRequires = (file)->
 	output = []
@@ -18,10 +17,10 @@ collectRequires = (file)->
 	return output
 
 
-matchNode = (node)->	
-	n.CallExpression.check(node) and
+matchNode = (node)->
+	node.type is 'CallExpression' and
 	node.arguments.length is 1 and
-	n.Literal.check(node.arguments[0]) and
+	node.arguments[0].type is 'Literal' and
 	typeof node.arguments[0].value is 'string' and (
 		node.callee.name is 'require' or
 		node.callee.name is '_$sm'
