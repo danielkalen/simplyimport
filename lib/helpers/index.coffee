@@ -7,12 +7,10 @@ registerModule = (moduleName)->
 			module.exports[moduleName] = result
 			return result
 
-registerModule 'lines'
 registerModule 'getNormalizedDirname'
 registerModule 'simplifyPath'
 registerModule 'changeExtension'
 registerModule 'relatedExtensions'
-registerModule 'lineCount'
 registerModule 'resolveEntryPackage'
 registerModule 'resolveFilePath'
 registerModule 'resolveModulePath'
@@ -54,4 +52,3 @@ registerModule 'isValidTransformerArray'
 registerModule 'isMatchPath'
 registerModule 'path'
 registerModule 'temp'
-# registerModule 'minifyWhitespace'

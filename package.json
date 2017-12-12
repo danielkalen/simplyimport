@@ -108,5 +108,7 @@
     "execa": "^0.8.0",
     "package-install": "^1.2.1"
   },
-  "false": {}
+  "nyc": {
+    "exclude": ["profile","bench","lib/cli"]
+  }
 }
