@@ -8,7 +8,6 @@ registerModule = (moduleName)->
 			return result
 
 registerModule 'lines'
-registerModule 'tokenize'
 registerModule 'getNormalizedDirname'
 registerModule 'simplifyPath'
 registerModule 'changeExtension'

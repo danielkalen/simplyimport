@@ -75,7 +75,7 @@ exports.replaceStatements = ()->
 	if @statements.length
 		if @has.ast
 			for statement in @statements
-				Object.set statement.node.parent.node, statement.node.parent.property, @resolveStatementReplacement(statement)
+				Object.set statement.node.parent.node, statement.node.parent.key, @resolveStatementReplacement(statement)
 		else
 			split = helpers.splitContentByStatements(@content, @statements)
 			@setContent split.reduce (acc, statement)=>

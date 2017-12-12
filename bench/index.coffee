@@ -4,12 +4,14 @@ chalk = require 'chalk'
 state = {count:0}
 
 Promise.resolve()
+	.then ()-> debugger
+	.delay 200
 	.then ()-> createBundle()
-	.delay 100
+	.delay 200
 	.then ()-> createBundle()
-	.delay 100
+	.delay 200
 	.then ()-> createBundle()
-	.delay 100
+	.delay 200
 
 
 createBundle = ()->	

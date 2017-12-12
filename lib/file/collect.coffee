@@ -8,7 +8,7 @@ EXTENSIONS = require '../constants/extensions'
 GLOBALS = require '../constants/globals'
 debug = require('../debug')('simplyimport:file')
 
-exports.collectRequiredGlobals = ()-> if not @isThirdPartyBundle and not EXTENSIONS.static.includes(@pathExt)
+exports.collectRequiredGlobals = ()-> if not @has.externalBundle and not EXTENSIONS.static.includes(@pathExt)
 	@task.emit('requiredGlobal',@,'global') if REGEX.vars.global.test(@content) and not REGEX.globalCheck.test(@content)
 	@task.emit('requiredGlobal',@,'Buffer') if REGEX.vars.buffer.test(@content) and not REGEX.bufferDec.test(@content)
 	@task.emit('requiredGlobal',@,'process') if REGEX.vars.process.test(@content) and not REGEX.processDec.test(@content)

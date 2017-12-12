@@ -7,11 +7,7 @@ GLOBALS = require '../constants/globals'
 debug = require('../debug')('simplyimport:file')
 
 
-class File
-	# Object.defineProperties @::,
-	# 	contentSafe: get: -> @replaceES6Imports(false)
-	# 	astC: get: -> @replaceES6Imports(false)
-	
+class File	
 	constructor: (@task, state)->
 		extend(@, state)
 		@options.transform ?= []
@@ -24,7 +20,6 @@ class File
 		@conditionals = []
 		@pendingMods = renames:[], hoist:[]
 		@requiredGlobals = Object.create(null)
-		@isThirdPartyBundle = false
 		@pathExtOriginal = @pathExt
 		@contentOriginal = @content
 		@linesOriginal = helpers.lines(@content)
@@ -101,6 +96,7 @@ class File
 
 
 extend File::, require './ast'
+extend File::, require './hooks'
 extend File::, require './checks'
 extend File::, require './collect'
 extend File::, require './replace'

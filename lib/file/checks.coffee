@@ -1,4 +1,3 @@
-stringHash = require 'string-hash'
 parser = require '../external/parser'
 REGEX = require '../constants/regex'
 EXTENSIONS = require '../constants/extensions'
@@ -19,10 +18,25 @@ exports.checkSyntaxErrors = ((content)->
 
 
 exports.runChecks = ()->
-	debug "checking 3rd party bundle status #{@pathDebug}"
+	debug "running checks #{@pathDebug}"
 	@timeStart()
+	@detectStatements()
+	@detectExternalBundle()
+	@options.skip ?= @has.externalBundle and @has.ownRequireSystem and @has.requires
+	@timeEnd()
+	return
+
+
+exports.detectStatements = ()->
+	@has.requires = REGEX.commonImportReal.test(@content)
+	@has.exports = REGEX.commonExport.test(@content) or REGEX.es6export.test(@content)
+	@has.imports = @has.requires or REGEX.es6import.test(@content) or REGEX.tempImport.test(@content)
+	return
+
+
+exports.detectExternalBundle = ()->
 	### istanbul ignore next ###
-	@isThirdPartyBundle =
+	@has.externalBundle =
 		@content.includes('.code="MODULE_NOT_FOUND"') or
 		@content.includes('__webpack_require__') or
 		@content.includes('System.register') or 
@@ -30,17 +44,12 @@ exports.runChecks = ()->
 		REGEX.moduleCheck.test(@content) or
 		REGEX.defineCheck.test(@content) or
 		REGEX.requireCheck.test(@content)
-
-	@has.requires = REGEX.commonImportReal.test(@content)
-	@has.exports = REGEX.commonExport.test(@content) or REGEX.es6export.test(@content)
-	@has.imports = @has.requires or REGEX.es6import.test(@content) or REGEX.tempImport.test(@content)
+	
 	@has.ownRequireSystem =
 		REGEX.requireDec.test(@content) or
 		REGEX.requireArg.test(@content) and @has.requires
 
-	@isThirdPartyBundle = @isThirdPartyBundle or @has.ownRequireSystem
-	@options.skip ?= @isThirdPartyBundle and @has.ownRequireSystem and @has.requires
-	@timeEnd()
+	@has.externalBundle = @has.externalBundle or @has.ownRequireSystem
 	return
 
 
@@ -53,41 +62,6 @@ exports.determineType = ()->
 
 	@isDataType = true if EXTENSIONS.data.includes(@pathExt)
 
-
-
-exports.postScans = ()->
-	@options.extractDefaults ?= true
-	@has.defaultExport ?=
-		@type isnt 'inline' and
-		REGEX.defaultExport.test(@content) and
-		not REGEX.defaultExportDeassign.test(@content)
-
-
-exports.postTransforms = ()->
-	debug "running post-transform functions #{@pathDebug}"
-	@timeStart()
-	@content = @sourceMap.update(@content)
-	
-	if @requiredGlobals.process
-		@content = "var process = require('process');\n#{@content}"
-		@sourceMap.addNullRange(0, 34, true)
-		@has.imports = true
-	
-	if @requiredGlobals.Buffer
-		@content = "var Buffer = require('buffer').Buffer;\n#{@content}"
-		@sourceMap.addNullRange(0, 39, true)
-		@has.imports = true
-
-	@hashPostTransforms = stringHash(@content)
-	@timeEnd()
-
-
-exports.postReplacements = ()-> if @has.ast
-	if @pendingMods.renames.length
-		parser.renameVariables @ast, @pendingMods.renames
-	
-	if @pendingMods.hoist.length
-		parser.hoistAssignments @ast, @pendingMods.hoist
 
 
 
