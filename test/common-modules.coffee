@@ -79,7 +79,7 @@ suite "common modules", ()->
 				assert Object.keys(result).length > 1
 
 
-	test.only "moment", ()->
+	test "moment", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
 			.then ()-> processAndRun file:temp('main.js'), usePaths:true, indent:true, 'moment.js'

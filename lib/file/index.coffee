@@ -8,9 +8,9 @@ debug = require('../debug')('simplyimport:file')
 
 
 class File
-	Object.defineProperties @::,
-		contentSafe: get: -> @replaceES6Imports(false)
-		# astC: get: -> @replaceES6Imports(false)
+	# Object.defineProperties @::,
+	# 	contentSafe: get: -> @replaceES6Imports(false)
+	# 	astC: get: -> @replaceES6Imports(false)
 	
 	constructor: (@task, state)->
 		extend(@, state)
@@ -22,7 +22,7 @@ class File
 		@statements = []
 		@inlineStatements = []
 		@conditionals = []
-		@pendingMods = {renames:[], hoist:[]}
+		@pendingMods = renames:[], hoist:[]
 		@requiredGlobals = Object.create(null)
 		@isThirdPartyBundle = false
 		@pathExtOriginal = @pathExt

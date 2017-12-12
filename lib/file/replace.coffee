@@ -8,7 +8,7 @@ debug = require('../debug')('simplyimport:file')
 
 
 exports.replaceES6Imports = ()->
-	return @content if not EXTENSIONS.js.includes(@pathExt)
+	return @content if EXTENSIONS.nonJS.includes(@pathExt)
 	hasImports = false
 	newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)=>
 		hasImports = true
@@ -38,7 +38,6 @@ exports.restoreES6Imports = ()->
 exports.replaceInlineStatements = ()->
 	@timeStart()
 	debug "replacing force-inline imports #{@pathDebug}"
-	lines = @contentPostConditionals or @content # the latter 2 will be used when type==='inline-forced'
 
 	
 	split = helpers.splitContentByStatements(@content, @inlineStatements)
@@ -46,7 +45,7 @@ exports.replaceInlineStatements = ()->
 		if typeof statement is 'string'
 			return acc+statement
 		else
-			replacement = @resolveStatementReplacement(statement, {lines})
+			replacement = @resolveStatementReplacement(statement)
 			index = @inlineStatements.indexOf(statement)
 			leadingStatements = @inlineStatements.slice(index)
 			leadingStatements.forEach (statement)->
@@ -73,26 +72,33 @@ exports.replaceInlineStatements = ()->
 exports.replaceStatements = ()->
 	@timeStart()
 	debug "replacing imports/exports #{@pathDebug}"
-	if @has.ast
-		for statement in @statements
-			parser.replaceNode @ast, statement.node, @resolveStatementReplacement(statement)
-			# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
+	# console.dir @statements, depth:1, colors:1
+	if @statements.length
+		if @has.ast
+			for statement in @statements
+				parser.replaceNode @ast, statement.node, @resolveStatementReplacement(statement)
+		else
+			split = helpers.splitContentByStatements(@content, @statements)
+			@setContent split.reduce (acc, statement)=>
+				return acc+statement if typeof statement is 'string'
+				replacement = @resolveStatementReplacement(statement, 'inline-forced')
+				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
+				return acc+replacement
 
 	@timeEnd()
 	return
 
 
 
-exports.resolveStatementReplacement = (statement, {lines, type}={})->
+exports.resolveStatementReplacement = (statement, type)->
 	type ?= if statement.statementType is 'export' then 'export' else statement.type
-	lines ?= @content
 	lastChar = @content[statement.range.end]
 
 	switch type
 		when 'inline-forced'
 			return '' if statement.kind is 'excluded'
 			targetContent = if statement.extract then statement.target.extract(statement.extract) else statement.target.content
-			targetContent = helpers.prepareMultilineReplacement(@content, targetContent, lines, statement.range)
+			targetContent = helpers.prepareMultilineReplacement(@content, targetContent, @content, statement.range)
 			targetContent = '{}' if not targetContent
 
 			if EXTENSIONS.compat.includes(statement.target.pathExt)

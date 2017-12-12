@@ -62,6 +62,7 @@ class Task extends require('events')
 			throw formatError "#{LABELS.error} cannot find '#{chalk.yellow @options.file}'", helpers.blankError()
 		
 		@.on 'ASTParseError', (file, err)=>
+			err.message += helpers.annotateErrLocation(file, err.pos)
 			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
 		
 		@.on 'DataParseError', (file, err)=>
