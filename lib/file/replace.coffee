@@ -72,11 +72,10 @@ exports.replaceInlineStatements = ()->
 exports.replaceStatements = ()->
 	@timeStart()
 	debug "replacing imports/exports #{@pathDebug}"
-	# console.dir @statements, depth:1, colors:1
 	if @statements.length
 		if @has.ast
 			for statement in @statements
-				parser.replaceNode @ast, statement.node, @resolveStatementReplacement(statement)
+				Object.set statement.node.parent.node, statement.node.parent.property, @resolveStatementReplacement(statement)
 		else
 			split = helpers.splitContentByStatements(@content, @statements)
 			@setContent split.reduce (acc, statement)=>

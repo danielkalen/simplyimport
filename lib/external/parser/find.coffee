@@ -3,8 +3,10 @@ walk = require './walk'
 find = (ast, target)->
 	result = []
 	
-	walk ast, (node)->
-		result.push(node) if matchesTarget(node, target)
+	walk ast, (node, parent)->
+		if matchesTarget(node, target)
+			node.parent = parent
+			result.push(node)
 
 	return result
 

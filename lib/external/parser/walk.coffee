@@ -1,4 +1,4 @@
-walk = (node, cb)->
+walk = (node, cb, parent)->
 	keys = Object.keys(node)
 
 	for key in keys
@@ -6,32 +6,15 @@ walk = (node, cb)->
 		continue if typeof value isnt 'object' or not value
 
 		if typeof value.type is 'string'
-			walk(value, cb)
+			walk(value, cb, {node, property:key})
 		
 		else if typeof value.length is 'number' and value.length
-			for item in value
-				walk(item, cb) if item and typeof item.type is 'string'
+			for item,index in value
+				if item and typeof item.type is 'string'
+					walk(item, cb, {node, property:"#{key}.#{index}"})
 
-	cb(node)
+	cb(node, parent)
 
-# walk = (node, cb, attachParent)->
-# 	keys = Object.keys(node)
-
-# 	for key in keys
-# 		value = node[key]
-# 		continue if typeof value isnt 'object' or not value or key is 'parent'
-
-# 		if typeof value.type is 'string'
-# 			value.parent = node if attachParent
-# 			walk(value, cb)
-		
-# 		else if typeof value.length is 'number' and value.length
-# 			for item in value
-# 				if item and typeof item.type is 'string'
-# 					item.parent = node if attachParent
-# 					walk(item, cb)
-
-# 	cb(node)
 
 
 

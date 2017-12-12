@@ -10,10 +10,6 @@ Promise.resolve()
 	.delay 100
 	.then ()-> createBundle()
 	.delay 100
-	.then ()-> createBundle()
-	.delay 100
-	.then ()-> createBundle()
-	.delay 100
 
 
 createBundle = ()->	

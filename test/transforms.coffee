@@ -716,7 +716,7 @@ suite "transforms", ()->
 					assert.equal context.b, 'the last env var'
 	
 
-		test "brfs", ()->
+		test.skip "brfs", ()->
 			Promise.resolve()
 				.then ()->
 					helpers.lib
