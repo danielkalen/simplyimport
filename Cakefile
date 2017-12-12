@@ -37,6 +37,11 @@ task 'coverage', ()->
 		.then (options)-> execa nyc, covReporters.concat(options), {stdio:'inherit'}
 		.catch handleError
 
+task 'bench', ()->
+	require './bench'
+
+
+
 handleError = (err)-> unless err.message.startsWith('Command failed')
 	console.error chalk.red err.message
 
