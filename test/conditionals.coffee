@@ -240,7 +240,6 @@ suite "conditionals", ()->
 				process.env.var1 = true
 				processAndRun file:temp('main.js')
 			.then ({context, writeToDisc})->
-				writeToDisc()
 				assert.equal context.aaa, 'aaa'
 				assert.equal context.bbb, 'bbb'
 				assert.equal context.ccc, 'ccc'

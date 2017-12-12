@@ -17,6 +17,8 @@ class Parser
 	check: (content, path, opts={sourceType:'module'})-> require('syntax-error-plus')(content, path, @opts(opts))
 	find: require './find'
 	replaceNode: require './replaceNode'
+	renameVariables: require './renameVariables'
+	hoistAssignments: require './hoistAssignments'
 
 
 

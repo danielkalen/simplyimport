@@ -28,9 +28,9 @@ collectExports = (ast, file)->
 				else
 					statement.kind = 'named-spec'
 					statement.target = helpers.normalizeTargetPath(node.source.value, file, true) if node.source
-					statement.specifiers = Object.create(null)
+					statement.specifiers = []
 					for specifier in node.specifiers
-						statement.specifiers[specifier.local.name] = specifier.exported.name
+						statement.specifiers.push {local:specifier.local.name, exported:specifier.exported.name}
 
 	return output
 

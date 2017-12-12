@@ -82,6 +82,12 @@ exports.postTransforms = ()->
 	@timeEnd()
 
 
+exports.postReplacements = ()-> if @has.ast
+	if @pendingMods.renames.length
+		parser.renameVariables @ast, @pendingMods.renames
+	
+	if @pendingMods.hoist.length
+		parser.hoistAssignments @ast, @pendingMods.hoist
 
 
 

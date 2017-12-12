@@ -22,7 +22,7 @@ module.exports = collectImports = (ast, file)->
 				statement.default = specifier.local.name
 
 			when 'ImportSpecifier'
-				statement.specifiers ||= Object.create(null)
-				statement.specifiers[specifier.imported.name] = specifier.local.name
+				statement.specifiers ||= []
+				statement.specifiers.push local:specifier.local.name, imported:specifier.imported.name
 
 	return output

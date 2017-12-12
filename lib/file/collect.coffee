@@ -186,7 +186,8 @@ exports.collectExports = ()->
 			statement.source = @getStatementSource(statement)
 			statement.target ?= @
 			collected.push(statement)
-			@has.defaultExport = true if statement.kind is 'default'
+			if statement.kind is 'default' or statement.specifiers?.find(exported:'default')
+				@has.defaultExport = true
 
 
 	@timeEnd()

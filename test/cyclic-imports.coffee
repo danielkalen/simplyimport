@@ -111,7 +111,7 @@ suite "cyclic imports", ()->
 				assert.equal result.version, '2.5602'
 
 
-	test.skip "es6 destructing imports should be live", ()->
+	test "es6 destructing imports should be live", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib
 				'main.js': """
@@ -120,7 +120,8 @@ suite "cyclic imports", ()->
 					import * as c from './c'
 					export {a,b,c};
 					export let buffer = [];
-					export let name = 'main.js';
+					export var name = 'main.js';
+					export default function(){return 'main.js'}
 				"""
 				'a.js': """
 					import {buffer} from './main'
@@ -130,23 +131,35 @@ suite "cyclic imports", ()->
 					export let load = function(source){buffer.push(name+' from '+source)};
 					export let bufferType = typeof buffer;
 					export let loadB = function(){b.load(name)};
+					export function upper(arg){return arg.toUpperCase()};
 				"""
 				'b.js': """
 					import {buffer} from './main'
-					import {name as aName} from './a.js'
+					import {name as aName, upper} from './a.js'
+					export {upper}
 					export let name = 'b.js';
 					export let log = function(data){buffer.push(name+': '+data)};
 					export let load = function(source){buffer.push(name+' from '+source)};
 					export let loadA = function(source){buffer.push(aName+' from '+source)};
 				"""
 				'c.js': """
-					import {name as mainName} from './main'
+					import getGlobalName, {name as mainName} from './main'
 					export let name = 'c.js';
+					export let summary = {name:name, mainName:mainName, globalName:getGlobalName()};
+					export let currentName = mainName+' > '+name;
 					export let getMainName = function(){return mainName};
+					export let replaceMainName = function(newName){return mainName = newName};
+					export let upper = function(mainName,other){return mainName.toUpperCase()};
+					export let getFullName = function(mainName){
+						uppered = upper(mainName);
+						return function(){
+							return getMainName()+' > '+mainName
+						}
+					};
 				"""
 
-			.then ()-> processAndRun file:temp('main.js')
-			.then ({result})->
+			.then ()-> processAndRun file:temp('main.js'), usePaths:1, indent:1
+			.then ({result, writeToDisc})->
 				{a,b,c,buffer} = result
 				expect(buffer).to.eql []
 				expect(a.bufferType).to.equal 'undefined'
@@ -164,6 +177,18 @@ suite "cyclic imports", ()->
 					'b.js from tester'
 					'a.js from b.js tester'
 				]
+
+				expect(typeof a.upper).to.equal 'function'
+				expect(typeof b.upper).to.equal 'function'
+				expect(c.name).to.equal 'c.js'
+				expect(c.summary).to.eql name:'c.js', mainName:undefined, globalName:'main.js'
+				expect(c.currentName).to.equal 'undefined > c.js'
+				expect(c.getMainName()).to.equal 'main.js'
+				expect(c.upper('aBc')).to.equal 'ABC'
+				expect(c.getFullName('aBc')()).to.equal 'main.js > aBc'
+				
+				expect(c.replaceMainName('dEf')).to.equal 'dEf'
+				expect(c.getFullName('aBc')()).to.equal 'dEf > aBc'
 
 
 

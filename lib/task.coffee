@@ -397,8 +397,8 @@ class Task extends require('events')
 		
 		Promise.resolve(file.statements).bind(file)
 			.map (statement)=> @replaceStatements(statement.target) unless statement.kind is 'excluded'
-			.tap ()-> debug "replacing imports/exports #{file.pathDebug}"
 			.then file.replaceStatements
+			.then file.postReplacements
 
 
 

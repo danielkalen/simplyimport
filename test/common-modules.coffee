@@ -73,18 +73,17 @@ suite "common modules", ()->
 			.then ()-> helpers.lib "main.js": "module.exports = require('lodash')"
 			.then ()-> processAndRun file:temp('main.js'), usePaths:true
 			.then ({result,writeToDisc})->
-				writeToDisc()
 				assert.typeOf result, 'function'
 				assert.typeOf result.last, 'function'
 				assert.equal result.last([1,2,3]), 3
 				assert Object.keys(result).length > 1
 
 
-	test "moment", ()->
+	test.only "moment", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib "main.js": "module.exports = require('moment/src/moment.js')"
-			.then ()-> processAndRun file:temp('main.js'), usePaths:true, 'moment.js'
-			.then ({result})->
+			.then ()-> processAndRun file:temp('main.js'), usePaths:true, indent:true, 'moment.js'
+			.then ({result, writeToDisc})->
 				now = Date.now()
 				assert.typeOf result, 'function'
 				assert.equal (now - 3600000), result(now).subtract(1, 'hour').valueOf()

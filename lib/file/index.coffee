@@ -22,6 +22,7 @@ class File
 		@statements = []
 		@inlineStatements = []
 		@conditionals = []
+		@pendingMods = {renames:[], hoist:[]}
 		@requiredGlobals = Object.create(null)
 		@isThirdPartyBundle = false
 		@pathExtOriginal = @pathExt
@@ -76,6 +77,7 @@ class File
 		@conditionals.length = 0
 		delete @ID
 		delete @ast
+		delete @pendingMods
 		delete @statements
 		delete @inlineStatements
 		delete @conditionals

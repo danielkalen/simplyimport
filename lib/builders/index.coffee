@@ -99,8 +99,9 @@ exports.inlineImport = (statement)->
 
 
 
-exports.import = (statement, loader)->
+exports.import = (statement)->
 	{target, source} = statement
+	loader = source.task.options.loaderName
 
 	switch statement.kind
 		when 'excluded'
@@ -133,13 +134,22 @@ exports.import = (statement, loader)->
 
 			if statement.default
 				if target.has.defaultExport and source.options.extractDefaults
-					decs.push [statement.default, b.propertyAccess(alias, 'default')]
+					# decs.push [statement.default, b.propertyAccess(alias, 'default')]
+					source.pendingMods.renames.push {source:b.identifier(statement.default), target:b.propertyAccess(alias, 'default')}
 				else
+					# console.log target.pathDebug
+					# console.log statement
 					decs.push [statement.default, alias]
 
 			if statement.specifiers
-				for imported,local of statement.specifiers
-					decs.push [local, b.propertyAccess(alias, imported)]
+				for specifier in statement.specifiers
+					{local, imported} = specifier
+					local = b.identifier(local)
+					imported = b.propertyAccess(alias, imported)
+					if statement.isNested
+						decs.push [local, imported]
+					else
+						source.pendingMods.renames.push {source:local, target:imported}
 
 			ast = b.varDeclaration decs...
 
@@ -149,8 +159,10 @@ exports.import = (statement, loader)->
 
 
 
-exports.export = (statement, loader)->
+exports.export = (statement)->
 	{target, source} = statement
+	loader = source.task.options.loaderName
+	hoist = source.pendingMods.hoist
 
 	if statement.nested
 		for nested in statement.nested
@@ -193,12 +205,16 @@ exports.export = (statement, loader)->
 						dec.init.id = dec.id if n.FunctionExpression.check(dec.init) and not dec.init.id
 						dec.init = b.assignment b.propertyAccess('exports', dec.id.name), dec.init
 				
+				
 				else
 					id = statement.dec.id
-					ast = b.program [
-						statement.dec
-						b.assignmentStatement b.propertyAccess('exports',id), id
-					]
+					assignment = b.assignmentStatement b.propertyAccess('exports',id), id
+					ast = b.program [statement.dec]
+					
+					if n.FunctionDeclaration.check(statement.dec)
+						hoist.push assignment
+					else
+						ast.body.push assignment
 
 
 		when 'default'
@@ -216,10 +232,10 @@ exports.export = (statement, loader)->
 				when n.FunctionDeclaration.check(dec)
 					if not dec.id
 						dec.type = 'FunctionExpression'
-						ast.body.push b.assignmentStatement property, dec
+						hoist.push b.assignmentStatement property, dec
 					else
 						ast.body.push dec
-						ast.body.push b.assignmentStatement property, dec.id
+						hoist.push b.assignmentStatement property, dec.id
 
 				when n.ClassDeclaration.check(dec)
 					dec.id ||= b.identifier '__class'
@@ -246,10 +262,11 @@ properties = (obj)->
 		)
 
 
-exportSpecifiers = (mapping, target)->
-	for exported,local of mapping
-		exported = if target then b.propertyAccess(target, exported) else b.identifier(exported)
-		b.assignmentStatement b.propertyAccess('exports', local), exported
+exportSpecifiers = (specifiers, target)->
+	for specifier in specifiers
+		{exported, local} = specifier
+		local = if target then b.propertyAccess(target, local) else b.identifier(local)
+		b.assignmentStatement b.propertyAccess('exports', exported), local
 
 
 

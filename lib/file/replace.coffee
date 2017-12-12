@@ -86,7 +86,6 @@ exports.replaceStatements = ()->
 exports.resolveStatementReplacement = (statement, {lines, type}={})->
 	type ?= if statement.statementType is 'export' then 'export' else statement.type
 	lines ?= @content
-	loader = @task.options.loaderName
 	lastChar = @content[statement.range.end]
 
 	switch type
@@ -106,10 +105,10 @@ exports.resolveStatementReplacement = (statement, {lines, type}={})->
 			return builders.inlineImport(statement)
 
 		when 'module' # regular import
-			return builders.import(statement, loader)
+			return builders.import(statement)
 
 		when 'export'
-			return builders.export(statement, loader)
+			return builders.export(statement)
 
 
 

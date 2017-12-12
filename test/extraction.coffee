@@ -248,7 +248,6 @@ suite "extraction", ()->
 					"""
 			.then ()-> processAndRun file:temp('main.js')
 			.then ({compiled, context, writeToDisc})->
-				writeToDisc()
 				assert.include compiled, 'require ='
 				assert.notInclude compiled, 'dataPointB'
 				assert.notInclude compiled, 'abc123'
