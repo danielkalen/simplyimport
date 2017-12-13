@@ -12,7 +12,7 @@ testModules = [
 	'babel-preset-es2015-script', 'envify', 'es6ify', 'brfs',
 	'axios', 'moment', 'timeunits', 'yo-yo', 'smart-extend',
 	'p-wait-for', 'source-map-support', 'xmlhttprequest',
-	'redux', 'lodash'
+	'redux', 'lodash', 'leakage'
 	'location', 'pug', 'node-sass', 'html2json', 'modcss', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 
 

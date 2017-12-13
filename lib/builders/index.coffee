@@ -102,6 +102,7 @@ exports.inlineImport = (statement)->
 exports.import = (statement)->
 	{target, source} = statement
 	loader = source.task.options.loaderName
+	renames = source.pendingMods.renames
 
 	switch statement.kind
 		when 'excluded'
@@ -134,11 +135,8 @@ exports.import = (statement)->
 
 			if statement.default
 				if target.has.defaultExport and source.options.extractDefaults
-					# decs.push [statement.default, b.propertyAccess(alias, 'default')]
-					source.pendingMods.renames.push {source:b.identifier(statement.default), target:b.propertyAccess(alias, 'default')}
+					renames.push {source:b.identifier(statement.default), target:b.propertyAccess(alias, 'default')}
 				else
-					# console.log target.pathDebug
-					# console.log statement
 					decs.push [statement.default, alias]
 
 			if statement.specifiers
@@ -149,7 +147,7 @@ exports.import = (statement)->
 					if statement.isNested
 						decs.push [local, imported]
 					else
-						source.pendingMods.renames.push {source:local, target:imported}
+						renames.push {source:local, target:imported}
 
 			ast = b.varDeclaration decs...
 

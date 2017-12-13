@@ -36,7 +36,13 @@ suite "SimplyImport", ()->
 
 
 	require './misc'
+	require './paths'
+	require './inline-imports'
+	require './es6-imports'
+	require './commonjs-imports'
 	require './exports'
+	require './exclusion'
+	require './module-loader'
 	require './node-target'
 	require './importInline'
 	require './deduping'
