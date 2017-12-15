@@ -7,12 +7,12 @@ suite "http imports", ()->
 	suiteTeardown ()-> require('nock').restore()
 	suiteSetup ()->
 		@slow(1e4)
-		TarGZ = require('tar.gz')()
+		tar = require 'tar'
 		mock = (host, path, reply...)->
 			require('nock')(host).persist()
 				.get(path).reply(reply...)
 				.head(path).reply(reply...)
-		
+
 		Promise.resolve()
 			.then ()-> fs.dir require('../lib/helpers/temp')(), empty:true
 			.then ()->
@@ -40,7 +40,7 @@ suite "http imports", ()->
 						main: 'entrypoint.js'
 						browser: './childB.js':'./childB.coffee'
 
-			.then ()-> TarGZ.compress temp('someModuleA'), temp('someModuleA.tgz')
+			.then ()-> tar.create {file:temp('someModuleA.tgz'), cwd:temp()}, ['someModuleA']
 			.then ()-> fs.copyAsync temp('someModuleA.tgz'), temp('someModuleB.tgz')
 			.then ()->
 				mock('https://example.com', '/moduleA.tgz', 200, fs.read(temp('someModuleA.tgz'), 'buffer'), etag:'theFirstModule')

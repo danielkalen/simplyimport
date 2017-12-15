@@ -9,7 +9,7 @@ formatError = require './external/formatError'
 parser = require './external/parser'
 helpers = require './helpers'
 File = require './file'
-SourceMapCombiner = require './sourceMapCombiner'
+SourceMap = require './sourceMap'
 REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
@@ -19,6 +19,7 @@ debug = require('debug')('simplyimport:task')
 
 class Task extends require('events')
 	constructor: (options)->
+		super
 		options = file:options if typeof options is 'string'
 		throw new Error("either options.file or options.src must be provided") if not options.file and not options.src
 		@currentID = -1
@@ -39,7 +40,7 @@ class Task extends require('events')
 			@options.ext ?= 'js'
 			@options.suppliedPath = Path.resolve("entry.#{@options.ext}")
 
-		super
+		@sourceMap = if @options.sourceMap then SourceMap(file:'bundle.js') else null
 		@attachListeners()
 		debug "new task created"
 
@@ -400,7 +401,7 @@ class Task extends require('events')
 		Promise.resolve(file.statements).bind(file)
 			.map (statement)=> @replaceStatements(statement.target) unless statement.kind is 'excluded'
 			.then file.replaceStatements
-			.then file.postReplacements
+			.then file.compile
 
 
 
@@ -413,13 +414,29 @@ class Task extends require('events')
 	# 		.then file.adjustSourceMap
 	# 		.catch promiseBreak.end
 	# 		.return(file)
+	applyFinalTransforms: (bundle)->
+		if not @options.finalTransform.length
+			return bundle
+		else
+			config = {ID:'bundle', pkg:@options.pkg, options:{}, content:bundle}
+			config = helpers.newPathConfig @entryFile.pathAbs, null, config
 
-	
-	compile: ()->
-		builders = require('./builders')
-		generateOpts =
+			Promise.resolve(new File(@, config)).bind(@)
+				.tap ()-> debug "applying final transform"
+				.then (file)-> file.applyTransforms(file.content, @options.finalTransform, 'final')
+
+	generate: (ast, sourceMap=@sourceMap)->
+		generated = parser.generate ast,
 			comments: true
 			indent: if @options.indent then '  ' else ''
+			map: sourceMap
+
+		generated += sourceMap.toComment() if sourceMap
+		return generated
+
+
+	compile: ()->
+		builders = require('./builders')
 		
 		Promise.bind(@)
 			.then @calcImportTree
@@ -436,40 +453,17 @@ class Task extends require('events')
 			
 			.tap (files)->
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
-					promiseBreak(parser.generate(@entryFile.ast, generateOpts)+@entryFile.sourceMap.toComment())
+					promiseBreak(@generate @entryFile.ast, @entryFile.sourceMap)
 			
 			.tap ()-> debug "creating bundle AST"
-			.then (files)->
-				bundle = builders.bundle(@)
-				{loader, modules} = builders.loader(@options.target, @options.loaderName)
-				@sourceMap = new SourceMapCombiner(@, bundle, loader)
-				
-				files.forEach (file)=>
-					modules.push builders.moduleProp(file, @options.loaderName)
-					@sourceMap.add(file)
-
-				bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
-				return bundle
-
+			.then (files)-> builders.bundle(@, files)
 			.tap ()-> debug "generating code from bundle AST"
-			.then (ast)-> parser.generate(ast, generateOpts)+@sourceMap.toComment()
+			.then @generate
 			.catch promiseBreak.end
-			.then (bundledContent)->
-				if not @options.finalTransform.length
-					return bundledContent
-				else
-					config = {ID:'bundle', pkg:@options.pkg, options:{}, content:bundledContent}
-					config = helpers.newPathConfig @entryFile.pathAbs, null, config
-
-					Promise.resolve(new File(@, config)).bind(@)
-						.tap ()-> debug "applying final transform"
-						.then (file)-> file.applyTransforms(file.content, @options.finalTransform, 'final')
-
-			.then (bundledContent)->
-				if @entryFile.shebang
-					bundledContent = "#{@entryFile.shebang}#{bundledContent}"
-				else
-					bundledContent
+			.then @applyFinalTransforms
+			.then (bundle)->
+				bundle = "#{@entryFile.shebang}#{bundle}" if @entryFile.shebang
+				return bundle
 			
 			.tap ()-> setTimeout @destroy.bind(@)
 

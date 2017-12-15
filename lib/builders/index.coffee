@@ -1,6 +1,6 @@
 parser = require '../external/parser'
 helpers = require '../helpers'
-stringBuilders = require './strings'
+templates = require '../templates'
 REGEX = require '../constants/regex'
 types = require 'ast-types'
 n = types.namedTypes
@@ -9,13 +9,24 @@ b = require './builders'
 exports.b = b
 exports.n = n
 
-exports.bundle = (task)->
+exports.bundle = (task, files)->
+	bundle = exports.bundler(task)
+	{loader, modules} = exports.loader(task.options.target, task.options.loaderName)
+	
+	files.forEach (file)->
+		modules.push exports.moduleProp(file, task.options.loaderName)
+
+	bundle.body[0].expression.callee.object.expression.body.body.unshift(loader)
+	return bundle
+
+
+exports.bundler = (task)->
 	loaderName = task.options.loaderName
-	args = [loaderName]
-	values = [if task.options.target is 'node' then "typeof require === 'function' && require" else "null"]
-	body = switch
+	ARGS = [loaderName]
+	VALUES = [if task.options.target is 'node' then "typeof require === 'function' && require" else "null"]
+	BODY = switch
 		when task.options.umd
-			stringBuilders.umd(loaderName, task.options.umd, task.entryFile.IDstr)
+			templates.umd.build(LOADER:loaderName, NAME:task.options.umd, ENTRY_ID:task.entryFile.IDstr)
 		when task.options.returnLoader
 			"return #{loaderName}"
 		when task.options.returnExports
@@ -24,14 +35,15 @@ exports.bundle = (task)->
 			"return #{loaderName}(#{task.entryFile.IDstr})"
 	
 	if task.requiredGlobals.global
-		args.push 'global'
-		values.push stringBuilders.globalDec()
+		ARGS.push 'global'
+		VALUES.push templates.globalDec.build()
 	
-	return parser.parse stringBuilders.iife(args, values, body)
+	return templates.iife.ast({ARGS, VALUES, BODY})
+
 
 exports.loader = (target, loaderName)->
 	targetLoader = if target is 'node' then 'loaderNode' else 'loaderBrowser'
-	loader = parser.parse(stringBuilders[targetLoader](loaderName)).body[0]
+	loader = templates[targetLoader].ast(LOADER:loaderName).body[0]
 	modules = loader.expression.right.arguments[1].properties
 	return {loader, modules}
 
@@ -44,17 +56,17 @@ exports.moduleFn = (file, loaderName)->
 	body = moduleBody = []
 	
 	if Object.keys(file.requiredGlobals).length
-		args = []; values = []
+		ARGS = []; VALUES = []
 		
 		if file.requiredGlobals.__filename
-			args.push '__filename'
-			values.push "'/#{file.pathRel}'"
+			ARGS.push '__filename'
+			VALUES.push "'/#{file.pathRel}'"
 		
 		if file.requiredGlobals.__dirname
-			args.push '__dirname'
-			values.push "'/#{file.contextRel}'"
+			ARGS.push '__dirname'
+			VALUES.push "'/#{file.contextRel}'"
 		
-		moduleBody.push wrapper = parser.parse(stringBuilders.iife(args, values)).body[0]
+		moduleBody.push wrapper = templates.iife.ast({ARGS, VALUES}).body[0]
 		moduleBody = wrapper.expression.callee.object.expression.body.body
 
 	file.ast = b.content(file.content) if not file.ast

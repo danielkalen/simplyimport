@@ -15,28 +15,20 @@ exports.postScans = ()->
 exports.postTransforms = ()->
 	debug "running post-transform functions #{@pathDebug}"
 	@timeStart()
-	@content = @sourceMap.update(@content)
+	# @content = @sourceMap.update(@content)
 	
 	if @requiredGlobals.process
 		@content = "var process = require('process');\n#{@content}"
-		@sourceMap.addNullRange(0, 34, true)
+		# @sourceMap.addNullRange(0, 34, true)
 		@has.imports = true
 	
 	if @requiredGlobals.Buffer
 		@content = "var Buffer = require('buffer').Buffer;\n#{@content}"
-		@sourceMap.addNullRange(0, 39, true)
+		# @sourceMap.addNullRange(0, 39, true)
 		@has.imports = true
 
 	@hashPostTransforms = stringHash(@content)
 	@timeEnd()
-
-
-exports.postReplacements = ()-> if @has.ast
-	if @pendingMods.renames.length
-		parser.renameVariables @ast, @pendingMods.renames
-	
-	if @pendingMods.hoist.length
-		parser.hoistAssignments @ast, @pendingMods.hoist
 
 
 exports.preCollection = ()-> if @has.ast

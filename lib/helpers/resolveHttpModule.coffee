@@ -44,8 +44,7 @@ module.exports = (url)->
 			debug "extracting tarball #{chalk.dim cachedPath}"
 			gzipped = cachedPath
 			cachedPath = Path.resolve(helpers.temp(),hash)+'/'
-			unless fs.exists(cachedPath)
-				require('tar.gz')(null,strip:1).extract(gzipped, cachedPath)
+			extractTarball(gzipped, cachedPath) unless fs.exists(cachedPath)
 
 		.catch promiseBreak.end
 		.then ()-> cachedPath
@@ -58,3 +57,8 @@ module.exports = (url)->
 
 			throw err
 
+
+extractTarball = (tarPath, destPath)->
+	Promise.resolve()
+		.then ()-> fs.dirAsync(destPath)
+		.then ()-> require('tar').extract(strip:1, C:destPath, file:tarPath)

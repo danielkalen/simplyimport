@@ -1,7 +1,7 @@
 # SourceMap = require './sourceMap'
 helpers = require './helpers'
 combine = require 'combine-source-map'
-{OFFSETS} = require './builders/strings'
+# {OFFSETS} = require './builders/strings'
 
 class SourceMapCombiner
 	constructor: (@task, bundle, loader)->

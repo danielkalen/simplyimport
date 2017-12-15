@@ -38,9 +38,10 @@ suite "globals", ()->
 				processAndRun file:temp('mainC.js')
 			]
 		.spread (bundleA, bundleB, bundleC)->
-			assert.include bundleA.compiled, require('../lib/builders/strings').globalDec(), 'global dec should be present in bundle A'
-			assert.notInclude bundleB.compiled, require('../lib/builders/strings').globalDec(), 'global dec should not be present in bundle B'
-			assert.notInclude bundleC.compiled, require('../lib/builders/strings').globalDec(), 'global dec should not be present in bundle C'
+			globalDec = require('../lib/templates').globalDec.build()
+			assert.include bundleA.compiled, globalDec, 'global dec should be present in bundle A'
+			assert.notInclude bundleB.compiled, globalDec, 'global dec should not be present in bundle B'
+			assert.notInclude bundleC.compiled, globalDec, 'global dec should not be present in bundle C'
 			a = Object.exclude bundleA.result, (v,k)-> k is 'global'
 			b = Object.exclude bundleA.context, (v,k)-> k is 'global'
 			assert.deepEqual a, b
