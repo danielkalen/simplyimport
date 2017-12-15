@@ -37,6 +37,7 @@ suite "SimplyImport", ()->
 
 	require './misc'
 	require './paths'
+	require './path-placeholders'
 	require './inline-imports'
 	require './es6-imports'
 	require './commonjs-imports'
@@ -61,7 +62,6 @@ suite "SimplyImport", ()->
 	require './pug'
 	require './http'
 	require './source-maps'
-	require './path-placeholders'
 
 
 
