@@ -112,7 +112,7 @@ exports.applyTransforms = (content, transforms, label)->
 					if @pathExt isnt @original.pathExt
 						@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
 					
-					return @sourceMap.update(content)
+					return @extractSourceMap(content)
 			
 		, content)
 		.catch (err)->

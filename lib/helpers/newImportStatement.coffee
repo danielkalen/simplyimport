@@ -11,3 +11,4 @@ module.exports = ()->
 	namespace: null
 	node: null
 	isNested: null
+	replacement: null

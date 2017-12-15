@@ -72,17 +72,18 @@ exports.replaceInlineStatements = ()->
 exports.replaceStatements = ()->
 	@timeStart()
 	debug "replacing imports/exports #{@pathDebug}"
-	if @statements.length
-		if @has.ast
-			for statement in @statements
-				Object.set statement.node.parent.node, statement.node.parent.key, @resolveStatementReplacement(statement)
-		else
-			split = helpers.splitContentByStatements(@content, @statements)
-			@setContent split.reduce (acc, statement)=>
-				return acc+statement if typeof statement is 'string'
-				replacement = @resolveStatementReplacement(statement, 'inline-forced')
-				# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
-				return acc+replacement
+	type = 'inline-forced' if not @has.ast
+	for statement in @statements
+		statement.replacement = @resolveStatementReplacement(statement, type)
+	# if @statements.length
+		# if @has.ast
+		# else
+		# 	split = helpers.splitContentByStatements(@content, @statements)
+		# 	@setContent split.reduce (acc, statement)=>
+		# 		return acc+statement if typeof statement is 'string'
+		# 		replacement = @resolveStatementReplacement(statement, 'inline-forced')
+		# 		# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
+		# 		return acc+replacement
 
 	@timeEnd()
 	return
@@ -91,7 +92,6 @@ exports.replaceStatements = ()->
 
 exports.resolveStatementReplacement = (statement, type)->
 	type ?= if statement.statementType is 'export' then 'export' else statement.type
-	lastChar = @content[statement.range.end]
 
 	switch type
 		when 'inline-forced'

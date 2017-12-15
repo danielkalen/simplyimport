@@ -1,6 +1,5 @@
 Promise = require 'bluebird'
 extend = require 'extend'
-SourceMap = require '../sourceMap'
 helpers = require '../helpers'
 REGEX = require '../constants/regex'
 GLOBALS = require '../constants/globals'
@@ -20,9 +19,9 @@ class File
 		@conditionals = []
 		@statementNodes = null
 		@pendingMods = renames:[], hoist:[]
+		@sourceMaps = []
 		@requiredGlobals = Object.create(null)
 		@original = {@pathExt, @content}
-		@sourceMap = new SourceMap(@)
 		@options.placeholder = helpers.resolvePlaceholders(@)
 		@pkgEntry = helpers.resolvePackageEntry(@pkg)
 		@pkgTransform = @pkg.browserify?.transform
@@ -53,15 +52,6 @@ class File
 		@content = content
 		if @ast?.content?
 			@ast.content = content
-
-	saveContent: (milestone, content)->
-		content = @sourceMap.update(content)
-		if arguments.length is 1
-			content = arguments[0]
-		else
-			@[milestone] = content
-
-		@content = content
 
 
 
@@ -98,6 +88,7 @@ extend File::, require './hooks'
 extend File::, require './checks'
 extend File::, require './collect'
 extend File::, require './replace'
+extend File::, require './compile'
 extend File::, require './statements'
 extend File::, require './transforms'
 module.exports = File

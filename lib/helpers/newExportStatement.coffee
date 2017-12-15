@@ -7,3 +7,4 @@ module.exports = ()->
 	target: null
 	dec: null
 	specifiers: null
+	replacement: null

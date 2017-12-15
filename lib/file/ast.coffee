@@ -1,6 +1,7 @@
 parser = require '../external/parser'
 helpers = require '../helpers'
 builders = require '../builders'
+sourceMapConvert = require 'convert-source-map'
 EXTENSIONS = require '../constants/extensions'
 debug = require('../debug')('simplyimport:file')
 
@@ -20,7 +21,7 @@ exports.getAST = (surpressErrors)->
 		@timeStart()
 		debug "parsing #{@pathDebug}"
 		try
-			ast = parser.parseStrict(@content)
+			ast = parser.parseStrict(@content, sourceFile:@pathRel, locations:@task.options.sourceMap)
 		catch err
 			if surpressErrors
 				return @ast
@@ -34,36 +35,44 @@ exports.getAST = (surpressErrors)->
 	return @ast
 
 
-exports.genAST = ()->
-	content = if @pathExt is 'json' then "(#{@content})" else @content
-	@checkSyntaxErrors(content)
-	try
-		debug "generating AST #{@pathDebug}"
-		@timeStart()
-		@ast = parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
-		@timeEnd()
-	catch err
-		@task.emit 'ASTParseError', @, err
+exports.extractSourceMap = (content)->
+	if newMap = sourceMapConvert.fromSource(content)?.sourcemap
+		@sourceMaps.push newMap
+		content = sourceMapConvert.removeComments(content)
+		content = sourceMapConvert.removeMapFileComments(content)
 
 	return content
 
+# exports.genAST = ()->
+# 	content = if @pathExt is 'json' then "(#{@content})" else @content
+# 	@checkSyntaxErrors(content)
+# 	try
+# 		debug "generating AST #{@pathDebug}"
+# 		@timeStart()
+# 		@ast = parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
+# 		@timeEnd()
+# 	catch err
+# 		@task.emit 'ASTParseError', @, err
 
-exports.genSourceMap = ()->
-	if @sourceMap
-		return @sourceMap
+# 	return content
+
+
+# exports.genSourceMap = ()->
+# 	if @sourceMap
+# 		return @sourceMap
 	
-	else if @ast
-		@timeStart()
-		@sourceMap = JSON.parse parser.generate(@ast, comment:true, sourceMap:true)
-		@timeEnd()
-		return @sourceMap
+# 	else if @ast
+# 		@timeStart()
+# 		@sourceMap = JSON.parse parser.generate(@ast, comment:true, sourceMap:true)
+# 		@timeEnd()
+# 		return @sourceMap
 
 
-exports.adjustSourceMap = ()-> if @sourceMap
-	return @sourceMap is @original.content is @content
-	output = require('inline-source-map')(file:@pathRel)
-	mappings = require('combine-source-map/lib/mappings-from-map')(@sourceMap)
-	currentOffset = 0
+# exports.adjustSourceMap = ()-> if @sourceMap
+# 	return @sourceMap is @original.content is @content
+# 	output = require('inline-source-map')(file:@pathRel)
+# 	mappings = require('combine-source-map/lib/mappings-from-map')(@sourceMap)
+# 	currentOffset = 0
 	
 
 
@@ -87,7 +96,7 @@ exports.exportLastExpression = (offset=0)->
 	ast = @getAST(true)
 	
 	if not @has.ast
-		ast.content = "module.exports = #{ast.content}"
+		@setContent "module.exports = #{ast.content}"
 	
 	else if last = ast.body[ast.body.length-1-offset]
 		{b,n} = builders
