@@ -5,6 +5,11 @@ def('Content')
 	.build 'content'
 	.field 'content', String
 
+def('ContentGroup')
+	.bases 'Expression', 'Statement'
+	.build 'body'
+	.field 'body', [def('Content')]
+
 def('ProgramContent')
 	.bases 'Expression', 'Statement'
 	.build 'content'

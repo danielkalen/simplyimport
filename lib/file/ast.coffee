@@ -36,43 +36,13 @@ exports.getAST = (surpressErrors)->
 
 
 exports.extractSourceMap = (content)->
-	if newMap = sourceMapConvert.fromSource(content)?.sourcemap
-		@sourceMaps.push newMap
+	if map = sourceMapConvert.fromSource(content)?.sourcemap
+		@sourceMaps.push(map)
 		content = sourceMapConvert.removeComments(content)
 		content = sourceMapConvert.removeMapFileComments(content)
 
 	return content
 
-# exports.genAST = ()->
-# 	content = if @pathExt is 'json' then "(#{@content})" else @content
-# 	@checkSyntaxErrors(content)
-# 	try
-# 		debug "generating AST #{@pathDebug}"
-# 		@timeStart()
-# 		@ast = parser.parse(content, range:true, loc:true, comment:true, source:@pathRel, sourceType:'module')
-# 		@timeEnd()
-# 	catch err
-# 		@task.emit 'ASTParseError', @, err
-
-# 	return content
-
-
-# exports.genSourceMap = ()->
-# 	if @sourceMap
-# 		return @sourceMap
-	
-# 	else if @ast
-# 		@timeStart()
-# 		@sourceMap = JSON.parse parser.generate(@ast, comment:true, sourceMap:true)
-# 		@timeEnd()
-# 		return @sourceMap
-
-
-# exports.adjustSourceMap = ()-> if @sourceMap
-# 	return @sourceMap is @original.content is @content
-# 	output = require('inline-source-map')(file:@pathRel)
-# 	mappings = require('combine-source-map/lib/mappings-from-map')(@sourceMap)
-# 	currentOffset = 0
 	
 
 

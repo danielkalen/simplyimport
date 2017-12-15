@@ -6,7 +6,7 @@ fs = require 'fs-jetpack'
 getStream = require 'get-stream'
 axios = require 'axios'
 chalk = require 'chalk'
-debug = require('debug')('simplyimport:http')
+debug = require('../debug')('simplyimport:http')
 
 
 module.exports = (url)->

@@ -1,7 +1,14 @@
+Path = require 'path'
+fs = require 'fs-jetpack'
+chalk = require 'chalk'
+pos = require 'string-pos'
+getMappings = require 'combine-source-map/lib/mappings-from-map'
+convertSourceMap = require 'convert-source-map'
+printCode = require '@danielkalen/print-code'
 helpers = require './helpers'
 {assert, expect, sample, debug, temp, runCompiled, processAndRun, emptyTemp, badES6Support} = helpers
 
-suite.skip "source maps", ()->
+suite "source maps", ()->
 	suiteSetup ()->
 		@fileContents = {}
 		Promise.resolve()
@@ -123,43 +130,42 @@ suite.skip "source maps", ()->
 
 	test.skip "mappings", ()->
 		fileContents = @fileContents
-		chalk = require 'chalk'
-		stringPos = require 'string-pos'
 		
 		Promise.resolve()
 			.then ()-> processAndRun file:temp('main.js'), sourceMap:true
 			.tap ({compiled})-> fs.writeAsync debug('sourcemap.js'), compiled
 			.then ({compiled, result})->
-				sourceMap = require('convert-source-map').fromSource(compiled).sourcemap
-				mappingsRaw = require('combine-source-map/lib/mappings-from-map')(sourceMap)
+				sourceMap = convertSourceMap.fromSource(compiled).sourcemap
+				mappingsRaw = getMappings(sourceMap)
 				mappings = Object.values mappingsRaw.groupBy(((map)-> map.name or map.source))
 				mappings = (mappings.map (group)-> group.inGroupsOf(2)).flatten(1)
-				compiledLines = stringPos(compiled)
+				compiledLines = pos(compiled)
 				
-				# console.dir mappingsRaw, colors:true, depth:4
+				console.dir mappingsRaw, colors:true, depth:1
+				# console.dir mappings, colors:true, depth:4
+				# return
 				
 				mappings.forEach ([start, end], index)->
 					file = temp(start.source.replace('file://localhost/',''))
 					source = fileContents[file]
-					lines = stringPos(source)
-					orig = start:stringPos.toIndex(source, start.original), end:stringPos.toIndex(source, end.original)
-					gen = start:stringPos.toIndex(compiled, start.generated), end:stringPos.toIndex(compiled, end.generated)
+					orig = start:pos.toIndex(source, start.original), end:pos.toIndex(source, end.original)
+					gen = start:pos.toIndex(compiled, start.generated), end:pos.toIndex(compiled, end.generated)
 					# debugStr = "mapping[#{index}] #{Path.relative(temp(), file)} "
 
 					console.log '\n\n\n'+chalk.dim(Path.relative(temp(), file))
-					# console.log chalk.yellow(source.slice(orig.start, orig.end))
-					# console.log chalk.green(compiled.slice(gen.start, gen.end))
-					require('@danielkalen/print-code')(source)
-						.highlightRange(start.original, end.original)
-						.slice(start.original.line-1, end.original.line+2)
-						.color('green')
-						.print()
-					console.log '-'.repeat(Math.min process.stdout.columns, 20)
-					require('@danielkalen/print-code')(compiled)
-						.highlightRange(start.generated, end.generated)
-						.slice(start.generated.line-1, end.generated.line+2)
-						.color('red')
-						.print()
+					console.log chalk.yellow(source.slice(orig.start, orig.end))
+					console.log chalk.green(compiled.slice(gen.start, gen.end))
+					# printCode(source)
+					# 	.highlightRange(start.original, end.original)
+					# 	.slice(start.original.line-1, end.original.line+2)
+					# 	.color('green')
+					# 	.print()
+					# console.log '-'.repeat(Math.min process.stdout.columns, 20)
+					# printCode(compiled)
+					# 	.highlightRange(start.generated, end.generated)
+					# 	.slice(start.generated.line-1, end.generated.line+2)
+					# 	.color('red')
+					# 	.print()
 
 
 

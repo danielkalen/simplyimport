@@ -14,7 +14,7 @@ REGEX = require './constants/regex'
 LABELS = require './constants/consoleLabels'
 EXTENSIONS = require './constants/extensions'
 BUILTINS = require('./constants/coreShims').builtins
-debug = require('debug')('simplyimport:task')
+debug = require('./debug')('simplyimport:task')
 {EMPTY_STUB} = require('./constants')
 
 class Task extends require('events')
@@ -31,7 +31,6 @@ class Task extends require('events')
 		@requiredGlobals = Object.create(null)
 		
 		@options = extendOptions(options)
-		@options.sourceMap = false # temporary until sourcemaps are fixed
 		@options.context ?= if @options.file then helpers.getNormalizedDirname(@options.file) else process.cwd()
 		if @options.file
 			@options.ext = Path.extname(@options.file).replace('.','') or 'js'
@@ -405,15 +404,12 @@ class Task extends require('events')
 
 
 
-	# genSourceMap: (file)->
-	# 	Promise.resolve(file.content).bind(file)
-	# 		.tap ()-> debug "generating sourcemap #{file.pathDebug}"
-	# 		.then ()-> promiseBreak() if not @options.sourceMap
-	# 		.then file.genAST
-	# 		.then file.genSourceMap
-	# 		.then file.adjustSourceMap
-	# 		.catch promiseBreak.end
-	# 		.return(file)
+	prepareSourceMap: (files)-> if @sourceMap
+		for file in files
+			@sourceMap.setSourceContent file.pathRel, file.original.content
+		return
+
+
 	applyFinalTransforms: (bundle)->
 		if not @options.finalTransform.length
 			return bundle
@@ -425,13 +421,14 @@ class Task extends require('events')
 				.tap ()-> debug "applying final transform"
 				.then (file)-> file.applyTransforms(file.content, @options.finalTransform, 'final')
 
-	generate: (ast, sourceMap=@sourceMap)->
+
+	generate: (ast)->
 		generated = parser.generate ast,
 			comments: true
 			indent: if @options.indent then '  ' else ''
-			map: sourceMap
+			sourceMap: @sourceMap
 
-		generated += sourceMap.toComment() if sourceMap
+		generated += @sourceMap.toComment() if @sourceMap
 		return generated
 
 
@@ -451,9 +448,10 @@ class Task extends require('events')
 					.map('target')
 					.append(@entryFile, 0)
 			
+			.tap @prepareSourceMap
 			.tap (files)->
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
-					promiseBreak(@generate @entryFile.ast, @entryFile.sourceMap)
+					promiseBreak(@generate @entryFile.ast)
 			
 			.tap ()-> debug "creating bundle AST"
 			.then (files)-> builders.bundle(@, files)
@@ -508,7 +506,7 @@ extendOptions = (suppliedOptions)->
 
 
 normalizeOptions = (options)->
-	options.sourceMap ?= options.debug if options.debug
+	options.sourceMap ?= options.debug# if options.debug
 	options.transform = helpers.normalizeTransforms(options.transform) if options.transform
 	options.globalTransform = helpers.normalizeTransforms(options.globalTransform) if options.globalTransform
 	options.finalTransform = helpers.normalizeTransforms(options.finalTransform) if options.finalTransform

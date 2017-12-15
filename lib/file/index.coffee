@@ -1,12 +1,13 @@
 Promise = require 'bluebird'
 extend = require 'extend'
+parser = require '../external/parser'
 helpers = require '../helpers'
 REGEX = require '../constants/regex'
 GLOBALS = require '../constants/globals'
 debug = require('../debug')('simplyimport:file')
 
 
-class File	
+class File
 	constructor: (@task, state)->
 		extend(@, state)
 		@options.transform ?= []
@@ -59,6 +60,7 @@ class File
 		@statements.length = 0
 		@inlineStatements.length = 0
 		@conditionals.length = 0
+		@sourceMaps.length = 0
 		delete @ID
 		delete @ast
 		delete @pendingMods
@@ -77,6 +79,10 @@ class File
 
 
 		return
+	
+	Object.defineProperties @::,
+		contentCompiled: get: ()->
+			if @has.ast then @contentCompiled = parser.generate(@ast) else @content
 
 
 

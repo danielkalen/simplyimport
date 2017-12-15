@@ -2,16 +2,30 @@ stringPos = require 'string-pos'
 helpers = require '../helpers'
 parser = require '../external/parser'
 debug = require('../debug')('simplyimport:file')
+builders = require '../builders'
+{b} = builders
+
 
 exports.compile = ()->
 	debug "compiling #{@pathDebug}"
 	if not @has.ast
-		split = helpers.splitContentByStatements(@content, @statements)
-		@setContent split.reduce (acc, statement)=>
-			return acc+statement if typeof statement is 'string'
-			# @sourceMap.addRange {from:statement.range, to:newRange, name:"#{statement.statementType}:#{index+1}", content}
-			return acc+statement.replacement
+		@has.ast = true
+		@ast = b.contentGroup []
+		chunks = helpers.splitContentByStatements(@content, @statements)
+		offset = index = 0
+		
+		for chunk in chunks
+			if typeof chunk is 'string'
+				node = b.content(chunk)
+				node.loc = start:stringPos(@content, index-offset), source:@pathRel
+			else
+				node = b.content(chunk.replacement)
+				node.loc = start:{column:0, line:1}, source:chunk.source.pathRel
+				offset += node.content.length - (chunk.range.end - chunk.range.start)
 
+			index += node.content.length
+			@ast.body.push(node)
+	
 	else
 		for statement in @statements
 			Object.set statement.node.parent.node, statement.node.parent.key, statement.replacement
@@ -25,14 +39,11 @@ exports.compile = ()->
 
 
 	if @task.options.sourceMap
-		mappings = []
-		
-		for statement in @statements
-			mappings.push
-				source: statement.source.pathRel
-				original: stringPos(@content, statement.range.start)
-				generated: #
-				name: null
+		# if @inlineStatements.length
+		# 	map = new (require 'source-map').SourceMapGenerator()
+
+		if @sourceMaps.length
+			helpers.applySourceMapToAst(@ast, map) for map in @sourceMaps.reverse()
 
 
 

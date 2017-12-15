@@ -5,7 +5,7 @@ helpers = require('./')
 EXTENSIONS = require '../constants/extensions'
 fs = require 'fs-jetpack'
 chalk = require 'chalk'
-debug = require('debug')('simplyimport:fs')
+debug = require('../debug')('simplyimport:fs')
 
 resolveFilePath = (input, importer)->
 	params = Path.parse(Path.resolve(input))
