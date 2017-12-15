@@ -19,9 +19,9 @@ class File
 		@conditionals = []
 		@statementNodes = null
 		@pendingMods = renames:[], hoist:[]
+		@sourceMaps = []
 		@requiredGlobals = Object.create(null)
 		@original = {@pathExt, @content}
-		@sourceMaps = []
 		@options.placeholder = helpers.resolvePlaceholders(@)
 		@pkgEntry = helpers.resolvePackageEntry(@pkg)
 		@pkgTransform = @pkg.browserify?.transform
