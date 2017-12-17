@@ -8,10 +8,10 @@ codegen.baseGenerator.ParenthesizedExpression = (node, state)->
 
 codegen.baseGenerator.Content = (node, state)->
 	state.write(node.content
-		.split '\n'
+		.split('\n')
 		.map (line,index)-> if not index then line else state.indent.repeat(state.indentLevel)+line
-		.join '\n'
-	)
+		.join('\n')
+	,node)
 
 codegen.baseGenerator.ContentGroup = (node, state)->
 	@[chunk.type](chunk, state) for chunk in node.body
@@ -26,5 +26,11 @@ codegen.baseGenerator.ProgramContent = (node, state)->
 	@[node.content.type](node.content, state)
 
 
+Object.keys(codegen.baseGenerator).forEach (method)->
+	return if method is 'Identifier' or method is 'ContentGroup' or method.includes('Literal')
+	fn = codegen.baseGenerator[method]
+	codegen.baseGenerator[method] = (node, state)->
+		state.write '', node if node.loc
+		fn.call(@, node, state)
 
 module.exports = codegen

@@ -2,17 +2,28 @@ Path = require 'path'
 fs = require 'fs-jetpack'
 chalk = require 'chalk'
 pos = require 'string-pos'
+extend = require 'smart-extend'
 getMappings = require 'combine-source-map/lib/mappings-from-map'
 convertSourceMap = require 'convert-source-map'
 printCode = require '@danielkalen/print-code'
 helpers = require './helpers'
 {assert, expect, sample, debug, temp, runCompiled, processAndRun, emptyTemp, badES6Support} = helpers
+{SourceMapConsumer} = require 'source-map'
 
 suite "source maps", ()->
 	suiteSetup ()->
-		@fileContents = {}
 		Promise.resolve()
 			.then ()-> helpers.lib
+				'simple.js': """
+					exports.a = import './a'
+					exports.b = require('./b')
+					export * from './c'
+					exports.d = import './d'
+					var e = import 'module-e'
+					exports.version = import './package $ version'
+					exports.e = e
+					exports.f = require('module-f')
+				"""
 				'main.js': """
 					exports.a = import './a'
 					exports.version = import './package $ version'
@@ -89,7 +100,6 @@ suite "source maps", ()->
 					g: 'module---ggg'
 					h: 'module---hhh'
 					version: '1.2.9'
-
 				assert.notInclude compiled, '//# sourceMappingURL'
 
 
@@ -99,18 +109,7 @@ suite "source maps", ()->
 			.then ({compiled, result})->
 				assert.equal typeof result.g, 'function'
 				result.g = result.g()
-				assert.deepEqual result,
-					a: 'aaa'
-					b: 'bbb'
-					c1: 'ccc1'
-					c2: 'ccc2'
-					d: 'ddd'
-					e: 'module---eee'
-					f: 'module---fff'
-					g: 'module---ggg'
-					h: 'module---hhh'
-					version: '1.2.9'
-
+				assert.equal result.version, '1.2.9'
 				assert.include compiled, '//# sourceMappingURL'
 
 
@@ -127,6 +126,33 @@ suite "source maps", ()->
 			.then ({compiled, result})->
 				assert.notInclude compiled, '//# sourceMappingURL'
 
+
+	test.only "mappings", ()->
+		fileContents = @fileContents
+		
+		Promise.resolve()
+			.then ()-> processAndRun file:temp('simple.js'), sourceMap:true
+			.tap ({compiled})-> fs.writeAsync debug('sourcemap.js'), compiled
+			.then ({compiled, result})->
+				sourcemap = convertSourceMap.fromSource(compiled).sourcemap
+				consumer = new SourceMapConsumer sourcemap
+				origPos = origPosFn(consumer)
+
+				# console.dir getMappings(sourcemap).slice(5,31), colors:1, depth:2
+				# console.log getMappings(sourcemap).length
+				assert.deepEqual origPos(11,0),		line(1,0,'simple.js')
+				assert.deepEqual origPos(11,12),	line(1,12,'simple.js')
+				assert.deepEqual origPos(12,0),		line(2,0,'simple.js')
+				assert.deepEqual origPos(12,12),	line(2,12,'simple.js')
+				assert.deepEqual origPos(12,17),	line(2,12,'simple.js')
+				assert.deepEqual origPos(16,4),		line(3,0,'simple.js')
+				assert.deepEqual origPos(21,0),		line(4,0,'simple.js')
+				assert.deepEqual origPos(21,12),	line(4,12,'simple.js')
+				assert.deepEqual origPos(23,0),		line(5,0,'simple.js')
+				assert.deepEqual origPos(23,8),		line(5,8,'simple.js')
+				# assert.deepEqual origPos(21,0),		line(2,12,'simple.js')
+				
+	
 
 	test.skip "mappings", ()->
 		fileContents = @fileContents
@@ -169,8 +195,13 @@ suite "source maps", ()->
 
 
 
+line = (line, column, source)->
+	{line, column, source}
 
-
+origPosFn = (consumer)-> ()->
+	extend.keys(['source','line','column']).clone(
+		consumer.originalPositionFor(line(arguments...))
+	)
 
 
 

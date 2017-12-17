@@ -8,11 +8,11 @@ mocha = Path.resolve 'node_modules','mocha','bin','mocha'
 nyc = Path.resolve 'node_modules','nyc','bin','nyc.js'
 process.env.SOURCE_MAPS ?= 1
 testModules = [
-	'mocha@3.5.3', 'chai', 'nock', 'browserify', 'babelify', 'formatio',
+	'mocha@3.5.3', 'chai', 'nock', 'browserify', 'babelify',
 	'babel-preset-es2015-script', 'envify', 'es6ify', 'brfs',
 	'axios', 'moment', 'timeunits', 'yo-yo', 'smart-extend',
 	'p-wait-for', 'source-map-support', 'xmlhttprequest',
-	'redux', 'lodash', 'leakage'
+	'redux', 'lodash', 'leakage', 'formatio',
 	'location', 'pug', 'node-sass', 'html2json', 'modcss', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 
 

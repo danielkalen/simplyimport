@@ -30,7 +30,8 @@ exports.compile = ()->
 		for statement in @statements
 			Object.set statement.node.parent.node, statement.node.parent.key, statement.replacement
 			statement.replacement.loc = statement.node.loc
-		
+			# console.log statement.replacement.loc.start, statement.replacement.type, statement.statementType if @isEntry
+
 		if @pendingMods.renames.length
 			parser.renameVariables @ast, @pendingMods.renames
 		
