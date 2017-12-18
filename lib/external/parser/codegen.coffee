@@ -7,11 +7,19 @@ codegen.baseGenerator.ParenthesizedExpression = (node, state)->
 	state.write ')'
 
 codegen.baseGenerator.Content = (node, state)->
-	state.write(node.content
-		.split('\n')
-		.map (line,index)-> if not index then line else state.indent.repeat(state.indentLevel)+line
-		.join('\n')
-	,node)
+	extraLines = 0
+	content = node.content
+		.split '\n'
+		.map (line, index)->
+			if not index
+				return line
+			else
+				extraLines += 1
+				return state.indent.repeat(state.indentLevel)+line
+		.join '\n'
+	
+	state.write(content, node)
+	state.line += extraLines if state.sourceMap
 
 codegen.baseGenerator.ContentGroup = (node, state)->
 	@[chunk.type](chunk, state) for chunk in node.body

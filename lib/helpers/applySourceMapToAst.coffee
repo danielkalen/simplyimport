@@ -7,7 +7,7 @@ applySourceMapToAst = (ast, map)->
 	parser.walk ast, (node)->
 		return if not node.loc
 		origStart = map.originalPositionFor node.loc.start
-		return if not origStart.line?
+		return node.loc = null if not origStart.line?
 		origEnd = map.originalPositionFor node.loc.end
 
 		node.loc.start = {line:origStart.line, column:origStart.column}

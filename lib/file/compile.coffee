@@ -2,8 +2,8 @@ stringPos = require 'string-pos'
 helpers = require '../helpers'
 parser = require '../external/parser'
 debug = require('../debug')('simplyimport:file')
-builders = require '../builders'
-{b} = builders
+{b} = require '../builders'
+LOC_FIRST = {line:1, column:0}
 
 
 exports.compile = ()->
@@ -29,8 +29,16 @@ exports.compile = ()->
 	else
 		for statement in @statements
 			Object.set statement.node.parent.node, statement.node.parent.key, statement.replacement
-			statement.replacement.loc = statement.node.loc
+			
+			if statement.type isnt 'inline'
+				statement.replacement.loc = statement.node.loc
+			else
+				statement.replacement.loc = 
+					start: LOC_FIRST
+					end: LOC_FIRST
+					source: statement.target.pathRel
 			# console.log statement.replacement.loc.start, statement.replacement.type, statement.statementType if @isEntry
+			# console.log statement.replacement.loc.source, statement.target.pathRel, statement.type if @isEntry and statement.replacement.type is 'Content'
 
 		if @pendingMods.renames.length
 			parser.renameVariables @ast, @pendingMods.renames
@@ -39,12 +47,13 @@ exports.compile = ()->
 			parser.hoistAssignments @ast, @pendingMods.hoist
 
 
-	if @task.options.sourceMap
-		# if @inlineStatements.length
-		# 	map = new (require 'source-map').SourceMapGenerator()
 
+	if @task.options.sourceMap
 		if @sourceMaps.length
 			helpers.applySourceMapToAst(@ast, map) for map in @sourceMaps.reverse()
+
+		if @inlineStatements.length
+			helpers.applyForceInlineSourceMap(@)
 
 
 

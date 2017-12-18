@@ -405,8 +405,10 @@ class Task extends require('events')
 
 
 	prepareSourceMap: (files)-> if @sourceMap
-		for file in files
-			@sourceMap.setSourceContent file.pathRel, file.original.content
+		# for file in files
+		# 	@sourceMap.setSourceContent file.pathRel, file.original.content
+		for statement in @statements when statement.kind isnt 'excluded'
+			@sourceMap.setSourceContent statement.target.pathRel, statement.target.original.content
 		return
 
 
