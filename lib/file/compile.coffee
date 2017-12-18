@@ -22,6 +22,7 @@ exports.compile = ()->
 
 
 	if @task.options.sourceMap
+		debug "applying source maps #{@pathDebug}"
 		if @sourceMaps.length
 			helpers.applySourceMapToAst(@ast, map) for map in @sourceMaps.reverse()
 
@@ -47,6 +48,7 @@ exports.replaceStatementsWithoutAST = ()->
 
 		index += node.content.length
 		@ast.body.push(node)
+	return
 
 
 exports.replaceStatementsWithAST = ()->

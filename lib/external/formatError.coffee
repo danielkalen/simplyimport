@@ -9,7 +9,7 @@ filter = (stack, spacing)->
 		.join '\n'
 
 
-module.exports = (prefix='', err)->
+module.exports = (prefix='', err, noColor)->
 	if not err
 		err = prefix
 		prefix = ''
@@ -22,7 +22,7 @@ module.exports = (prefix='', err)->
 	
 	err.message += "\n#{err.annotated}" if err.annotated and not err.message.includes(err.annotated)
 	err.message = """
-		#{module.exports.message err, prefix}
+		#{module.exports.message err, prefix, noColor}
 		#{filter(err.stack, '\t')}
 	"""
 	err.stack = ''
@@ -30,9 +30,10 @@ module.exports = (prefix='', err)->
 	return err
 
 
-module.exports.message = (err, prefix)-> 
+module.exports.message = (err, prefix, noColor)-> 
 	if prefix
-		"#{prefix}: #{chalk.red err.message}"
+		message = if noColor then err.message else chalk.red(err.message)
+		"#{prefix}: #{message}"
 	else
 		chalk.red err.message
 

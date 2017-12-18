@@ -51,31 +51,27 @@ class Task extends require('events')
 			else
 				@requiredGlobals[varName] = true
 
-		@.on 'missingImport', (file, target, pos)->
-			annotation = helpers.annotateErrLocation(file, pos)
+		@.on 'missingImport', (file, target, posStart, posEnd)->
+			annotation = helpers.annotateErrLocation(file, posStart, posEnd)
 			if @options.ignoreMissing
 				console.warn "#{LABELS.warn} cannot find '#{chalk.yellow target}'", annotation unless @options.ignoreErrors
 			else
-				@throw formatError "#{LABELS.error} cannot find '#{chalk.yellow target}'", helpers.blankError(annotation)
+				@throw formatError "#{LABELS.error} cannot find '#{chalk.yellow target}'", helpers.blankError(annotation), true
 
 		@.on 'missingEntry', ()=>
 			throw formatError "#{LABELS.error} cannot find '#{chalk.yellow @options.file}'", helpers.blankError()
 		
 		@.on 'ASTParseError', (file, err)=>
 			err.message += helpers.annotateErrLocation(file, err.pos)
-			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
+			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err, true
 		
 		@.on 'DataParseError', (file, err)=>
 			if pos = err.message.match(/at position (\d+)/)?[1]
 				err.message += helpers.annotateErrLocation(file, pos)
-			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err
+			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err, true
 		
 		@.on 'ExtractError', (file, err)=>
 			@throw formatError "#{LABELS.error} Extraction error in #{file.pathDebug}", err
-		
-		@.on 'TokenError', (file, err)=>
-			err.message += helpers.annotateErrLocation(file, err.token.start)
-			@throw formatError "#{LABELS.error} Unexpected token #{file.pathDebug}", err
 		
 		@.on 'SyntaxError', (file, err)=> unless @options.ignoreSyntaxErrors
 			err.message = err.annotated.split('\n').slice(1, -1).append('',0).join('\n')
@@ -112,7 +108,7 @@ class Task extends require('events')
 
 
 	handleMissingFile: (file, statement)->
-		@emit 'missingImport', file, statement.target, statement.range.start
+		@emit 'missingImport', file, statement.target, statement.range.start, statement.range.end
 
 		Promise.bind(@)
 			.then ()-> @initFile EMPTY_STUB, file, false, false
@@ -437,10 +433,10 @@ class Task extends require('events')
 		
 		Promise.bind(@)
 			.then @calcImportTree
-			.tap ()-> debug "start replacing imports/exports"
+			.tap ()-> debug "start replacing statements"
 			.return @entryFile
 			.then @replaceStatements
-			.tap ()-> debug "done replacing imports/exports"
+			.tap ()-> debug "done replacing statements"
 			.then @prepareSourceMap
 			.then ()->
 				@statements
