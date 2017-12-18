@@ -399,15 +399,13 @@ class Task extends require('events')
 		
 		Promise.resolve(file.statements).bind(file)
 			.map (statement)=> @replaceStatements(statement.target) unless statement.kind is 'excluded'
-			.then file.replaceStatements
+			.then file.resolveReplacements
 			.then file.compile
 
 
 
-	prepareSourceMap: (files)-> if @sourceMap
-		# for file in files
-		# 	@sourceMap.setSourceContent file.pathRel, file.original.content
-		for statement in @statements when statement.kind isnt 'excluded'
+	prepareSourceMap: ()-> if @sourceMap
+		for statement in @statements.concat(@inlineStatements) when statement.kind isnt 'excluded'
 			@sourceMap.setSourceContent statement.target.pathRel, statement.target.original.content
 		return
 
@@ -443,6 +441,7 @@ class Task extends require('events')
 			.return @entryFile
 			.then @replaceStatements
 			.tap ()-> debug "done replacing imports/exports"
+			.then @prepareSourceMap
 			.then ()->
 				@statements
 					.filter (statement)=> statement.type is 'module' and statement.kind isnt 'excluded' and statement.target isnt @entryFile
@@ -450,7 +449,6 @@ class Task extends require('events')
 					.map('target')
 					.append(@entryFile, 0)
 			
-			.tap @prepareSourceMap
 			.tap (files)->
 				if files.length is 1 and @entryFile.type isnt 'module' and Object.keys(@requiredGlobals).length is 0
 					promiseBreak(@generate @entryFile.ast)

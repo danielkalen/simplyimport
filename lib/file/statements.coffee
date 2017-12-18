@@ -5,26 +5,13 @@ debug = require('../debug')('simplyimport:file')
 exports.getStatementSource = (statement)->
 	range = statement.range
 	
-	for candidate,i in @inlineStatements when candidate.kind isnt 'excluded'
-		offset = candidate.offset
-		candidateRange = candidate.range
-		candidateRange = start:candidateRange.start+offset, end:candidateRange.end+offset
-		
-		if candidateRange.start <= statement.range.start and statement.range.end <= candidateRange.end
+	for candidate,i in @inlineStatements when candidate.kind isnt 'excluded'		
+		if candidate.rangeNew.start <= statement.range.start and statement.range.end <= candidate.rangeNew.end
 			statement.range.orig = candidate
 			return candidate.target.getStatementSource(statement)
 	
 	return @
 
-
-
-exports.offsetStatements = (offset)->
-	for statement in @statements
-		if statement.range.start >= offset.start
-			length = offset.end - offset.start
-			statement.range.start += length
-			statement.range.end += length
-	return
 
 exports.resolveNestedStatements = ()->
 	exportStatements = @statements.filter({statementType:'export'})

@@ -1,6 +1,5 @@
 require('./patches')
-Promise = require 'bluebird'
-Promise.config longStackTraces:true if process.env.DEBUG
+global.Promise = require('bluebird').config warnings:false, longStackTraces:!!process.env.DEBUG
 Path = require './helpers/path'
 formatError = require './external/formatError'
 Task = require './task'

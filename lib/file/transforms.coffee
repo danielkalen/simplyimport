@@ -93,7 +93,8 @@ exports.applyTransforms = (content, transforms, label)->
 		
 		.reduce((content, transformer)->
 			lastTransformer = transformer
-			flags = extend true, @task.options
+			flags = extend {}, @task.options
+			flags.debug = true if flags.sourceMap
 			transformOpts = extend {_flags:flags}, transformer.opts
 			prevContent = content
 

@@ -1,6 +1,7 @@
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
 stringPos = require 'string-pos'
+extend = require 'extend'
 parser = require '../external/parser'
 helpers = require '../helpers'
 REGEX = require '../constants/regex'
@@ -115,17 +116,13 @@ exports.collectForceInlineImports = ()->
 	debug "collecting force inline imports #{@pathDebug}"
 	@timeStart()
 	@content.replace REGEX.inlineImport, (entire, childPath, offset)=>
-		statement = helpers.newImportStatement()
+		statement = helpers.newForceInlineStatement()
+		extend statement, resolveStatementTarget(childPath, @)
 		statement.source = @
-		statement.target = helpers.normalizeTargetPath(childPath, @, true)
-		targetSplit = statement.target.split(REGEX.extractDelim)
-		statement.target = targetSplit[0]
-		statement.extract = targetSplit[1]
 		statement.offset = 0
 		statement.range.start = offset
 		statement.range.end = offset + entire.length
 		statement.range.length = entire.length
-		statement.type = 'inline-forced'
 		@inlineStatements.push(statement)
 	
 	@timeEnd()
@@ -143,10 +140,7 @@ exports.collectImports = ()->
 			statements = imports.concat(requires).sortBy('range.start')
 
 			for statement in statements
-				statement.target = helpers.normalizeTargetPath(statement.target, @)
-				targetSplit = statement.target.split(REGEX.extractDelim)
-				statement.target = targetSplit[0]
-				statement.extract = targetSplit[1]
+				extend statement, resolveStatementTarget(statement.target, @)
 				statement.source = @getStatementSource(statement)
 				collected.push(statement)
 
@@ -155,7 +149,7 @@ exports.collectImports = ()->
 		when @pathExt is 'pug' or @pathExt is 'jade'
 			@content.replace REGEX.pugImport, (entireLine, childPath, offset)=>
 				statement = helpers.newImportStatement()
-				statement.target = helpers.normalizeTargetPath(childPath, @, true)
+				extend statement, resolveStatementTarget(childPath, @)
 				statement.range.start = offset
 				statement.range.end = offset + entireLine.length
 				statement.type = 'inline'
@@ -166,7 +160,7 @@ exports.collectImports = ()->
 		when @pathExt is 'sass' or @pathExt is 'scss'
 			@content.replace REGEX.cssImport, (entireLine, childPath, offset)=>
 				statement = helpers.newImportStatement()
-				statement.target = helpers.normalizeTargetPath(childPath, @, true)
+				extend statement, resolveStatementTarget(childPath, @)
 				statement.range.start = offset
 				statement.range.end = offset + entireLine.length
 				statement.type = 'inline'
@@ -198,6 +192,11 @@ exports.collectExports = ()->
 	return collected
 
 
+
+resolveStatementTarget = (target, file)->
+	target = helpers.normalizeTargetPath(target, file, true)
+	split = target.split(REGEX.extractDelim)
+	return {target:split[0], extract:split[1]}
 
 
 

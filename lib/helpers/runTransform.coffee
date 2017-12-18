@@ -20,9 +20,10 @@ runTransform = (file, content, transformer, transformOpts)->
 		.catch promiseBreak.end
 
 
-module.exports = runTransform.memoize (file, content, transformer)->
+module.exports = runTransform.memoize (file, content, transformer, flags)->
 	"""
 		#{file.pathAbs}
+		#{flags._flags.debug}
 		#{content}
 		#{transformer.name}
 		#{transformer.fn.toString()}

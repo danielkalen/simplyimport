@@ -5,6 +5,7 @@ builders = require '../builders'
 REGEX = require '../constants/regex'
 EXTENSIONS = require '../constants/extensions'
 debug = require('../debug')('simplyimport:file')
+LOC_FIRST = {line:1, column:0}
 
 
 exports.replaceES6Imports = ()->
@@ -39,19 +40,16 @@ exports.replaceInlineStatements = ()->
 	@timeStart()
 	debug "replacing force-inline imports #{@pathDebug}"
 
+	change = 0
 	split = helpers.splitContentByStatements(@content, @inlineStatements)
 	@content = split.reduce (acc, statement)=>
 		return acc+statement if typeof statement is 'string'
-		replacement = statement.replacement = @resolveStatementReplacement(statement)
-		lengthDiff = replacement.length - statement.range.length
-		statement.range.end = statement.range.start + replacement.length
-		statement.range.length = replacement.length
-		
-		leadingStatements = @inlineStatements.slice(@inlineStatements.indexOf statement)
-		leadingStatements.forEach (statement)->
-			statement.range.start += lengthDiff
-			statement.range.end += lengthDiff
-			# statement.offset += replacement.length - statement.range.length
+		{range, rangeNew} = statement
+		statement.replacement = replacement = @resolveStatementReplacement(statement)
+		rangeNew.diff = replacement.length - range.length
+		rangeNew.start = range.start+change
+		rangeNew.end = rangeNew.start+replacement.length
+		change += rangeNew.diff
 
 		return acc+replacement
 
@@ -60,9 +58,10 @@ exports.replaceInlineStatements = ()->
 	return
 
 
-exports.replaceStatements = ()->
+
+exports.resolveReplacements = ()->
 	@timeStart()
-	debug "replacing imports/exports #{@pathDebug}"
+	debug "resolving replacements #{@pathDebug}"
 	type = 'inline-forced' if not @has.ast
 	for statement in @statements
 		statement.replacement = @resolveStatementReplacement(statement, type)

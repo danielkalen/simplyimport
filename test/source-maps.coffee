@@ -117,7 +117,7 @@ suite "source maps", ()->
 				assert.notInclude compiled, '//# sourceMappingURL'
 
 
-	suite.skip "mappings", ()->
+	suite "mappings", ()->
 		test "mixed", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib
@@ -139,9 +139,6 @@ suite "source maps", ()->
 					consumer = new SourceMapConsumer sourcemap
 					origPos = origPosFn(consumer)
 
-					# log getMappings(sourcemap).filter(source:'node_modules/module-g/index.coffee').map((n)-> [n.original, n.generated])
-					# log getMappings(sourcemap).slice(38,43)
-					# console.log getMappings(sourcemap).length
 					assert.deepEqual origPos(11,0),		line(1,0,'mixed.js')
 					assert.deepEqual origPos(11,12),	line(1,12,'mixed.js')
 					assert.deepEqual origPos(12,0),		line(2,0,'mixed.js')
@@ -194,29 +191,26 @@ suite "source maps", ()->
 					consumer = new SourceMapConsumer sourcemap
 					origPos = origPosFn(consumer)
 
-					# log getMappings(sourcemap).filter(source:'node_modules/module-g/index.coffee').map((n)-> [n.original, n.generated])
-					# log getMappings(sourcemap).map((n)-> [n.original, n.generated, n.source])
-					log getMappings(sourcemap).map((n)-> "#{n.generated.line}:#{n.generated.column} -> #{n.source}:#{n.original.line}:#{n.original.column}")
-					# console.log getMappings(sourcemap).length
 					assert.deepEqual origPos(11,0),		line(1,0,'inlines.js')
 					assert.deepEqual origPos(11,12),	line(1,12,'inlines.js')
 					assert.deepEqual origPos(12,0),		line(2,0,'inlines.js')
 					assert.deepEqual origPos(12,12),	line(1,0,'b.js')
-					assert.deepEqual origPos(12,22),	line(1,22,'b.js')
-					assert.deepEqual origPos(13,7),		line(2,7,'b.js')
-					assert.deepEqual origPos(14,0),		line(3,0,'inlines.js')
-					assert.deepEqual origPos(14,12),	line(3,12,'inlines.js')
+					assert.deepEqual origPos(12,22),	line(1,9,'b.js')
+					assert.deepEqual origPos(13,7),		line(2,8,'b.js')
+					assert.deepEqual origPos(15,0),		line(3,0,'inlines.js')
+					assert.deepEqual origPos(15,12),	line(3,12,'inlines.js')
 					assert.deepEqual origPos(16,0),		line(4,0,'inlines.js')
 					assert.deepEqual origPos(16,12),	line(1,0,'d.js')
 					assert.deepEqual origPos(16,18),	line(1,5,'d.js')
 					assert.deepEqual origPos(16,24),	line(2,0,'d.js')
 					assert.deepEqual origPos(17,0),		line(5,0,'inlines.js')
 					assert.deepEqual origPos(17,12),	line(5,12,'inlines.js')
-					assert.deepEqual origPos(16,0),		line(6,0,'inlines.js')
+					assert.deepEqual origPos(18,0),		line(6,0,'inlines.js')
 					assert.deepEqual origPos(18,18),	line(1,0,'package.json')
 					assert.deepEqual origPos(19,0),		line(7,0,'inlines.js')
 					assert.deepEqual origPos(19,12),	line(1,0,'node_modules/module-f/index.js')
 					assert.deepEqual origPos(22,0),		line(8,0,'inlines.js')
+					assert.deepEqual origPos(22,8),		line(8,8,'inlines.js')
 					assert.deepEqual origPos(22,12),	line(8,12,'inlines.js')
 					
 		
