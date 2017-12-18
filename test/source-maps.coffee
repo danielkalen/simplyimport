@@ -10,7 +10,7 @@ helpers = require './helpers'
 {assert, expect, sample, debug, temp, runCompiled, processAndRun, emptyTemp, badES6Support} = helpers
 {SourceMapConsumer} = require 'source-map'
 
-suite.only "source maps", ()->
+suite "source maps", ()->
 	suiteSetup ()->
 		Promise.resolve()
 			.then ()-> helpers.lib

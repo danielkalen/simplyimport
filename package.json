@@ -98,7 +98,6 @@
     "yamlify": "^0.1.3"
   },
   "devDependencies": {
-    "@danielkalen/print-code": "^1.0.3",
     "clarify": "^2.0.0",
     "coffee-coverage": "^2.0.1",
     "execa": "^0.8.0",
