@@ -61,7 +61,7 @@ class Task extends require('events')
 		@.on 'missingEntry', ()=>
 			throw formatError "#{LABELS.error} cannot find '#{chalk.yellow @options.file}'", helpers.blankError()
 		
-		@.on 'ASTParseError', (file, err)=>
+		@.on 'ASTParseError', (file, err)=> unless @options.ignoreSyntaxErrors
 			err.message += helpers.annotateErrLocation(file, err.pos)
 			@throw formatError "#{LABELS.error} Failed to parse #{file.pathDebug}", err, true
 		
@@ -72,12 +72,7 @@ class Task extends require('events')
 		
 		@.on 'ExtractError', (file, err)=>
 			@throw formatError "#{LABELS.error} Extraction error in #{file.pathDebug}", err
-		
-		@.on 'SyntaxError', (file, err)=> unless @options.ignoreSyntaxErrors
-			err.message = err.annotated.split('\n').slice(1, -1).append('',0).join('\n')
-			Error.captureStackTrace(err)
-			@throw formatError "#{LABELS.error} Invalid syntax in #{chalk.dim file.path+':'+err.line+':'+err.column}", err
-		
+				
 		@.on 'ConditionalError', (file, err, posStart, posEnd)=>
 			err ?= helpers.blankError helpers.annotateErrLocation(file, posStart, posEnd)
 			@throw formatError "#{LABELS.error} Invalid conditional syntax in #{file.pathDebug}", err
@@ -234,7 +229,6 @@ class Task extends require('events')
 			.then file.replaceES6Imports
 			.then file.applyAllTransforms
 			.then file.replaceES6Imports
-			# .then file.checkSyntaxErrors
 			.then file.restoreES6Imports
 			.then file.runChecks
 			.then(file.collectRequiredGlobals unless @options.target is 'node')

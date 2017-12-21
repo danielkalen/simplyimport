@@ -4,19 +4,6 @@ EXTENSIONS = require '../constants/extensions'
 debug = require('../debug')('simplyimport:file')
 
 
-exports.checkSyntaxErrors = ((content)->
-	debug "checking for syntax errors #{@pathDebug}"
-	if @pathExt is 'js'
-		@timeStart()
-		content = content.replace REGEX.es6import, "importPlaceholder()"
-		
-		if err = parser.check(content, @pathAbs)
-			@task.emit 'SyntaxError', @, err
-
-		@timeEnd()
-).memoize()
-
-
 exports.runChecks = ()->
 	debug "running checks #{@pathDebug}"
 	@timeStart()
