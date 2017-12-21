@@ -7,7 +7,7 @@ getMappings = require 'combine-source-map/lib/mappings-from-map'
 convertSourceMap = require 'convert-source-map'
 printCode = require '@danielkalen/print-code'
 helpers = require './helpers'
-{assert, expect, sample, debug, temp, runCompiled, processAndRun, emptyTemp, badES6Support} = helpers
+{assert, expect, sample, debug, temp, runCompiled, processAndRun, SimplyImport, emptyTemp, badES6Support} = helpers
 {SourceMapConsumer} = require 'source-map'
 
 suite "source maps", ()->
@@ -114,6 +114,15 @@ suite "source maps", ()->
 			.then ()-> processAndRun file:temp('main.js'), debug:true, sourceMap:false
 			.then ({compiled, result})->
 				assert.notInclude compiled, '//# sourceMappingURL'
+
+	test "will be generated separate from bundle file when not options.inlineMap", ()->
+		Promise.resolve()
+			.then ()-> SimplyImport file:temp('main.js'), debug:true, inlineMap:false
+			.then (result)->
+				assert.equal typeof result, 'object'
+				assert.deepEqual Object.keys(result), ['code','map']
+				assert.notInclude result.code, '//# sourceMappingURL'
+				assert.equal typeof result.map, 'object'
 
 
 	suite "mappings", ()->

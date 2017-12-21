@@ -1,5 +1,12 @@
 codegen = require 'astring'
 
+# codegen.baseGenerator.Line = (node, state)->
+# 	state.write "//#{node.value}"
+
+# codegen.baseGenerator.Block = (node, state)->
+# 	state.write '/*'
+# 	state.write node.value
+# 	state.write '*/'
 
 codegen.baseGenerator.ParenthesizedExpression = (node, state)->
 	state.write '('
@@ -34,8 +41,9 @@ codegen.baseGenerator.ProgramContent = (node, state)->
 	@[node.content.type](node.content, state)
 
 
+skip = ['Identifier', 'ContentGroup']
 Object.keys(codegen.baseGenerator).forEach (method)->
-	return if method is 'Identifier' or method is 'ContentGroup' or method.includes('Literal')
+	return if skip.some((toSkip)-> method is toSkip) or method.includes('Literal')
 	fn = codegen.baseGenerator[method]
 	codegen.baseGenerator[method] = (node, state)->
 		state.write '', node if node.loc

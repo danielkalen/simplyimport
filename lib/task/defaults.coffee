@@ -10,6 +10,8 @@ module.exports =
 	ignoreErrors: false
 	ignoreSyntaxErrors: false
 	matchAllConditions: false
+	includeVersions: false
+	inlineMap: true
 	transform: []
 	globalTransform: []
 	finalTransform: []

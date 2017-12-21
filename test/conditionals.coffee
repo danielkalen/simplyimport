@@ -346,7 +346,7 @@ suite "conditionals", ()->
 				exports.b = 'bbb'
 				// simplyimport:end
 
-				// simplyimport:if VAR_C = 'CCC'
+				// simplyimport:if VAR_C = 'CCC' || VAR_C = 'ccc'
 				exports.c = 'ccc'
 				// simplyimport:end
 

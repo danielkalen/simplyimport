@@ -95,4 +95,4 @@ SimplyImport.scan = (options)->
 
 module.exports = SimplyImport
 module.exports.bundle = SimplyImport.compile
-module.exports.defaults = require('./defaults')
+module.exports.defaults = require('./task/defaults')
