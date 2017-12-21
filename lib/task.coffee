@@ -264,7 +264,6 @@ class Task extends require('events')
 
 	scanStatements: (file, depth=Infinity, currentDepth=0)-> if not file.scannedImportsExports
 		file.scannedImportsExports = true
-		importingExports = null
 		collected = []
 		
 		Promise.bind(@)

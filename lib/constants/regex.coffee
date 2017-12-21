@@ -2,10 +2,6 @@ REGEX =
 	quotes: /['"]/
 	extractDelim: /\s*\$\s*/
 	endingSemi: /;$/
-	bracketStart: /^[\{\[\(]$/
-	bracketEnd: /^[\}\]\)]$/
-	squareBrackets: /[\[\]]/
-	curlyBrackets: /[\{\}]/
 	bracketContents: /\[\s*(.+?)\s*\]/
 	hasSquareBrackets: /\[.+?\]/
 	firstWord: /^(\S+)/
@@ -15,7 +11,6 @@ REGEX =
 	varCompatible: /^[a-zA-Z_\$][0-9a-zA-Z_\$]*$/
 	assignmentValue: /[^=]+?=\s*([\w\W]+)/
 	initialWhitespace: /^[ \t]+/
-	initialExport: /^module\.exports\s*=\s*/
 	webpackModule: /__esModule/
 	decKeyword: /var|let|const/
 	requireArg: /\brequire[,\)]/
@@ -51,31 +46,6 @@ REGEX =
 		)
 	///g
 
-
-
-	# es6import: ///
-	# 	(
-	# 		[\ \t\r=]* 			# prior whitespace
-	# 	)
-	# 	(
-	# 		import				# import keyword
-	# 		\s+					# whitespace after import keyword
-	# 	)
-	# 	(
-	# 		(?:
-	# 			([^\*,\{\s]+) 	# default member
-	# 			,?\ ?			# trailing comma
-	# 		)?
-	# 		(
-	# 			\*\ as\ \S+		# all members
-	# 				|
-	# 			\{.+\} 			# specific members
-	# 		)?
-	# 		\ from
-	# 		\s*					# whitespace after members
-	# 	)
-	# 	(\S+?)					# filepath
-	# $///gm
 
 	es6import: ///
 		\b
@@ -136,10 +106,6 @@ REGEX =
 		\s+						# whitespace after import keyword
 		(.+)					# filepath
 	///g
-
-	# tsExport: ///
-	# 	\bexport\s+=\s*
-	# ///
 
 	es6export: ///^
 		(
