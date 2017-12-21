@@ -7,9 +7,6 @@ REGEX = require './constants/regex'
 helpers = require './helpers'
 {EMPTY_STUB} = require('./constants')
 
-Promise.onPossiblyUnhandledRejection (err, promise)->
-	console.error formatError(err)
-
 SimplyImport = ()->
 	SimplyImport.compile(arguments...)
 

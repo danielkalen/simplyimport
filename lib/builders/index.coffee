@@ -76,7 +76,7 @@ exports.moduleFn = (file, loaderName)->
 		lastStatement = file.ast
 	else
 		moduleBody.push file.ast.body...
-		lastStatement = file.ast.body.last()
+		lastStatement = file.ast.body[file.ast.body.length-1]
 
 	unless n.ReturnStatement.check(lastStatement)
 		body.push b.returnStatement b.propertyAccess('module', 'exports')
