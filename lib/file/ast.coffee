@@ -21,7 +21,7 @@ exports.getAST = (surpressErrors)->
 		@timeStart()
 		debug "parsing #{@pathDebug}"
 		try
-			ast = parser.parseStrict(@content, sourceFile:@pathRel, locations:@task.options.sourceMap)
+			ast = parser.parse(@content, sourceFile:@pathRel, locations:@task.options.sourceMap)
 		catch err
 			if surpressErrors
 				return @ast
