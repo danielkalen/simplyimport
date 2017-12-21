@@ -58,8 +58,8 @@ suite "common modules", ()->
 
 	test "redux", ()->
 		Promise.resolve()
-			.then ()-> helpers.lib "main.js": "module.exports = require('redux')"
-			.then ()-> processAndRun file:temp('main.js'), usePaths:true
+			.then ()-> helpers.lib "redux.js": "module.exports = require('redux')"
+			.then ()-> processAndRun file:temp('redux.js'), usePaths:true
 			.then ({result})->
 				assert.typeOf result, 'object'
 				assert.typeOf result.createStore, 'function'
