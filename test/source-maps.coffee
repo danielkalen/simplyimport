@@ -25,7 +25,6 @@ suite "source maps", ()->
 					exports.g = require('module-g')
 					exports.h = require('module-h')
 				"""
-				'main2.js': ['main.js', (content)-> "#{content}\nexports.h = require('module-h')"]
 				'a.js': "module.exports = 'aaa';"
 				'b.js': "export default 'bbb';"
 				'c.js': "export var c1 = 'ccc1';\n\nexport var c2='ccc2'"
@@ -213,46 +212,6 @@ suite "source maps", ()->
 					assert.deepEqual origPos(22,8),		line(8,8,'inlines.js')
 					assert.deepEqual origPos(22,12),	line(8,12,'inlines.js')
 					
-		
-
-		test.skip "mappings", ()->
-			fileContents = @fileContents
-			
-			Promise.resolve()
-				.then ()-> processAndRun file:temp('main.js'), sourceMap:true
-				.tap ({compiled})-> fs.writeAsync debug('sourcemap.js'), compiled
-				.then ({compiled, result})->
-					sourceMap = convertSourceMap.fromSource(compiled).sourcemap
-					mappingsRaw = getMappings(sourceMap)
-					mappings = Object.values mappingsRaw.groupBy(((map)-> map.name or map.source))
-					mappings = (mappings.map (group)-> group.inGroupsOf(2)).flatten(1)
-					compiledLines = pos(compiled)
-					
-					console.dir mappingsRaw, colors:true, depth:1
-					# console.dir mappings, colors:true, depth:4
-					# return
-					
-					mappings.forEach ([start, end], index)->
-						file = temp(start.source.replace('file://localhost/',''))
-						source = fileContents[file]
-						orig = start:pos.toIndex(source, start.original), end:pos.toIndex(source, end.original)
-						gen = start:pos.toIndex(compiled, start.generated), end:pos.toIndex(compiled, end.generated)
-						# debugStr = "mapping[#{index}] #{Path.relative(temp(), file)} "
-
-						console.log '\n\n\n'+chalk.dim(Path.relative(temp(), file))
-						console.log chalk.yellow(source.slice(orig.start, orig.end))
-						console.log chalk.green(compiled.slice(gen.start, gen.end))
-						# printCode(source)
-						# 	.highlightRange(start.original, end.original)
-						# 	.slice(start.original.line-1, end.original.line+2)
-						# 	.color('green')
-						# 	.print()
-						# console.log '-'.repeat(Math.min process.stdout.columns, 20)
-						# printCode(compiled)
-						# 	.highlightRange(start.generated, end.generated)
-						# 	.slice(start.generated.line-1, end.generated.line+2)
-						# 	.color('red')
-						# 	.print()
 
 
 
