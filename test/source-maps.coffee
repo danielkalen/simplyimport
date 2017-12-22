@@ -5,7 +5,6 @@ pos = require 'string-pos'
 extend = require 'smart-extend'
 getMappings = require 'combine-source-map/lib/mappings-from-map'
 convertSourceMap = require 'convert-source-map'
-printCode = require '@danielkalen/print-code'
 helpers = require './helpers'
 {assert, expect, sample, debug, temp, runCompiled, processAndRun, SimplyImport, emptyTemp, badES6Support} = helpers
 {SourceMapConsumer} = require 'source-map'
