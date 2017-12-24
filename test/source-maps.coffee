@@ -124,7 +124,7 @@ suite "source maps", ()->
 				assert.equal typeof result.map, 'object'
 
 
-	suite "mappings", ()->
+	suite.only "mappings", ()->
 		test "mixed", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib
@@ -221,7 +221,7 @@ suite "source maps", ()->
 					assert.deepEqual origPos(22,12),	line(8,12,'inlines.js')
 
 
-		test.skip "conditionals", ()->
+		test "conditionals", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib
 					'conditionals.js': """
@@ -268,10 +268,8 @@ suite "source maps", ()->
 					assert.deepEqual origPos(18,0),		line(6,0,'conditionals.js')
 					assert.deepEqual origPos(18,18),	line(1,0,'package.json')
 					assert.deepEqual origPos(19,0),		line(7,0,'conditionals.js')
-					assert.deepEqual origPos(19,12),	line(1,0,'node_modules/module-f/index.js')
-					assert.deepEqual origPos(22,0),		line(8,0,'conditionals.js')
-					assert.deepEqual origPos(22,8),		line(8,8,'conditionals.js')
-					assert.deepEqual origPos(22,12),	line(8,12,'conditionals.js')
+					assert.deepEqual origPos(19,8),		line(7,8,'conditionals.js')
+					assert.deepEqual origPos(19,12),	line(7,12,'conditionals.js')
 					
 
 

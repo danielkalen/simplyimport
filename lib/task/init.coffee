@@ -24,8 +24,9 @@ exports.initEntryFile = ()->
 				when typeof pkg.browser is 'string' then {"#{pkg.main}":pkg.browser}
 				when typeof pkg.browser is 'object' then extend(true, {}, pkg.browser)
 		
-		.then ()-> @options.env = getEnv(@options.env, @options.pkg.dirPath) # we do this here to allow loading of option from package.json
-		.then ()-> promiseBreak(@options.src) if @options.src
+			@options.env = getEnv(@options.env, @options.pkg.dirPath) # we do this here to allow loading of option from package.json
+			promiseBreak(@options.src) if @options.src
+		
 		.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
 		.then ()-> fs.readAsync(@options.file)
 		.catch promiseBreak.end
@@ -67,22 +68,18 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 	Promise.resolve(prev).bind(@)
 		.catch ()-> null # If prev was rejected with ignored/missing error
 		.tap ()-> debug "start file init for #{chalk.dim input}"
-		.then ()->
-			helpers.resolveModulePath(input, importer, @options.target)
-
+		.then ()-> helpers.resolveModulePath(input, importer, @options.target)
 		.then (module)->
 			pkg = module.pkg
 			return module.file
 
-		.then (input)->
-			helpers.resolveFilePath(input, importer, @entryFile.context, suppliedPath)
-		
-		.tap (config)-> debug "start file init #{config.pathDebug}"
+		.then (input)-> helpers.resolveFilePath(input, importer, @entryFile.context, suppliedPath)
 		.tap (config)->
 			if @cache[config.pathAbs]
 				debug "using cached file for #{config.pathDebug}"
 				promiseBreak(@cache[config.pathAbs])
 			else
+				debug "creating new file for #{config.pathDebug}"
 				@cache[config.pathAbs] = thisFileInit
 				return
 
@@ -91,15 +88,15 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 			config.isExternal = config.pkg isnt @entryFile.pkg
 			config.isExternalEntry = config.isExternal and config.pkg isnt importer.pkg
 
-		.tap (config)-> throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or config.isExternal and not @options.bundleExternal or @options.target is 'node' and BUILTINS.includes(suppliedPath)
-		.tap (config)-> throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
-		.tap (config)-> throw new Error('missing') if not fs.exists(config.pathAbs)
+			throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or config.isExternal and not @options.bundleExternal or @options.target is 'node' and BUILTINS.includes(suppliedPath)
+			throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
+			throw new Error('missing') if not fs.exists(config.pathAbs)
 
-		.tap (config)->
 			config.ID =
 				if isForceInlined then 'inline-forced'
 				else if @options.usePaths then config.pathRel
 				else ++@currentID
+
 			config.type = config.ID if isForceInlined
 			specificOptions = if config.isExternal then extend({}, config.pkg.simplyimport, @options.specific) else @options.specific
 			config.options = helpers.matchFileSpecificOptions(config, specificOptions)
@@ -124,7 +121,7 @@ getEnv = (env, context)-> switch
 
 	when typeof env is 'string'
 		path = Path.resolve(context, env)
-		return extend {}, require('mountenv').getAll(Path.dirname(path), Path.basename(path))
+		return require('mountenv').getAll(Path.dirname(path), Path.basename(path))
 
 	else process.env
 

@@ -25,7 +25,7 @@ exports.replaceConditionals = ()->
 	for line,index in @content.split('\n')
 		outputLines.push(line) unless linesToRemove[index]
 
-	@content = outputLines.join('\n')
+	@content = @original.content = outputLines.join('\n')
 	@timeEnd()
 	return
 
