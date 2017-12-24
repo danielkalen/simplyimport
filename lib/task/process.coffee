@@ -11,6 +11,7 @@ exports.processFile = (file)-> if file.processed then file.processed else
 	Promise.bind(file)
 		.tap ()-> debug "processing #{file.pathDebug}"
 		.then file.collectConditionals
+		.then file.replaceConditionals
 		.then ()=> @scanInlineStatements(file)
 		.then ()=> @replaceInlineStatements(file)
 		.tap ()-> promiseBreak() if file.type is 'inline-forced'

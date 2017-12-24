@@ -219,6 +219,59 @@ suite "source maps", ()->
 					assert.deepEqual origPos(22,0),		line(8,0,'inlines.js')
 					assert.deepEqual origPos(22,8),		line(8,8,'inlines.js')
 					assert.deepEqual origPos(22,12),	line(8,12,'inlines.js')
+
+
+		test.skip "conditionals", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib
+					'conditionals.js': """
+						exports.a = import './a'
+						// simplyimport:if VAR_A
+						exports.b = importInline './b'
+						// simplyimport:end
+						exports.c = 'c'
+						exports.d = importInline './d'
+						exports.e = 'e'
+						exports.version = importInline './package $ version'
+						// simplyimport:if VAR_B
+						exports.f = require('module-f')
+						// simplyimport:end
+						exports.g = require('module-g')
+					"""
+					'b.js': """
+						function(a,b){
+							return a+b
+						}
+					"""
+				.then ()-> process.env.VAR_A = 1; delete process.env.VAR_B
+				.then ()-> processAndRun file:temp('conditionals.js'), debug:true, 'sourcemap-conditionals.js'
+				.then ({compiled, result, writeToDisc})->
+					writeToDisc()
+					sourcemap = convertSourceMap.fromSource(compiled).sourcemap
+					consumer = new SourceMapConsumer sourcemap
+					origPos = origPosFn(consumer)
+
+					assert.deepEqual origPos(11,0),		line(1,0,'conditionals.js')
+					assert.deepEqual origPos(11,12),	line(1,12,'conditionals.js')
+					assert.deepEqual origPos(12,0),		line(2,0,'conditionals.js')
+					assert.deepEqual origPos(12,12),	line(1,0,'b.js')
+					assert.deepEqual origPos(12,22),	line(1,9,'b.js')
+					assert.deepEqual origPos(13,7),		line(2,8,'b.js')
+					assert.deepEqual origPos(15,0),		line(3,0,'conditionals.js')
+					assert.deepEqual origPos(15,12),	line(3,12,'conditionals.js')
+					assert.deepEqual origPos(16,0),		line(4,0,'conditionals.js')
+					assert.deepEqual origPos(16,12),	line(1,0,'d.js')
+					assert.deepEqual origPos(16,18),	line(1,5,'d.js')
+					assert.deepEqual origPos(16,24),	line(2,0,'d.js')
+					assert.deepEqual origPos(17,0),		line(5,0,'conditionals.js')
+					assert.deepEqual origPos(17,12),	line(5,12,'conditionals.js')
+					assert.deepEqual origPos(18,0),		line(6,0,'conditionals.js')
+					assert.deepEqual origPos(18,18),	line(1,0,'package.json')
+					assert.deepEqual origPos(19,0),		line(7,0,'conditionals.js')
+					assert.deepEqual origPos(19,12),	line(1,0,'node_modules/module-f/index.js')
+					assert.deepEqual origPos(22,0),		line(8,0,'conditionals.js')
+					assert.deepEqual origPos(22,8),		line(8,8,'conditionals.js')
+					assert.deepEqual origPos(22,12),	line(8,12,'conditionals.js')
 					
 
 

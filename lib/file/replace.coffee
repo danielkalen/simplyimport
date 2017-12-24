@@ -8,6 +8,28 @@ debug = require('../debug')('simplyimport:file')
 LOC_FIRST = {line:1, column:0}
 
 
+exports.replaceConditionals = ()->
+	return if not @conditionals.length
+	@timeStart()
+	linesToRemove = Object.create(null)
+	outputLines = []
+	
+	for conditional in @conditionals
+		if conditional.match
+			linesToRemove[conditional.start] = 1
+			linesToRemove[conditional.end] = 1
+		else
+			for index in [conditional.start..conditional.end]
+				linesToRemove[index] = 1
+	
+	for line,index in @content.split('\n')
+		outputLines.push(line) unless linesToRemove[index]
+
+	@content = outputLines.join('\n')
+	@timeEnd()
+	return
+
+
 exports.replaceES6Imports = ()->
 	return @content if EXTENSIONS.nonJS.includes(@pathExt)
 	hasImports = false

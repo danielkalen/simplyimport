@@ -1,12 +1,9 @@
 Promise = require 'bluebird'
-promiseBreak = require 'promise-break'
 stringPos = require 'string-pos'
 extend = require 'extend'
-parser = require '../external/parser'
 helpers = require '../helpers'
 REGEX = require '../constants/regex'
 EXTENSIONS = require '../constants/extensions'
-GLOBALS = require '../constants/globals'
 debug = require('../debug')('simplyimport:file')
 
 exports.collectRequiredGlobals = ()-> if not @has.externalBundle and not EXTENSIONS.static.includes(@pathExt)
@@ -19,96 +16,28 @@ exports.collectRequiredGlobals = ()-> if not @has.externalBundle and not EXTENSI
 
 
 exports.collectConditionals = ()->
-	Promise.bind(@)
-		.tap ()-> debug "collecting conditionals #{@pathDebug}"
-		.tap @timeStart
-		.then ()->
-			starts = []
-			ends = []
+	debug "collecting conditionals #{@pathDebug}"
+	return if not REGEX.ifStartStatement.test(@content)
+	@timeStart()
+	starts = []
+	ends = []
 
-			@content.replace REGEX.ifStartStatement, (e, logic, offset)=>
-				starts.push [offset, offset+(e.length-logic.length), logic.trim()]
-			
-			@content.replace REGEX.ifEndStatement, (e, offset)=>
-				ends.push [offset]
+	@content.replace REGEX.ifStartStatement, (e, logic, offset)->
+		starts.push [offset, offset+(e.length-logic.length), logic.trim()]
+	
+	@content.replace REGEX.ifEndStatement, (e, offset)->
+		ends.push [offset]
 
-			starts.forEach (start)=>
-				end = ends.find (end)-> end[0] > start[0]
-				end ?= [@content.length - 1]
-				@conditionals.push 
-					range: [start[0], end[0]]
-					start: stringPos(@original.content, start[0]).line-1
-					end: stringPos(@original.content, end[0]).line-1
-					match: @task.options.matchAllConditions or do ()=>
-						file = @
-						jsString = ''
-						tokens = parser.tokenize(start[2])
-						env = @task.options.env
-						BUNDLE_TARGET = @task.options.target
-
-						helpers.walkTokens tokens, @original.content, null, (token)->
-							switch token.type.label
-								when 'name'
-									if @_prev?.value is '.' or GLOBALS.includes(token.value)
-										jsString += token.value
-									else if token.value is 'BUNDLE_TARGET'
-										jsString += " '#{BUNDLE_TARGET}'"
-									else
-										value = env[token.value]
-										jsString += " env['#{token.value}']"
-
-								when 'string'
-									jsString += "'#{token.value}'"
-
-								when 'regexp'
-									jsString += "#{token.value.value}"
-
-								when '=','==/!=','||','|','&&','&'
-									jsString += ' ' + switch token.value
-										when '=','==','===' then '=='
-										when '!=','!==' then '!='
-										when '||','|' then '||'
-										when '&&','&' then '&&'
-										else token.value
-								else
-									if token.type.keyword
-										jsString += " #{token.value} "
-									else
-										jsString += token.value
-
-								# else file.task.emit 'ConditionalError', file, token.start+start[1], token.end+start[1]
-						try
-							return require('vm').runInNewContext(jsString, {env})
-						catch err
-							file.task.emit 'ConditionalError', file, err
-							return false
-
-		.tap ()-> promiseBreak() if not @conditionals.length
-		.then ()->
-			linesToRemove = []
-			@conditionals.forEach (conditional)=>
-				if conditional.match
-					linesToRemove.push conditional.start
-					linesToRemove.push conditional.end
-				else
-					linesToRemove.push [conditional.start..conditional.end]...
-				return
-			
-			return new ()-> @[index]=true for index in linesToRemove; @
-
-		.then (linesToRemove)->
-			outputLines = []
-			@content.split('\n').forEach (line, index)=>
-				if not linesToRemove[index]
-					outputLines.push(line)
-				else
-					index = stringPos.toIndex(@original.content,{line:index+1, column:0})
-
-			return outputLines.join('\n')
-
-		.then (result)-> @content = result
-		.catch promiseBreak.end
-		.tap @timeEnd
+	starts.forEach (start)=>
+		end = ends.find (end)-> end[0] > start[0]
+		end ?= [@content.length - 1]
+		@conditionals.push 
+			range: [start[0], end[0]]
+			start: stringPos(@original.content, start[0]).line-1
+			end: stringPos(@original.content, end[0]).line-1
+			match: @task.options.matchAllConditions or helpers.matchConditional(@, start, end)
+	
+	@timeEnd()
 
 
 

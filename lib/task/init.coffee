@@ -124,7 +124,7 @@ getEnv = (env, context)-> switch
 
 	when typeof env is 'string'
 		path = Path.resolve(context, env)
-		return require('mountenv').getAll(Path.dirname(path), Path.basename(path))
+		return extend {}, require('mountenv').getAll(Path.dirname(path), Path.basename(path))
 
 	else process.env
 

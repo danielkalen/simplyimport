@@ -7,7 +7,6 @@ require './customDef'
 class Parser
 	opts: (opts)-> extend({}, require('./acornOpts'), opts)
 	parse: (code, opts)-> acorn.parse code, @opts(opts)
-	tokenize: (code, opts)-> Array.from acorn.tokenizer code, opts
 	generate: (ast, opts)-> require('./codegen').generate ast, opts
 	find: require './find'
 	walk: require './walk'
