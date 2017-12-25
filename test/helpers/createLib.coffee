@@ -16,7 +16,7 @@ module.exports = (dest, files)->
 			if Array.isArray(content)
 				content = content[1](files[content[0]])
 			
-			fs.writeAsync Path.join(dest, fileName), content
+			fs.writeAsync Path.resolve(dest, fileName), content
 		
 		.return(dest)
 

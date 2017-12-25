@@ -11,6 +11,13 @@ SimplyImport = ()->
 	SimplyImport.bundle(arguments...)
 
 
+SimplyImport.task = (options)->
+	task = new Task(options)
+	Promise.bind(task)
+		.then task.initEntryFile
+		.return task
+
+
 SimplyImport.bundle = (options, returnStream)->
 	task = new Task(options)
 

@@ -36,6 +36,7 @@ suite "SimplyImport", ()->
 
 
 	require './misc'
+	require './options'
 	require './paths'
 	require './path-placeholders'
 	require './inline-imports'

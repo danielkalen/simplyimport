@@ -10,6 +10,7 @@ TEST = Path.resolve __dirname,'..'
 sample = ()-> Path.join TEST,'samples',arguments...
 debug = ()-> Path.join TEST,'debug',arguments...
 temp = ()-> Path.join TEST,'temp',arguments...
+tmp = ()-> Path.join require('../../lib/helpers/temp')(),arguments...
 
 emptyTemp = ()-> fs.dirAsync temp(), empty:true
 
@@ -45,6 +46,7 @@ exports.expect = expect
 exports.sample = sample
 exports.debug = debug
 exports.temp = temp
+exports.tmp = tmp
 exports.emptyTemp = emptyTemp
 exports.runCompiled = runCompiled
 exports.processAndRun = processAndRun
