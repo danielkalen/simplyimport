@@ -124,7 +124,7 @@ suite "source maps", ()->
 				assert.equal typeof result.map, 'object'
 
 
-	suite "mappings", ()->
+	suite.only "mappings", ()->
 		test "mixed", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib
@@ -270,6 +270,56 @@ suite "source maps", ()->
 					assert.deepEqual origPos(19,0),		line(7,0,'conditionals.js')
 					assert.deepEqual origPos(19,8),		line(7,8,'conditionals.js')
 					assert.deepEqual origPos(19,12),	line(7,12,'conditionals.js')
+
+
+		test.skip "mods", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib
+					'mods.js': """
+						exports.a = import './a'
+						exports.browser = process.browser
+						exports.b = importInline './b'
+						exports.c = import './c'
+						exports.d1 = import './d'
+						exports.d2 = import './d'
+					"""
+					'b.js': """
+						function(a,b){
+							return a+b
+						}
+					"""
+					'c.js': """
+						module.exports = function(arg){
+							return Buffer.from(arg)
+						}
+					"""
+					'd.js': """
+						var abc,def;
+						abc = 123
+						def = 456
+					"""
+				.then ()-> process.env.VAR_A = 1; delete process.env.VAR_B
+				.then ()-> processAndRun file:temp('mods.js'), debug:true, usePaths:true, 'sourcemap-mods.js'
+				.then ({compiled, result, writeToDisc})->
+					writeToDisc()
+					sourcemap = convertSourceMap.fromSource(compiled).sourcemap
+					consumer = new SourceMapConsumer sourcemap
+					origPos = origPosFn(consumer)
+
+					assert.deepEqual origPos(12,0),		line(1,0,'mods.js')
+					assert.deepEqual origPos(12,12),	line(1,12,'mods.js')
+					assert.deepEqual origPos(13,0),		line(2,0,'mods.js')
+					assert.deepEqual origPos(14,0),		line(3,0,'mods.js')
+					assert.deepEqual origPos(14,12),	line(1,0,'b.js')
+					assert.deepEqual origPos(14,22),	line(1,9,'b.js')
+					assert.deepEqual origPos(14,7),		line(2,8,'b.js')
+					assert.deepEqual origPos(18,0),		line(4,0,'mods.js')
+					assert.deepEqual origPos(18,12),	line(4,12,'mods.js')
+					assert.deepEqual origPos(19,0),		line(5,0,'mods.js')
+					assert.deepEqual origPos(20,0),		line(6,0,'mods.js')
+					
+					assert.deepEqual origPos(189,0),	line(1,0,'c.js')
+					assert.deepEqual origPos(190,7),	line(2,7,'c.js')
 					
 
 

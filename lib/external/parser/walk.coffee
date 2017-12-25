@@ -1,7 +1,7 @@
 walk = (node, cb, parent)->
-	cb(node, parent)
+	result = cb(node, parent)
 	
-	unless isEndNode(node)
+	unless isEndNode(node) or result is false
 		keys = Object.keys(node)
 
 		for key in keys

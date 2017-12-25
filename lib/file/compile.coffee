@@ -55,6 +55,7 @@ exports.replaceStatementsWithAST = ()->
 	for statement in @statements
 		Object.set statement.node.parent.node, statement.node.parent.key, statement.replacement
 		
+		statement.replacement.isReplacement = true
 		statement.replacement.start = statement.node.start
 		statement.replacement.end = statement.node.end
 		

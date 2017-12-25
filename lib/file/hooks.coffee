@@ -15,16 +15,13 @@ exports.postScans = ()->
 exports.postTransforms = ()->
 	debug "running post-transform functions #{@pathDebug}"
 	@timeStart()
-	# @content = @sourceMap.update(@content)
 	
 	if @requiredGlobals.process
 		@content = "var process = require('process');\n#{@content}"
-		# @sourceMap.addNullRange(0, 34, true)
 		@has.imports = true
 	
 	if @requiredGlobals.Buffer
 		@content = "var Buffer = require('buffer').Buffer;\n#{@content}"
-		# @sourceMap.addNullRange(0, 39, true)
 		@has.imports = true
 
 	@hashPostTransforms = stringHash(@content)
