@@ -20,14 +20,13 @@ exports.compile = ()->
 			parser.hoistAssignments @ast, @pendingMods.hoist
 
 
-
 	if @task.options.sourceMap
 		debug "applying source maps #{@pathDebug}"
 		if @sourceMaps.length
 			helpers.applySourceMapToAst(@ast, map) for map in @sourceMaps.reverse()
 
-		if @inlineStatements.length
-			helpers.applyForceInlineSourceMap(@)
+		if @inlineStatements.length or @offsets.length
+			helpers.applyOffsetsSourceMap(@)
 
 
 
@@ -63,6 +62,8 @@ exports.replaceStatementsWithAST = ()->
 			statement.replacement.loc = statement.node.loc
 		else
 			statement.replacement.loc = newLoc statement.target.pathRel
+			# if @task.options.sourceMap and statement.target.sourceMaps.length
+			# 	console.log a
 
 	return
 

@@ -18,10 +18,12 @@ exports.postTransforms = ()->
 	
 	if @requiredGlobals.process
 		@content = "var process = require('process');\n#{@content}"
+		@offsets.push pos:0, length:34
 		@has.imports = true
 	
 	if @requiredGlobals.Buffer
 		@content = "var Buffer = require('buffer').Buffer;\n#{@content}"
+		@offsets.push pos:0, length:39
 		@has.imports = true
 
 	@hashPostTransforms = stringHash(@content)

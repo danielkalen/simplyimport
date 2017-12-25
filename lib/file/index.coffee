@@ -21,6 +21,7 @@ class File
 		@statementNodes = null
 		@pendingMods = renames:[], hoist:[]
 		@sourceMaps = []
+		@offsets = []
 		@requiredGlobals = Object.create(null)
 		@original = {@pathExt, @content}
 		@options.placeholder = helpers.resolvePlaceholders(@)
@@ -61,12 +62,15 @@ class File
 		@inlineStatements.length = 0
 		@conditionals.length = 0
 		@sourceMaps.length = 0
+		@offsets.length = 0
 		delete @ID
 		delete @ast
 		delete @pendingMods
 		delete @statements
 		delete @inlineStatements
 		delete @conditionals
+		delete @sourceMaps
+		delete @offsets
 		delete @requiredGlobals
 		delete @parsed
 		delete @options

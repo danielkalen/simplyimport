@@ -55,7 +55,7 @@ exports.moduleProp = (file, loaderName)->
 exports.moduleFn = (file, loaderName)->
 	body = moduleBody = []
 	
-	if Object.keys(file.requiredGlobals).length
+	if file.requiredGlobals.__filename or file.requiredGlobals.__dirname
 		ARGS = []; VALUES = []
 		
 		if file.requiredGlobals.__filename

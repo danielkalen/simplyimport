@@ -220,6 +220,36 @@ suite "source maps", ()->
 					assert.deepEqual origPos(22,8),		line(8,8,'inlines.js')
 					assert.deepEqual origPos(22,12),	line(8,12,'inlines.js')
 
+		test.skip "inlines", ()->
+			Promise.resolve()
+				.then ()-> helpers.lib
+					'inlines-reg.js': """
+						exports.a = import './h'
+					"""
+					'h.js': """
+						module.exports = import './h1'
+					"""
+					'h1.js': """
+						function abc(a,b){
+							import './h2'
+						}
+					"""
+					'h2.coffee': """return a+b"""
+				.then ()-> processAndRun file:temp('inlines-reg.js'), debug:true, 'sourcemap-inlines-reg.js'
+				.then ({compiled, result, writeToDisc})->
+					writeToDisc()
+					sourcemap = convertSourceMap.fromSource(compiled).sourcemap
+					consumer = new SourceMapConsumer sourcemap
+					origPos = origPosFn(consumer)
+
+					console.log getMappings(sourcemap).map (i)->
+						"#{i.generated.line}:#{i.generated.column} --- #{i.original.line}:#{i.original.column}:#{i.source}"
+
+					# assert.deepEqual origPos(11,0),		line(1,0,'inlines-reg.js')
+					# assert.deepEqual origPos(11,12),	line(1,12,'inlines-reg.js')
+					# assert.deepEqual origPos(12,0),		line(2,0,'inlines-reg.js')
+					# assert.deepEqual origPos(12,12),	line(1,0,'b.js')
+
 
 		test "conditionals", ()->
 			Promise.resolve()
@@ -272,7 +302,7 @@ suite "source maps", ()->
 					assert.deepEqual origPos(19,12),	line(7,12,'conditionals.js')
 
 
-		test.skip "mods", ()->
+		test "mods", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib
 					'mods.js': """
@@ -290,7 +320,7 @@ suite "source maps", ()->
 					"""
 					'c.js': """
 						module.exports = function(arg){
-							return Buffer.from(arg)
+						return Buffer.from(arg)
 						}
 					"""
 					'd.js': """
@@ -312,14 +342,14 @@ suite "source maps", ()->
 					assert.deepEqual origPos(14,0),		line(3,0,'mods.js')
 					assert.deepEqual origPos(14,12),	line(1,0,'b.js')
 					assert.deepEqual origPos(14,22),	line(1,9,'b.js')
-					assert.deepEqual origPos(14,7),		line(2,8,'b.js')
-					assert.deepEqual origPos(18,0),		line(4,0,'mods.js')
-					assert.deepEqual origPos(18,12),	line(4,12,'mods.js')
-					assert.deepEqual origPos(19,0),		line(5,0,'mods.js')
-					assert.deepEqual origPos(20,0),		line(6,0,'mods.js')
+					assert.deepEqual origPos(15,7),		line(2,8,'b.js')
+					assert.deepEqual origPos(17,0),		line(4,0,'mods.js')
+					assert.deepEqual origPos(17,12),	line(4,12,'mods.js')
+					assert.deepEqual origPos(18,0),		line(5,0,'mods.js')
+					assert.deepEqual origPos(19,0),		line(6,0,'mods.js')
 					
-					assert.deepEqual origPos(189,0),	line(1,0,'c.js')
-					assert.deepEqual origPos(190,7),	line(2,7,'c.js')
+					assert.deepEqual origPos(186,0),	line(1,0,'c.js')
+					assert.deepEqual origPos(187,7),	line(2,7,'c.js')
 					
 
 

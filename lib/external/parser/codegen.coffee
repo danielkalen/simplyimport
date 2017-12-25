@@ -41,7 +41,7 @@ codegen.baseGenerator.ProgramContent = (node, state)->
 	@[node.content.type](node.content, state)
 
 
-skip = ['Identifier', 'ContentGroup']
+skip = ['Identifier', 'ContentGroup', 'Program']
 Object.keys(codegen.baseGenerator).forEach (method)->
 	return if skip.some((toSkip)-> method is toSkip) or method.includes('Literal')
 	fn = codegen.baseGenerator[method]
