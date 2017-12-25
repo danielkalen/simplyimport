@@ -2,6 +2,7 @@ helpers = require './'
 extend = require 'extend'
 chalk = require 'chalk'
 Path = require './path'
+REGEX = require '../constants/regex'
 
 template = (existing)-> extend
 	pathAbs: ''
@@ -29,4 +30,7 @@ module.exports = (pathAbs, entryContext, config)->
 	o.pathExt = 'yml' if o.pathExt is 'yaml'
 	o.pathBase = Path.basename(pathAbs)
 	o.pathName = Path.basename pathAbs, Path.extname(pathAbs)
+	if o.pathRel.includes('../node_modules')
+		o.pathRel = o.pathRel.replace(REGEX.pathBack,'')
+		o.contextRel = o.contextRel.replace(REGEX.pathBack,'')
 	return output

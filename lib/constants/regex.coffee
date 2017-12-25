@@ -1,4 +1,5 @@
 REGEX = 
+	pathBack: /(?:\.\.\/)+/
 	quotes: /['"]/
 	extractDelim: /\s*\$\s*/
 	endingSemi: /;$/

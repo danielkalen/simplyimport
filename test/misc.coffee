@@ -77,8 +77,8 @@ test "options.usePaths will cause modules to be labeled with their relative path
 			assert.notInclude bundleB.compiled, '0: function (require'
 			assert.notInclude bundleA.compiled, '"entry.js": function (require'
 			assert.include bundleB.compiled, '"entry.js": function (require'
-			assert.include bundleB.compiled, '"../node_modules/abc/index.js": function (require'
-			assert.include bundleB.compiled, '"../node_modules/def/nested/index.js": function (require'
+			assert.include bundleB.compiled, '"node_modules/abc/index.js": function (require'
+			assert.include bundleB.compiled, '"node_modules/def/nested/index.js": function (require'
 
 			context = bundleA.context
 			assert.equal context.abc, 'abc123'

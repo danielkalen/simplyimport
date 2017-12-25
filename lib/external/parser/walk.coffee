@@ -19,14 +19,15 @@ walk = (node, cb, parent)->
 	return
 
 isEndNode = (node)->
-	node.type is 'Literal' or
-	node.type is 'Identifier' or
-	node.type is 'ThisExpression' or
-	node.type is 'Super' or
-	node.type is 'BreakStatement' or
-	node.type is 'ContinueStatement' or
-	node.type is 'DebuggerStatement' or
-	node.type is 'EmptyStatement'
+	type = node.type
+	type is 'Literal' or
+	type is 'Identifier' or
+	type is 'ThisExpression' or
+	type is 'Super' or
+	type is 'BreakStatement' or
+	type is 'ContinueStatement' or
+	type is 'DebuggerStatement' or
+	type is 'EmptyStatement'
 
 
 

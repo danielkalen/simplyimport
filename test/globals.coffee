@@ -198,7 +198,7 @@ suite "globals", ()->
 			assert.equal context.abc, '/abc.js'
 			assert.equal context.def, '/'
 			assert.equal context.def2, '/..'
-			assert.deepEqual context.ghi, {file:'/../node_modules/ghi/index.js', dir:'/../node_modules/ghi'}
+			assert.deepEqual context.ghi, {file:'/node_modules/ghi/index.js', dir:'/node_modules/ghi'}
 			assert.equal context.jkl, '/inner/jkl.js'
 			assert.equal context.lmn, 'no file name'
 			assert.deepEqual result, {file:'/main.js', dir:'/'}
