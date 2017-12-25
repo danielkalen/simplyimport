@@ -8,8 +8,7 @@ debug = require('../debug')('simplyimport:file')
 LOC_FIRST = {line:1, column:0}
 
 
-exports.replaceConditionals = ()->
-	return if not @conditionals.length
+exports.replaceConditionals = ()-> if @conditionals.length
 	@timeStart()
 	linesToRemove = Object.create(null)
 	outputLines = []
@@ -32,9 +31,8 @@ exports.replaceConditionals = ()->
 
 exports.replaceES6Imports = ()->
 	return @content if EXTENSIONS.nonJS.includes(@pathExt)
-	hasImports = false
 	newContent = @content.replace REGEX.es6import, (original, meta, defaultMember='', members='', childPath)=>
-		hasImports = true
+		@has.imports = true
 		body = "#{childPath}"
 		body += ",'#{meta.replace /\s+from\s+/, ''}'" if meta
 		replacement = "_$sm(#{body})"
@@ -44,13 +42,13 @@ exports.replaceES6Imports = ()->
 			replacement = "_$sm(#{body}#{padding})"
 		return replacement
 
-	if hasImports and @pathExt is 'ts'
+	if @has.imports and @pathExt is 'ts'
 		newContent = "declare function _$sm(...a: any[]): any;\n#{newContent}"
 
 	return @content = newContent
 
 
-exports.restoreES6Imports = ()->
+exports.restoreES6Imports = ()-> if @has.imports
 	@content = @content.replace REGEX.tempImport, (entire, childPath, meta='')->
 		childPath = childPath.slice(1,-1)
 		meta = meta.slice(1,-1)
@@ -58,30 +56,33 @@ exports.restoreES6Imports = ()->
 
 
 
-exports.replaceInlineStatements = ()->
+exports.replaceInlineStatements = ()-> if @inlineStatements.length
 	@timeStart()
 	debug "replacing force-inline imports #{@pathDebug}"
 
+	output = ''
 	change = 0
-	split = helpers.splitContentByStatements(@content, @inlineStatements)
-	@content = split.reduce (acc, statement)=>
-		return acc+statement if typeof statement is 'string'
-		{range, rangeNew} = statement
-		statement.replacement = replacement = @resolveStatementReplacement(statement)
-		rangeNew.diff = replacement.length - range.length
-		rangeNew.start = range.start+change
-		rangeNew.end = rangeNew.start+replacement.length
-		change += rangeNew.diff
+	chunks = helpers.splitContentByStatements(@content, @inlineStatements)
 
-		return acc+replacement
+	for chunk in chunks
+		if typeof chunk isnt 'string'
+			{range, rangeNew} = statement = chunk
+			statement.replacement = replacement = @resolveStatementReplacement(statement)
+			rangeNew.diff = replacement.length - range.length
+			rangeNew.start = range.start+change
+			rangeNew.end = rangeNew.start+replacement.length
+			change += rangeNew.diff
+			chunk = replacement
 
-	@contentPostInlinement = @content if @inlineStatements.length
+		output += chunk
+
+	@contentPostInlinement = @content = output
 	@timeEnd()
 	return
 
 
 
-exports.resolveReplacements = ()->
+exports.resolveReplacements = ()-> if @statements.length
 	@timeStart()
 	debug "resolving replacements #{@pathDebug}"
 	type = 'inline-forced' if not @has.ast

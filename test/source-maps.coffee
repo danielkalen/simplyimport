@@ -124,7 +124,7 @@ suite "source maps", ()->
 				assert.equal typeof result.map, 'object'
 
 
-	suite.only "mappings", ()->
+	suite "mappings", ()->
 		test "mixed", ()->
 			Promise.resolve()
 				.then ()-> helpers.lib

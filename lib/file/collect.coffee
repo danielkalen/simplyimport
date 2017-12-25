@@ -15,9 +15,8 @@ exports.collectRequiredGlobals = ()-> if not @has.externalBundle and not EXTENSI
 	return
 
 
-exports.collectConditionals = ()->
+exports.collectConditionals = ()-> if REGEX.ifStartStatement.test(@content)
 	debug "collecting conditionals #{@pathDebug}"
-	return if not REGEX.ifStartStatement.test(@content)
 	@timeStart()
 	starts = []
 	ends = []
