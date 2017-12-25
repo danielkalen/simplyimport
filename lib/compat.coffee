@@ -11,15 +11,15 @@ transform = (file, opts)->
 		
 		(done)->
 			Promise.resolve()
-				.then ()-> compile(file, Buffer.concat(chunks).toString(), flags, opts)
+				.then ()-> bundle(file, Buffer.concat(chunks).toString(), flags, opts)
 				.then (compiled)=> @push(compiled)
 				.then ()-> done()
 				.catch done
 	)
 
 
-compile = (file, src, flags, opts)->
-	require('./').compile {
+bundle = (file, src, flags, opts)->
+	require('./').bundle {
 		file, src
 		umd: opts.umd
 		debug: flags.debug

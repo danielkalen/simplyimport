@@ -8,10 +8,10 @@ helpers = require './helpers'
 {EMPTY_STUB} = require('./constants')
 
 SimplyImport = ()->
-	SimplyImport.compile(arguments...)
+	SimplyImport.bundle(arguments...)
 
 
-SimplyImport.compile = (options, returnStream)->
+SimplyImport.bundle = (options, returnStream)->
 	task = new Task(options)
 
 	taskPromise = 
@@ -94,5 +94,4 @@ SimplyImport.scan = (options)->
 
 
 module.exports = SimplyImport
-module.exports.bundle = SimplyImport.compile
 module.exports.defaults = require('./task/defaults')

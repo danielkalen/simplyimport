@@ -2,12 +2,12 @@ helpers = require './helpers'
 {assert, expect, sample, debug, temp, runCompiled, processAndRun, emptyTemp, SimplyImport} = helpers
 
 
-test "SimplyImport() is an alias for SimplyImport.compile()", ()->
+test "SimplyImport() is an alias for SimplyImport.bundle()", ()->
 	Promise.resolve()
 		.then ()->
 			Promise.all [
 				SimplyImport(file:temp('basicMain.js'))
-				SimplyImport.compile(file:temp('basicMain.js'))
+				SimplyImport.bundle(file:temp('basicMain.js'))
 			]
 		.then ([bundleA, bundleB])->
 			assert.equal bundleA, bundleB
@@ -29,7 +29,7 @@ test "if neither options.src and options.file are passed an error will be thrown
 		.to.throw()
 
 
-test "compile command will return a promise by default and a stream if passed a truthy value as 2nd arg", ()->
+test "bundle command will return a promise by default and a stream if passed a truthy value as 2nd arg", ()->
 	promise = SimplyImport(src:'var abc = 123')
 	stream = SimplyImport(src:'var abc = 123', true)
 	assert.instanceOf promise, Promise, 'is instance of Promise'
