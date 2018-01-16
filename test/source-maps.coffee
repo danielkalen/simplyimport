@@ -162,15 +162,15 @@ suite "source maps", ()->
 					assert.deepEqual origPos(25,0),		line(7,0,'mixed.js')
 					assert.deepEqual origPos(26,0),		line(8,0,'mixed.js')
 					assert.deepEqual origPos(26,12),	line(1,0,'node_modules/module-f/index.js')
-					assert.deepEqual origPos(29,0),		line(9,0,'mixed.js')
-					assert.deepEqual origPos(33,0),		line(1,0,'a.js')
-					assert.deepEqual origPos(37,0),		line(1,0,'b.js')
-					assert.deepEqual origPos(37,18),	line(1,15,'b.js')
-					assert.deepEqual origPos(42,0),		line(1,0,'node_modules/module-e/_index.coffee')
-					assert.deepEqual origPos(42,31),	line(2,0,'node_modules/module-e/_index.coffee')
-					assert.deepEqual origPos(42,38),	line(2,5,'node_modules/module-e/_index.coffee')
-					assert.deepEqual origPos(51,5),		line(1,48,'node_modules/module-g/index.coffee')
-					assert.deepEqual origPos(55,6),		line(1,56,'node_modules/module-g/index.coffee')
+					assert.deepEqual origPos(28,0),		line(9,0,'mixed.js')
+					assert.deepEqual origPos(32,0),		line(1,0,'a.js')
+					assert.deepEqual origPos(36,0),		line(1,0,'b.js')
+					assert.deepEqual origPos(36,18),	line(1,15,'b.js')
+					assert.deepEqual origPos(41,0),		line(1,0,'node_modules/module-e/_index.coffee')
+					assert.deepEqual origPos(41,31),	line(2,0,'node_modules/module-e/_index.coffee')
+					assert.deepEqual origPos(41,38),	line(2,5,'node_modules/module-e/_index.coffee')
+					assert.deepEqual origPos(50,5),		line(1,48,'node_modules/module-g/index.coffee')
+					assert.deepEqual origPos(54,6),		line(1,56,'node_modules/module-g/index.coffee')
 		
 
 		test "force inlines", ()->
@@ -216,9 +216,9 @@ suite "source maps", ()->
 					assert.deepEqual origPos(18,18),	line(1,0,'package.json')
 					assert.deepEqual origPos(19,0),		line(7,0,'inlines.js')
 					assert.deepEqual origPos(19,12),	line(1,0,'node_modules/module-f/index.js')
-					assert.deepEqual origPos(22,0),		line(8,0,'inlines.js')
-					assert.deepEqual origPos(22,8),		line(8,8,'inlines.js')
-					assert.deepEqual origPos(22,12),	line(8,12,'inlines.js')
+					assert.deepEqual origPos(21,0),		line(8,0,'inlines.js')
+					assert.deepEqual origPos(21,8),		line(8,8,'inlines.js')
+					assert.deepEqual origPos(21,12),	line(8,12,'inlines.js')
 
 		test.skip "inlines", ()->
 			Promise.resolve()

@@ -7,8 +7,8 @@ debug = require('../debug')('simplyimport:file')
 
 
 exports.parse = ()->
-	unless EXTENSIONS.nonJS.includes(@pathExt) or (not @has.imports and not @has.exports)
-		@ast = @getAST()
+	unless EXTENSIONS.nonJS.includes(@pathExt)
+		@ast = @getAST() if @has.imports or @has.exports or @task.options.sourceMap
 	
 	if not @ast
 		@ast = builders.b.content(@content)
