@@ -5,6 +5,7 @@ File = require '../file'
 debug = require('../debug')('simplyimport:task')
 
 exports.prepareSourceMap = ()-> if @sourceMap
+	@sourceMap.setSourceContent @entryFile.pathRel, @entryFile.original.content
 	for statement in @statements.concat(@inlineStatements) when statement.kind isnt 'excluded'
 		@sourceMap.setSourceContent statement.target.pathRel, statement.target.original.content
 	return
