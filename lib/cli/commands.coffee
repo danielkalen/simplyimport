@@ -49,7 +49,7 @@ exports.push
 			
 			.then (content)-> options.src = content
 			.catch promiseBreak.end
-			.then ()-> require('../').compile(options)
+			.then ()-> require('../').bundle(options)
 			.then (compiled)->
 				if options.output
 					fs.writeAsync(options.output, compiled)

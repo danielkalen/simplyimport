@@ -119,6 +119,9 @@ exports.resolveStatementReplacement = (statement, type)->
 		when 'export'
 			return builders.export(statement)
 
+		else # empty stub
+			return builders.emptyObject(statement)
+
 
 
 

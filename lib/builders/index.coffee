@@ -88,6 +88,11 @@ exports.moduleFn = (file, loaderName)->
 	)
 
 
+exports.emptyObject = (statement)->
+	b.objectExpression [
+		b.property('init', b.identifier('empty'), b.literal(true))
+	]
+
 
 exports.inlineImport = (statement)->
 	{target, source} = statement
