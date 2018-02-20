@@ -21,7 +21,7 @@ createBundle = ()->
 		.then ()->
 			console.log chalk.dim "Run ##{++state.count}"
 			state.start = process.hrtime()
-			SimplyImport.compile src:"module.exports = require('crypto')"
+			SimplyImport.bundle src:"module.exports = require('crypto')"
 		
 		.then ()->
 			duration = process.hrtime(state.start)

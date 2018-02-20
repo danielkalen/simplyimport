@@ -3,6 +3,7 @@ promiseBreak = require 'promise-break'
 helpers = require './'
 streamify = require 'streamify-string'
 getStream = require 'get-stream'
+stringHash = require 'string-hash'
 
 
 
@@ -21,7 +22,7 @@ runTransform = (file, content, transformer, transformOpts)->
 
 
 module.exports = runTransform.memoize (file, content, transformer, flags)->
-	"""
+	stringHash """
 		#{file.pathAbs}
 		#{flags._flags.debug}
 		#{content}

@@ -2,6 +2,7 @@ Path = require './path'
 findPkgJson = require 'read-pkg-up'
 Promise = require 'bluebird'
 promiseBreak = require 'promise-break'
+hashsum = require '@danielkalen/hash-sum'
 helpers = require './'
 {EMPTY_STUB} = require('../constants')
 coreShims = require('../constants/coreShims')
@@ -78,7 +79,9 @@ resolveAllAliases = ((moduleName, output, importer, target)->
 	if alias isnt output.file and alias isnt moduleName
 		importer = simulateImporter(output, importer) if alias is aliasFromOutput
 		promiseBreak resolveModulePath(alias, importer, target)
-).memoize()
+
+).memoize (moduleName, output, importer, target)->
+	"#{importer.task.ID}/#{target}/#{moduleName}/#{hashsum output.pkg.browser}"
 
 
 
@@ -107,7 +110,7 @@ packageFilter = (pkg, path)->
 	return pkg
 
 
-pathFilter = ((importer, target)-> (pkg, path, relativePath)->
+pathFilter = (importer, target)-> (pkg, path, relativePath)->
 	return if path.endsWith('/')
 	return path if target is 'node'
 	helpers.normalizePackage({pkg, path:pkg.srcPath})
@@ -115,7 +118,6 @@ pathFilter = ((importer, target)-> (pkg, path, relativePath)->
 		return resolveAlias(path, importer, target, pkg.browser)
 	else
 		return path
-).memoize (importer, target)-> importer.pkg.dirPath
 
 
 

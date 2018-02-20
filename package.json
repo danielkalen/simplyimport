@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@danielkalen/browserify-zlib": "^0.1.5",
+    "@danielkalen/hash-sum": "^1.0.4",
     "acorn": "^5.0.3",
     "assert": "^1.4.1",
     "ast-types": "^0.9.11",

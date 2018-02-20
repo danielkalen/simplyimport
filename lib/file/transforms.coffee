@@ -101,19 +101,20 @@ exports.applyTransforms = (content, transforms, label)->
 			Promise.bind(@)
 				.tap ()-> debug "applying transform #{chalk.yellow transformer.name} to #{@pathDebug} (from #{label} transforms)"
 				.then ()-> helpers.runTransform(@, content, transformer, transformOpts)
-				.then (content)->
-					return content if content is prevContent
+				.then (newContent)->
+					return newContent if newContent is prevContent
 					if transformer.name.includes(/coffeeify|tsify-transform/)
 						@pathExt = 'js'
 					else if transformer.name.includes(/csonify|yamlify/)
 						@pathExt = 'json'
-						content = content.replace /^module\.exports\s*=\s*/, ''
-						content = content.slice(0,-1) if content[content.length-1] is ';'
+						newContent = newContent.replace /^module\.exports\s*=\s*/, ''
+						newContent = newContent.slice(0,-1) if newContent[newContent.length-1] is ';'
 					
 					if @pathExt isnt @original.pathExt
 						@pathAbs = helpers.changeExtension(@pathAbs, @pathExt)
 					
-					return @extractSourceMap(content)
+					return @extractSourceMap(newContent)
+				.finally ()-> content = null
 			
 		, content)
 		.catch (err)->
@@ -121,6 +122,7 @@ exports.applyTransforms = (content, transforms, label)->
 			return prevContent
 
 		.tap @timeEnd
+		.finally ()-> content = transforms = label = lastTransformer = prevContent = null
 
 
 

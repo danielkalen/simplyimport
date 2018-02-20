@@ -111,6 +111,7 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 		.tap (config)-> debug "done file init #{config.pathDebug}"
 		.tap (file)-> @files.push file
 		.catch promiseBreak.end
+		.finally ()-> pkg = thisFileInit = input = prev = importer = suppliedPath = null
 
 
 

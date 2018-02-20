@@ -82,6 +82,7 @@ module.exports = (input, importer, entryContext, suppliedPath)->
 	Promise.resolve()
 		.then ()-> resolveFilePath(input, importer)
 		.then (pathAbs)-> helpers.newPathConfig pathAbs, entryContext, {suppliedPath}
+		.finally ()-> importer = input = entryContext = suppliedPath = null
 
 
 
