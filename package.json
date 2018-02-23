@@ -67,7 +67,7 @@
     "https-browserify": "0.0.1",
     "is-plain-obj": "^1.1.0",
     "md5": "^2.1.0",
-    "micromatch": "^2.3.11",
+    "micromatch": "^3.0.0",
     "minimist": "^1.2.0",
     "object.entries": "^1.0.4",
     "os-browserify": "^0.2.1",
