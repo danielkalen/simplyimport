@@ -57,6 +57,7 @@ suite "SimplyImport", ()->
 	require './umd-bundles'
 	require './bin-files'
 	require './common-modules'
+	require './stubs'
 	require './browserify'
 	require './scan'
 	require './sass'

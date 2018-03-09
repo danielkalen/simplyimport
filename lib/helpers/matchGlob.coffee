@@ -13,7 +13,8 @@ module.exports = matchGlob = (config, globs)->
 			micromatch.isMatch(config.pathAbs, glob) or
 			micromatch.isMatch(config.pathRel, glob) or
 			micromatch.isMatch(config.path, glob) or
-			micromatch.isMatch(config.suppliedPath, glob, MATCH_BASE)
+			micromatch.isMatch(config.suppliedPath, glob, MATCH_BASE) or
+			micromatch.isMatch(config.suppliedPath, "./#{glob}", MATCH_BASE)
 				matchingGlob = glob
 
 	return matchingGlob

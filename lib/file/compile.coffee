@@ -52,6 +52,7 @@ exports.replaceStatementsWithoutAST = ()->
 
 exports.replaceStatementsWithAST = ()->
 	for statement in @statements
+		continue if statement.isNested
 		Object.set statement.node.parent.node, statement.node.parent.key, statement.replacement
 		
 		statement.replacement.isReplacement = true

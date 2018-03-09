@@ -20,6 +20,7 @@ module.exports =
 	excludeFile: []
 	specific: {}
 	placeholder: {}
+	stub: {}
 	env: undefined
 	loaderName: 'require'
 	target: 'browser'

@@ -25,19 +25,14 @@ exports.initEntryFile = ()->
 				when typeof pkg.browser is 'object' then extend(true, {}, pkg.browser)
 		
 			@options.env = getEnv(@options.env, @options.pkg.dirPath) # we do this here to allow loading of option from package.json
-			promiseBreak(@options.src) if @options.src
 		
-		.then ()-> fs.existsAsync(@options.file).then (exists)=> if not exists then @emit 'missingEntry'
-		.then ()-> fs.readAsync(@options.file)
-		.catch promiseBreak.end
-		.then (content)->
+		.then @getEntryFileContent
+		.then (config)->
 			path = helpers.simplifyPath(@options.suppliedPath)
 			base = if @options.file then Path.basename(@options.file) else 'entry.js'
-			config =
+			extend config,
 				ID: if @options.usePaths then 'entry.js' else ++@currentID
 				isEntry: true
-				content: content
-				hash: stringHash(content)
 				pkg: @options.pkg
 				suppliedPath: @options.file or ''
 				context: @options.context
@@ -101,11 +96,7 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 			specificOptions = if config.isExternal then extend({}, config.pkg.simplyimport, @options.specific) else @options.specific
 			config.options = helpers.matchFileSpecificOptions(config, specificOptions)
 		
-		.tap (config)->
-			fs.readAsync(config.pathAbs).then (content)->
-				config.content = content
-				config.hash = stringHash(content)
-			
+		.tap (config)-> @getFileContent(config).then (content)-> extend(config, content)
 		.then (config)-> new File(@, config)
 		
 		.tap (config)-> debug "done file init #{config.pathDebug}"
@@ -114,6 +105,22 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 		.finally ()-> pkg = thisFileInit = input = prev = importer = suppliedPath = null
 
 
+exports.getFileContent = (config)->
+	Promise.resolve()
+		.then ()=>
+			stubKey = helpers.matchGlob(config, Object.keys @options.stub)
+			if stubKey
+				return @options.stub[stubKey]
+			else
+				return fs.readAsync(config.pathAbs or config)
+
+		.then (content)-> {content, hash:stringHash(content)}
+
+
+exports.getEntryFileContent = ()-> switch
+	when @options.src then {content:@options.src, hash:stringHash(@options.src)}
+	when not fs.exists(@options.file) then @emit 'missingEntry'
+	else @getFileContent(@options.file)
 
 
 getEnv = (env, context)-> switch
