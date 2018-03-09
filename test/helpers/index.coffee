@@ -5,7 +5,9 @@ SimplyImport = require '../../'
 nodeVersion = parseFloat(process.version.slice(1))
 badES6Support = nodeVersion < 6.2
 TEST = Path.resolve __dirname,'..'
-{assert, expect} = require 'chai'
+chai = require 'chai'
+chai.use require 'chai-as-promised'
+{assert, expect} = chai
 
 sample = ()-> Path.join TEST,'samples',arguments...
 debug = ()-> Path.join TEST,'debug',arguments...

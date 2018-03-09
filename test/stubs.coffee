@@ -14,6 +14,11 @@ suite "stubs", ()->
 				export var b2 = require('./b2')
 				export var b3 = require('./b3')
 			"""
+			'stubber.js': """
+				export var a1 = require('./a1')
+				export var b1 = require('./b1')
+				export var c1 = require('./c1')
+			"""
 			'a1.js': "module.exports = 'a1'"
 			'a2/index.coffee': "module.exports = 'a2'"
 			'a3/index.js': "module.exports = 'a3'"
@@ -54,6 +59,19 @@ suite "stubs", ()->
 				b1: 'B*'
 				b2: 'B*'
 				b3: 'B*'
+
+
+	test "stubs can be used on non existent files", ()->
+		Promise.resolve()
+			.then ()-> expect(processAndRun file:temp('stubber.js')).to.be.rejected
+			.then ()-> processAndRun file:temp('stubber.js'), stub:
+				"a1": "export default 'A1'"
+				"c1": "export default 'C1'"
+
+			.then ({result})-> expect(result).to.eql
+				a1: 'A1'
+				b1: 'b1'
+				c1: 'C1'
 
 
 

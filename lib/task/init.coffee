@@ -85,7 +85,7 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 
 			throw new Error('excluded') if helpers.matchGlob(config, @options.excludeFile) or config.isExternal and not @options.bundleExternal or @options.target is 'node' and BUILTINS.includes(suppliedPath)
 			throw new Error('ignored') if helpers.matchGlob(config, @options.ignoreFile)
-			throw new Error('missing') if not fs.exists(config.pathAbs)
+			throw new Error('missing') if not @getStubKey(config) and not fs.exists(config.pathAbs)
 
 			config.ID =
 				if isForceInlined then 'inline-forced'
@@ -108,8 +108,7 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 exports.getFileContent = (config)->
 	Promise.resolve()
 		.then ()=>
-			stubKey = helpers.matchGlob(config, Object.keys @options.stub)
-			if stubKey
+			if stubKey = @getStubKey(config)
 				return @options.stub[stubKey]
 			else
 				return fs.readAsync(config.pathAbs or config)
@@ -121,6 +120,10 @@ exports.getEntryFileContent = ()-> switch
 	when @options.src then {content:@options.src, hash:stringHash(@options.src)}
 	when not fs.exists(@options.file) then @emit 'missingEntry'
 	else @getFileContent(@options.file)
+
+
+exports.getStubKey = (config)->
+	helpers.matchGlob(config, Object.keys @options.stub)
 
 
 getEnv = (env, context)-> switch
