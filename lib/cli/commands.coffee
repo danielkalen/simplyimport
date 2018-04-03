@@ -5,7 +5,9 @@ chalk = require 'chalk'
 fs = require 'fs'
 
 collectArgs = (arg, store)-> store.push(arg); return store
-
+handleError = (err)->
+	console.error(err)
+	process.exit(1)
 
 exports = module.exports = []
 exports.push
@@ -55,6 +57,8 @@ exports.push
 					fs.writeAsync(options.output, compiled)
 				else
 					process.stdout.write(compiled)
+			
+			.catch handleError
 
 exports.push
 	command: ["list [path]"]
@@ -95,6 +99,7 @@ exports.push
 			.then (tree)-> fileTree = new (require './fileTree')(options, tree)
 			.then ()-> fileTree.compute()
 			.then ()-> fileTree.render()
+			.catch handleError
 
 
 
