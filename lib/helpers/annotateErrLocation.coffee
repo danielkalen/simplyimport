@@ -7,13 +7,16 @@ module.exports = (file, posStart, posEnd=posStart+1)->
 	start = stringPos(content, posStart)
 	end = stringPos(content, posEnd)
 	
-	codeHighlight =
-		printCode(file.content)
-			.highlightRange(start, end)
-			.slice(start.line-1, end.line+2)
-			.color 'red'
-			.arrow_mark start.line, start.column+1
-			.get()
+	try	
+		codeHighlight =
+			printCode(file.content)
+				.highlightRange(start, end)
+				.slice(start.line-1, end.line+2)
+				.color 'red'
+				.arrow_mark start.line, start.column+1
+				.get()
+	catch
+		codeHighlight = '<error in highlighting code>'
 
 	"""
 		\n
