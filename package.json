@@ -19,6 +19,14 @@
     "simplyimport": "./bin",
     "simplyimport-debug": "./bin-debug"
   },
+  "files": [
+    "lib",
+    "bin",
+    "bin-debug",
+    "compat.js",
+    "empty.js",
+    "index.js"
+  ],
   "author": "danielkalen",
   "repository": {
     "type": "git",
