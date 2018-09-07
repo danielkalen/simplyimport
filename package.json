@@ -68,7 +68,7 @@
     "domain-browser": "^1.1.7",
     "events": "^1.1.1",
     "extend": "^3.0.0",
-    "fs-jetpack": "^0.13.3",
+    "fs-jetpack": "^2.1.0",
     "get-stream": "^3.0.0",
     "gzipped": "0.0.5",
     "https-browserify": "0.0.1",
@@ -109,7 +109,7 @@
     "clarify": "^2.0.0",
     "coffee-coverage": "^2.0.1",
     "execa": "^0.8.0",
-    "package-install": "^1.2.1"
+    "package-install": "^1.2.6"
   },
   "nyc": {
     "exclude": [

@@ -15,7 +15,6 @@ testModules = [
 	'redux', 'lodash', 'leakage', 'formatio', 'chai-as-promised',
 	'location', 'pug', 'node-sass', 'html2json', 'modcss', ['traceur', ()-> parseFloat(process.version.slice(1)) < 6.2]]
 
-
 task 'test', ()->
 	Promise.resolve()
 		.then ()-> packageInstall testModules
