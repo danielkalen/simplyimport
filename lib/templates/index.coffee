@@ -18,11 +18,13 @@ exports.iife = new Template
 exports.loaderBrowser = new Template
 	body: """
 		LOADER = (function(cache,modules,cx){
-			return function(r){
+			var loader = function(r){
 				if (!modules[r]) throw new Error(r+' is not a module')
 				return cache[r] ? cache[r].exports
 								: ( cache[r]={exports:{}}, cache[r].exports=modules[r].call(cx, LOADER, cache[r], cache[r].exports) );
 			};
+			loader.modules = modules
+			return loader
 		})({},{},this);
 	"""
 	placeholders:
