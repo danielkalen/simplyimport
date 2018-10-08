@@ -74,7 +74,7 @@ suite "core module shims", ()->
 	test "http", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib "main.js": "module.exports = require('http')"
-			.then ()-> processAndRun file:temp('main.js'), usePaths:true, null, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
+			.then ()-> processAndRun file:temp('main.js'), usePaths:true, undefined, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
 			.then ({result, writeToDisc})->
 				assert.typeOf result, 'object'
 				assert.typeOf result.get, 'function'
@@ -84,7 +84,7 @@ suite "core module shims", ()->
 	test "https", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib "main.js": "module.exports = require('https')"
-			.then ()-> processAndRun file:temp('main.js'), usePaths:true, null, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
+			.then ()-> processAndRun file:temp('main.js'), usePaths:true, undefined, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
 			.then ({result, writeToDisc})->
 				assert.typeOf result, 'object'
 				assert.typeOf result.get, 'function'

@@ -5,7 +5,7 @@ suite "common modules", ()->
 	test "axios", ()->
 		Promise.resolve()
 			.then ()-> helpers.lib "main.js": "module.exports = require('axios')"
-			.then ()-> processAndRun file:temp('main.js'), null, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
+			.then ()-> processAndRun file:temp('main.js'), undefined, {XMLHttpRequest:require('xmlhttprequest').XMLHttpRequest, location:require('location')}
 			.then ({result, writeToDisc})->
 				assert.typeOf result, 'function'
 				req = null; token = result.CancelToken.source();

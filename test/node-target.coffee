@@ -77,8 +77,8 @@ suite "when options.target is set to 'node'", ()->
 
 			.then ()->
 				Promise.all [
-					processAndRun {file:temp('main.js'), usePaths:true, target:'browser'}, null, {Buffer}
-					processAndRun {file:temp('main.js'), usePaths:true, target:'node'}, null, {Buffer}
+					processAndRun {file:temp('main.js'), usePaths:true, target:'browser'}, undefined, {Buffer}
+					processAndRun {file:temp('main.js'), usePaths:true, target:'node'}, undefined, {Buffer}
 				]
 
 			.then ([browser, node])->
@@ -103,8 +103,8 @@ suite "when options.target is set to 'node'", ()->
 
 			.then ()->
 				Promise.all [
-					processAndRun {file:temp('main.js'), usePaths:true, target:'browser'}, null, {require}
-					processAndRun {file:temp('main.js'), usePaths:true, target:'node'}, null, {require}
+					processAndRun {file:temp('main.js'), usePaths:true, target:'browser'}, undefined, {require}
+					processAndRun {file:temp('main.js'), usePaths:true, target:'node'}, undefined, {require}
 				]
 
 			.then ([browser, node])->

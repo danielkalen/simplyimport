@@ -10,7 +10,7 @@ debug = require('../debug')('simplyimport:task')
 
 class Task extends require('events')
 	constructor: (options)->
-		super
+		super()
 		options = file:options if typeof options is 'string'
 		throw new Error("either options.file or options.src must be provided") if not options.file and not options.src
 		@currentID = -1
