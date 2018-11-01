@@ -242,7 +242,7 @@ exports.export = (statement)->
 					
 					if n.AssignmentExpression.check(dec) and not dec.right.id
 						if n.FunctionExpression.check(dec.right) or n.ClassExpression.check(dec.right)
-							statement.dec.right.id = ast.dec.left
+							statement.dec.right.id = dec.left
 
 				when n.FunctionDeclaration.check(dec)
 					if not dec.id
