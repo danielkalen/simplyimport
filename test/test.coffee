@@ -51,6 +51,7 @@ suite "SimplyImport", ()->
 	require './cyclic-imports'
 	require './globals'
 	require './transforms'
+	require './package'
 	require './extraction'
 	require './conditionals'
 	require './core-shims'
