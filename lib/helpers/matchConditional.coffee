@@ -52,7 +52,7 @@ constructScript = ((code, target)->
 			when 'regexp'
 				output += "#{token.value.value}"
 
-			when '=','==/!=','||','|','&&','&'
+			when '=','==/!=','==/!=/===/!==','||','|','&&','&'
 				output += ' ' + switch token.value
 					when '=','==','===' then '=='
 					when '!=','!==' then '!='
@@ -64,7 +64,6 @@ constructScript = ((code, target)->
 					output += " #{token.value} "
 				else
 					output += token.value
-
 
 	return output
 ).memoize()

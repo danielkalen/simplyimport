@@ -93,7 +93,7 @@ exports.initFile = (input, importer, isForceInlined, prev=@prevFileInit)->
 				else ++@currentID
 
 			config.type = config.ID if isForceInlined
-			specificOptions = if config.isExternal then extend({}, config.pkg.simplyimport?.specific, @options.specific) else @options.specific
+			specificOptions = if config.isExternal then extend({}, config.pkg.simplyimport?.specific, importer.pkg.simplyimport?.specific, @options.specific) else @options.specific
 			config.options = helpers.matchFileSpecificOptions(config, specificOptions)
 		
 		.tap (config)-> @getFileContent(config).then (content)-> extend(config, content)
