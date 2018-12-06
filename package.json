@@ -75,7 +75,7 @@
     "inline-source-map": "github:danielkalen/inline-source-map",
     "micromatch": "^2.3.11",
     "minimist": "^1.2.0",
-    "mountenv": "^0.3.1",
+    "mountenv": "^0.4.1",
     "os-browserify": "^0.2.1",
     "path-browserify": "0.0.0",
     "print-code": "github:danielkalen/print-code",
